@@ -1,0 +1,81 @@
+{
+  "Files": [
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\keyraces.Server.bundle.scp.css",
+      "PackagePath": "staticwebassets\\keyraces.Server.nak2dhnlrg.bundle.scp.css"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\css\\bootstrap\\bootstrap.min.css",
+      "PackagePath": "staticwebassets\\css\\bootstrap\\bootstrap.min.css"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\css\\bootstrap\\bootstrap.min.css.map",
+      "PackagePath": "staticwebassets\\css\\bootstrap\\bootstrap.min.css.map"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\css\\open-iconic\\FONT-LICENSE",
+      "PackagePath": "staticwebassets\\css\\open-iconic"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\css\\open-iconic\\ICON-LICENSE",
+      "PackagePath": "staticwebassets\\css\\open-iconic"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\css\\open-iconic\\README.md",
+      "PackagePath": "staticwebassets\\css\\open-iconic\\README.md"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\css\\open-iconic\\font\\css\\open-iconic-bootstrap.min.css",
+      "PackagePath": "staticwebassets\\css\\open-iconic\\font\\css\\open-iconic-bootstrap.min.css"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\css\\open-iconic\\font\\fonts\\open-iconic.eot",
+      "PackagePath": "staticwebassets\\css\\open-iconic\\font\\fonts\\open-iconic.eot"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\css\\open-iconic\\font\\fonts\\open-iconic.otf",
+      "PackagePath": "staticwebassets\\css\\open-iconic\\font\\fonts\\open-iconic.otf"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\css\\open-iconic\\font\\fonts\\open-iconic.svg",
+      "PackagePath": "staticwebassets\\css\\open-iconic\\font\\fonts\\open-iconic.svg"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\css\\open-iconic\\font\\fonts\\open-iconic.ttf",
+      "PackagePath": "staticwebassets\\css\\open-iconic\\font\\fonts\\open-iconic.ttf"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\css\\open-iconic\\font\\fonts\\open-iconic.woff",
+      "PackagePath": "staticwebassets\\css\\open-iconic\\font\\fonts\\open-iconic.woff"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\css\\site.css",
+      "PackagePath": "staticwebassets\\css\\site.css"
+    },
+    {
+      "Id": "E:\\Университет\\4 курс\\диплом\\keyraces\\keyraces\\keyraces.Server\\wwwroot\\favicon.ico",
+      "PackagePath": "staticwebassets\\favicon.ico"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.keyraces.Server.props",
+      "PackagePath": "build\\keyraces.Server.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.keyraces.Server.props",
+      "PackagePath": "buildMultiTargeting\\keyraces.Server.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.keyraces.Server.props",
+      "PackagePath": "buildTransitive\\keyraces.Server.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.keyraces.Server.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.keyraces.Server.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
