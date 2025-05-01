@@ -1,0 +1,62 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Bb]in/
+[Oo]bj/
+[Dd]ebug*/
+[Rr]elease*/
+x64/
+x86/
+build/
+
+# Rider
+.idea/
+
+# User-specific files
+*.rsuser
+*.dotsettings
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# NuGet packages
+**/packages/*
+!**/packages/build/
+*.nupkg
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# EF Migrations
+Migrations/
+
+# Visual Studio Code
+.vscode/
+
+# Docker
+docker-compose*.yml
+Dockerfile
+
+# Local environment files
+.env
+.env.*.local
+
+# Redis persistence
+dump.rdb
+
+# Logs
+logs/
+*.log
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.DS_Store
