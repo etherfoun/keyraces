@@ -1,0 +1,44 @@
+﻿@page "/register"
+@using keyraces.Server.Dtos
+@using Microsoft.AspNetCore.Components.Forms
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<h3>Registration</h3>
+
+<EditForm Model="@model" OnValidSubmit="HandleRegister">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-2">
+        <label>Name</label>
+        <InputText @bind-Value="model.Name" class="form-control" />
+    </div>
+    <div class="mb-2">
+        <label>Email</label>
+        <InputText @bind-Value="model.Email" class="form-control" />
+    </div>
+    <div class="mb-2">
+        <label>Password</label>
+        <InputText @bind-Value="model.Password" type="password" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary">Sign up</button>
+</EditForm>
+
+@code {
+    private RegisterDto model = new();
+
+    private async Task HandleRegister()
+    {
+        var resp = await Http.PostAsJsonAsync("api/auth/register", model);
+        if (resp.IsSuccessStatusCode)
+        {
+            Nav.NavigateTo("/train");
+        }
+        else
+        {
+            var err = await resp.Content.ReadAsStringAsync();
+            Console.WriteLine("Register error: " + err);
+        }
+    }
+}

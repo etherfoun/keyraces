@@ -20,10 +20,9 @@
       "commandName": "Docker",
       "launchBrowser": true,
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
-      "environmentVariables": {
-        "ASPNETCORE_URLS": "https://+:443;http://+:80"
-      },
-      "publishAllPorts": true,
+      "environmentVariables": { "ASPNETCORE_URLS": "https://+:443;http://+:80" },
+      "dockerRunOptions": "--publish 7077:443 --publish 5285:80",
+      "publishAllPorts": false,
       "useSSL": true
     }
   },

@@ -1,0 +1,114 @@
+﻿@page "/train"
+@using keyraces.Core.Entities
+@using keyraces.Core.Interfaces
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@inject ITextSnippetService TextService
+@inject ITypingSessionService SessionService
+
+@attribute [Authorize]
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<h3>Тренировка скорости печати</h3>
+
+@if (snippets == null)
+{
+    <p>Загрузка текстов...</p>
+}
+else if (!sessionStarted)
+{
+    <div class="mb-3">
+        <label>Выберите текст:</label>
+        <InputSelect @bind-Value="selectedSnippetId" class="form-select">
+            @foreach (var s in snippets)
+            {
+                <option value="@s.Id">
+                    @s.Content.Substring(0, Math.Min(50, s.Content.Length))...
+                </option>
+            }
+        </InputSelect>
+    </div>
+    <button class="btn btn-primary" @onclick="StartSession">Начать</button>
+}
+else
+{
+    <p><strong>Текст для набора:</strong></p>
+    <blockquote>@currentSnippet.Content</blockquote>
+
+    <textarea @bind="userInput" @oninput="OnInput"
+    rows="6" class="form-control mb-2" />
+
+    <p>Скорость: @wpm:F1 WPM</p>
+    <p>Ошибки: @errors</p>
+
+    <button class="btn btn-success" @onclick="CompleteSession">Завершить</button>
+}
+
+@code {
+    private List<TextSnippet> snippets;
+    private int selectedSnippetId;
+    private TextSnippet currentSnippet;
+    private TypingSession session;
+    private bool sessionStarted;
+    private string userInput = string.Empty;
+    private double wpm;
+    private int errors;
+    private int userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                      ?? throw new InvalidOperationException("User has no NameIdentifier claim");
+        userId = int.Parse(idClaim);
+
+        var list = await TextService.GetAllAsync();
+        snippets = list.ToList();
+        if (snippets.Count > 0)
+            selectedSnippetId = snippets[0].Id;
+    }
+
+    private async Task StartSession()
+    {
+        currentSnippet = snippets.First(s => s.Id == selectedSnippetId);
+        session = await SessionService.StartSessionAsync(userId, currentSnippet.Id);
+        userInput = "";
+        sessionStarted = true;
+    }
+
+    private void OnInput(ChangeEventArgs e)
+    {
+        userInput = e.Value?.ToString() ?? string.Empty;
+        var elapsed = DateTime.UtcNow - session.StartTime;
+        var words = userInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+        wpm = elapsed.TotalMinutes > 0 ? words / elapsed.TotalMinutes : 0;
+        errors = CalculateErrors(userInput, currentSnippet.Content);
+    }
+
+    private async Task CompleteSession()
+    {
+        await SessionService.CompleteSessionAsync(session.Id, DateTime.UtcNow);
+        sessionStarted = false;
+    }
+
+    private int CalculateErrors(string input, string target)
+    {
+        int errs = 0;
+        var len = Math.Min(input.Length, target.Length);
+        for (int i = 0; i < len; i++)
+            if (input[i] != target[i]) errs++;
+        errs += Math.Abs(input.Length - target.Length);
+        return errs;
+    }
+}

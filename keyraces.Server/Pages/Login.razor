@@ -1,0 +1,44 @@
+﻿@page "/login"
+@using System.ComponentModel.DataAnnotations
+@using keyraces.Server.Dtos
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<EditForm Model="@loginModel" OnSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>Email</label>
+        <InputText @bind-Value="loginModel.Email" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Password</label>
+        <InputText @bind-Value="loginModel.Password" type="password" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary">Login</button>
+</EditForm>
+
+@code {
+    private LoginDto loginModel = new();
+
+    private async Task HandleLogin(EditContext _)
+    {
+        Console.WriteLine(">>> HandleLogin called");
+        var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
+        Console.WriteLine($">>> Status code: {response.StatusCode}");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Console.WriteLine($">>> Response body: {body}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            Console.WriteLine(">>> Login success, navigating to /train");
+            Nav.NavigateTo("/train");
+        }
+        else
+        {
+            Console.WriteLine(">>> Login failed, not navigating");
+        }
+    }
+}
