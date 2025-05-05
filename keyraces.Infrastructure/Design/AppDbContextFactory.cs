@@ -1,6 +1,4 @@
-﻿using System.IO;
-using keyraces.Infrastructure;
-using keyraces.Infrastructure.Data;
+﻿using keyraces.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;

@@ -2,6 +2,7 @@
 using keyraces.Server.Dtos;
 using keyraces.Core.Interfaces;
 using Microsoft.AspNetCore.Identity;
+using keyraces.Core.Entities;
 
 namespace keyraces.Server.Controllers
 {
@@ -9,28 +10,43 @@ namespace keyraces.Server.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly IUserProfileService _userService;
+        private readonly IUserService _userService;
+        private readonly IUserProfileService _profileService;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly SignInManager<IdentityUser> _signInManager;
+
         public AuthController(
-                UserManager<IdentityUser> userManager,
-                SignInManager<IdentityUser> signInManager)
+            UserManager<IdentityUser> userManager,
+            SignInManager<IdentityUser> signInManager,
+            IUserService userService,
+            IUserProfileService profileService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _userService = userService;
+            _profileService = profileService;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
-            var user = new IdentityUser { UserName = dto.Email, Email = dto.Email };
-            var result = await _userManager.CreateAsync(user, dto.Password);
-            if (!result.Succeeded)
-                return BadRequest(result.Errors);
+            var newUserId = await _userService.RegisterAsync(
+                dto.Name, dto.Email, dto.Password);
 
-            await _signInManager.SignInAsync(user, isPersistent: false);
+            var identityUser = await _userManager.FindByIdAsync(newUserId);
+            if (identityUser == null)
+            {
+                return BadRequest("User registration failed");
+            }
 
-            return Ok(new { userId = user.Id });
+            await _profileService.CreateProfileAsync(newUserId, dto.Name);
+            await _signInManager.SignInAsync(identityUser, isPersistent: true);
+
+            return CreatedAtAction(
+                actionName: nameof(Register),
+                routeValues: new { id = newUserId },
+                value: new { id = newUserId }
+            );
         }
 
         [HttpPost("login")]

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace keyraces.Core.Entities
+﻿namespace keyraces.Core.Entities
 {
     public enum CompetitionStatus { Scheduled, InProgress, Finished}
 
@@ -18,7 +15,7 @@ namespace keyraces.Core.Entities
         }
 
         public int Id { get; private set; }
-        public string Title { get; private set; }
+        public string Title { get; private set; } = string.Empty;
         public int TextSnippetId { get; private set; }
         public DateTime StartTime { get; private set; }
         public DateTime? EndTime { get; private set; }

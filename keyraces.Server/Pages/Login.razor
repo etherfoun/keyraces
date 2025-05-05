@@ -1,10 +1,11 @@
 ﻿@page "/login"
-@using System.ComponentModel.DataAnnotations
+@using System.Text.Json
+@using System.Collections.Generic
 @using keyraces.Server.Dtos
-@inject HttpClient Http
+@inject IJSRuntime JS
 @inject NavigationManager Nav
 
-<EditForm Model="@loginModel" OnSubmit="HandleLogin">
+<EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
@@ -14,7 +15,9 @@
     </div>
     <div class="mb-3">
         <label>Password</label>
-        <InputText @bind-Value="loginModel.Password" type="password" class="form-control" />
+        <InputText @bind-Value="loginModel.Password"
+                   type="password"
+                   class="form-control" />
     </div>
     <button type="submit" class="btn btn-primary">Login</button>
 </EditForm>
@@ -22,23 +25,35 @@
 @code {
     private LoginDto loginModel = new();
 
-    private async Task HandleLogin(EditContext _)
+    private async Task HandleLogin()
     {
-        Console.WriteLine(">>> HandleLogin called");
-        var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
-        Console.WriteLine($">>> Status code: {response.StatusCode}");
+        // Собираем JS-опции
+        var options = new Dictionary<string, object>
+            {
+                ["method"] = "POST",
+                ["credentials"] = "include",    // ← чтобы браузер сохранял куки
+                ["headers"] = new Dictionary<string, object>
+                {
+                    ["Content-Type"] = "application/json"
+                },
+                ["body"] = JsonSerializer.Serialize(loginModel)
+            };
 
-        var body = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($">>> Response body: {body}");
+        var status = await JS.InvokeAsync<int>(
+            "loginInterop.doLogin",
+            "/api/auth/login",
+            options);
 
-        if (response.IsSuccessStatusCode)
+        Console.WriteLine($">>> fetch status: {status}");
+        if (status == 200)
         {
-            Console.WriteLine(">>> Login success, navigating to /train");
-            Nav.NavigateTo("/train");
+            // После того, как браузер получит Set-Cookie,
+            // можно навигировать дальше.
+            Nav.NavigateTo("/train", forceLoad: true);
         }
         else
         {
-            Console.WriteLine(">>> Login failed, not navigating");
+            Console.WriteLine(">>> Login failed");
         }
     }
 }

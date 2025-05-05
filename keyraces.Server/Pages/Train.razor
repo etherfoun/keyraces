@@ -1,14 +1,15 @@
 ﻿@page "/train"
+@attribute [Authorize]
 @using keyraces.Core.Entities
 @using keyraces.Core.Interfaces
+@using keyraces.Infrastructure.Services
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Claims
 @inject ITextSnippetService TextService
 @inject ITypingSessionService SessionService
-
-@attribute [Authorize]
+@inject IUserProfileService UserProfileService
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
 
@@ -52,6 +53,8 @@ else
     private int selectedSnippetId;
     private TextSnippet currentSnippet;
     private TypingSession session;
+    private UserProfile userProfile;
+    private int userProfileId;
     private bool sessionStarted;
     private string userInput = string.Empty;
     private double wpm;
@@ -69,14 +72,17 @@ else
             return;
         }
 
-        var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                      ?? throw new InvalidOperationException("User has no NameIdentifier claim");
-        userId = int.Parse(idClaim);
+        var identityId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? throw new InvalidOperationException("No NameIdentifier");
 
-        var list = await TextService.GetAllAsync();
-        snippets = list.ToList();
-        if (snippets.Count > 0)
-            selectedSnippetId = snippets[0].Id;
+        var fallBackName = user.Identity?.Name ?? user.FindFirst(ClaimTypes.Email)?.Value!;
+        userProfile = await UserProfileService.GetOrCreateAsync(identityId, fallBackName);
+
+        snippets = (await TextService.GetAllAsync()).ToList();
+        if (snippets.Any())
+        {
+            selectedSnippetId = snippets.First().Id;
+        }
     }
 
     private async Task StartSession()

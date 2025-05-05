@@ -12,8 +12,17 @@ namespace keyraces.Infrastructure.Services
             _repo = repo;
         }
 
-        public Task<UserProfile> GetProfileAsync(string identityUserId) =>
-            _repo.GetByIdentityIdAsync(identityUserId);
+        public async Task<UserProfile> GetOrCreateAsync(string identityUserId, string fallBackName)
+        {
+            var profile = await _repo.GetByIdentityIdAsync(identityUserId);
+            if (profile is null)
+            {
+                profile = new UserProfile(identityUserId, fallBackName);
+                await _repo.AddAsync(profile);
+            }
+
+            return profile;
+        }
 
         public async Task<UserProfile> CreateProfileAsync(string identityUserId, string name)
         {

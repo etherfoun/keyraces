@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using keyraces.Core.Entities;
 using keyraces.Core.Interfaces;
 using keyraces.Infrastructure.Data;
@@ -11,9 +10,11 @@ namespace keyraces.Infrastructure.Repositories
         private readonly AppDbContext _ctx;
         public UserProfileRepository(AppDbContext ctx) => _ctx = ctx;
 
-        public Task<UserProfile> GetByIdentityIdAsync(string identityUserId) =>
-            _ctx.UserProfiles
-                .SingleOrDefaultAsync(up => up.IdentityUserId == identityUserId);
+        public Task<UserProfile?> GetByIdentityIdAsync(string identityUserId)
+        {
+            return _ctx.UserProfiles
+                       .SingleOrDefaultAsync(p => p.IdentityUserId == identityUserId);
+        }
 
         public async Task AddAsync(UserProfile profile)
         {

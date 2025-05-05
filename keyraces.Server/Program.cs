@@ -31,7 +31,6 @@ builder.Services.AddDbContext<AppDbContext>(opts =>
     opts.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddStackExchangeRedisCache(opts =>
     opts.Configuration = builder.Configuration["Redis:Connection"]);
-builder.Services.AddSignalR();
 
 builder.Services
     .AddIdentity<IdentityUser, IdentityRole>(options => {
@@ -43,13 +42,26 @@ builder.Services
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options => {
+    .AddCookie(options =>
+    {
         options.LoginPath = "/login";
     });
 
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IPasswordHasher, AspNetPasswordHasher>();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.Name = "KeyRaces";
+    options.Cookie.HttpOnly = true;
+    options.ExpireTimeSpan = TimeSpan.FromDays(30);
+    options.SlidingExpiration = true;
+    options.AccessDeniedPath = "/access-denied";
+    options.LoginPath = "/login";
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.HttpOnly = true;
+});
 
 // Repositories
 builder.Services.AddScoped<ICompetitionRepository, CompetitionRepository>();
@@ -72,6 +84,7 @@ builder.Services.AddScoped<ITypingSessionService, TypingSessionService>();
 builder.Services.AddScoped<ITypingStatisticService, TypingStatisticService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<IUserAchievementService, UserAchievementService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace keyraces.Core.Entities
+﻿namespace keyraces.Core.Entities
 {
     public enum ParticipantStatus { NotStarted, Typing, Completed }
 
@@ -21,10 +15,10 @@ namespace keyraces.Core.Entities
         }
 
         public int CompetitionId { get; private set; }
-        public Competition Competition { get; private set; }
+        public Competition Competition { get; private set; } = null!;
 
         public int UserId { get; private set; }
-        public UserProfile UserProfile { get; private set; }
+        public UserProfile UserProfile { get; private set; } = null!;
 
         public DateTime JoinedAt { get; private set; }
         public DateTime? FinishedAt { get; private set; }

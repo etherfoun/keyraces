@@ -8,7 +8,7 @@
         public double WPM { get; set; }
         public double Accuracy { get; set; }
 
-        protected TypingStatistic() { } // For EF Core
+        protected TypingStatistic() { }
 
         public TypingStatistic(int userId, int sessionId, double wpm, double accuracy)
         {

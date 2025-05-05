@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace keyraces.Core.Entities
+﻿namespace keyraces.Core.Entities
 {
     public class LeaderboardEntry
     {
@@ -20,10 +14,10 @@ namespace keyraces.Core.Entities
 
         public int Id { get; private set; }
         public int CompetitionId { get; private set; }
-        public Competition Competition { get; private set; }
+        public Competition Competition { get; private set; } = null!;
 
         public int UserId { get; private set; }
-        public UserProfile User { get; private set; }
+        public UserProfile User { get; private set; } = null!;
 
         public int Rank { get; private set; }
         public double Score { get; private set; }

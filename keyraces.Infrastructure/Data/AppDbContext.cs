@@ -28,7 +28,7 @@ namespace keyraces.Infrastructure.Data
 
             builder.Entity<UserProfile>(b =>
             {
-                b.ToTable("Users");
+                b.ToTable("UserProfiles");
                 b.HasKey(u => u.Id);
                 b.HasIndex(u => u.IdentityUserId).IsUnique();
 

@@ -8,10 +8,10 @@
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
 
-        public UserProfile User { get; set; }
-        public TextSnippet TextSnippet { get; set; }
+        public UserProfile User { get; set; } = null!;
+        public TextSnippet TextSnippet { get; set; } = null!;
 
-        protected TypingSession() { } // For EF Core
+        protected TypingSession() { }
 
         public TypingSession(int userId, int textSnippetId)
         {
