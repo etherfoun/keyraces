@@ -8,9 +8,8 @@
 <component type="typeof(App)" render-mode="ServerPrerendered" />
 
 <script>
-    window.loginInterop = {
-        doLogin: function (url, opts) {
-            return fetch(url, opts).then(response => response.status); 
-        }
-    }
+    window.authInterop = {
+      fetchWithCredentials: (url, opts) =>
+        fetch(url, opts).then(r => r.status)
+    };
 </script>

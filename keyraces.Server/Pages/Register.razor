@@ -1,10 +1,12 @@
 ﻿@page "/register"
 @using keyraces.Server.Dtos
+@using System.Text.Json
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
 
 <h3>Registration</h3>
 
@@ -30,26 +32,29 @@
 @code {
     private RegisterDto model = new();
 
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        if (authState.User.Identity?.IsAuthenticated == true)
-        {
-            Nav.NavigateTo("/", forceLoad: true);
-        }
-    }
-
     private async Task HandleRegister()
     {
-        var resp = await Http.PostAsJsonAsync("api/auth/register", model);
-        if (resp.IsSuccessStatusCode)
-        {
-            Nav.NavigateTo("/train");
-        }
+        var opts = new Dictionary<string, object>
+            {
+                ["method"] = "POST",
+                ["credentials"] = "include",
+                ["headers"] = new Dictionary<string, string>
+                {
+                    ["Content-Type"] = "application/json"
+                },
+                ["body"] = JsonSerializer.Serialize(model)
+            };
+
+        var status = await JS.InvokeAsync<int>(
+            "authInterop.fetchWithCredentials",
+            "/api/auth/register",
+            opts
+        );
+
+        Console.WriteLine($">>> fetch status: {status}");
+        if (status == 200)
+            Nav.NavigateTo("/train", forceLoad: true);
         else
-        {
-            var err = await resp.Content.ReadAsStringAsync();
-            Console.WriteLine("Register error: " + err);
-        }
+            Console.WriteLine("Registration failed");
     }
 }

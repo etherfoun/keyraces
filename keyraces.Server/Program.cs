@@ -8,7 +8,6 @@ using keyraces.Infrastructure.Repositories;
 using keyraces.Infrastructure.Services;
 using Microsoft.OpenApi.Models;
 using keyraces.Server.Hubs;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components;
 
 var builder = WebApplication.CreateBuilder(args);

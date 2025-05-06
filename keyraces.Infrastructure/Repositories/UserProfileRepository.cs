@@ -10,6 +10,12 @@ namespace keyraces.Infrastructure.Repositories
         private readonly IDbContextFactory<AppDbContext> _factory;
         public UserProfileRepository(IDbContextFactory<AppDbContext> factory) => _factory = factory;
 
+        public async Task<UserProfile?> FindByIdentityIdAsync(string identityUserId)
+        {
+            await using var _ctx = _factory.CreateDbContext();
+            return await _ctx.UserProfiles.SingleOrDefaultAsync(p => p.IdentityUserId == identityUserId);
+        }
+
         public async Task<UserProfile?> GetByIdentityIdAsync(string identityUserId)
         {
             await using var _ctx = _factory.CreateDbContext();

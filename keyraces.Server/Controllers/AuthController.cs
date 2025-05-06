@@ -2,7 +2,6 @@
 using keyraces.Server.Dtos;
 using keyraces.Core.Interfaces;
 using Microsoft.AspNetCore.Identity;
-using keyraces.Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 
 namespace keyraces.Server.Controllers
@@ -30,25 +29,18 @@ namespace keyraces.Server.Controllers
 
         [HttpPost("register")]
         [AllowAnonymous]
-        public async Task<IActionResult> Register(RegisterDto dto)
+        public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            var newUserId = await _userService.RegisterAsync(
-                dto.Name, dto.Email, dto.Password);
+            var user = new IdentityUser { UserName = dto.Email, Email = dto.Email };
+            var result = await _userManager.CreateAsync(user, dto.Password);
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
 
-            var identityUser = await _userManager.FindByIdAsync(newUserId);
-            if (identityUser == null)
-            {
-                return BadRequest("User registration failed");
-            }
+            await _profileService.GetOrCreateAsync(user.Id, dto.Name);
 
-            await _profileService.CreateProfileAsync(newUserId, dto.Name);
-            await _signInManager.SignInAsync(identityUser, isPersistent: true);
+            await _signInManager.SignInAsync(user, isPersistent: true);
 
-            return CreatedAtAction(
-                actionName: nameof(Register),
-                routeValues: new { id = newUserId },
-                value: new { id = newUserId }
-            );
+            return Ok(new { id = user.Id });
         }
 
         [HttpPost("login")]

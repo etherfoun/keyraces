@@ -1,7 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using keyraces.Core.Interfaces
+@using keyraces.Core.Entities
 @using System.Security.Claims
-@inject IUserProfileService ProfileService
 
 @inherits LayoutComponentBase
 
@@ -51,13 +51,14 @@
 </div>
 
 @code {
+    [CascadingParameter] Task<AuthenticationState> AuthStateTask { get; set; }
+
+    [Inject] NavigationManager Nav { get; set; }
+    [Inject] HttpClient Http { get; set; }
+    [Inject] IUserProfileService ProfileService { get; set; }
+
     private bool userMenuVisible;
     private string userName = "";
-    private string menuCss => userMenuVisible ? "show" : "";
-
-    [Inject] HttpClient Http { get; set; } = default!;
-    [Inject] NavigationManager Nav { get; set; } = default!;
-    [CascadingParameter] Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -65,22 +66,19 @@
         var user = auth.User;
         if (user.Identity?.IsAuthenticated == true)
         {
-            var identityId = auth.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value
-                             ?? throw new InvalidOperationException("No NameIdentifier");
-
-            var profile = await ProfileService.GetOrCreateAsync(
-                                identityId,
-                                user.Identity.Name!
-                            );
-
-            userName = profile.Name;
+            var identityId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(identityId))
+            {
+                var profile = await ProfileService.GetOrCreateAsync(identityId, "New user");
+                userName = profile.Name;
+            }
         }
     }
 
     private void ToggleUserMenu() => userMenuVisible = !userMenuVisible;
 
-    private void HideUserMenu() => userMenuVisible = false;
-
-    private void Logout() => Nav.NavigateTo("/api/auth/logout", forceLoad: true);
-
+    private void Logout()
+    {
+        Nav.NavigateTo("/api/auth/logout", forceLoad: true);
+    }
 }

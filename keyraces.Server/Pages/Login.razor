@@ -40,10 +40,10 @@
 
     private async Task HandleLogin()
     {
-        var fetchOptions = new Dictionary<string, object>
+        var opts = new Dictionary<string, object>
             {
                 ["method"] = "POST",
-                ["credentials"] = "include", 
+                ["credentials"] = "include",
                 ["headers"] = new Dictionary<string, string>
                 {
                     ["Content-Type"] = "application/json"
@@ -52,19 +52,15 @@
             };
 
         var status = await JS.InvokeAsync<int>(
-            "loginInterop.doLogin",
+            "authInterop.fetchWithCredentials",
             "/api/auth/login",
-            fetchOptions);
+            opts
+        );
 
         Console.WriteLine($">>> fetch status: {status}");
-
         if (status == 200)
-        {
             Nav.NavigateTo("/train", forceLoad: true);
-        }
         else
-        {
-            Console.WriteLine(">>> Login failed");
-        }
+            Console.WriteLine("Login failed");
     }
 }
