@@ -7,23 +7,26 @@ namespace keyraces.Infrastructure.Repositories
 {
     public class UserProfileRepository : IUserProfileRepository
     {
-        private readonly AppDbContext _ctx;
-        public UserProfileRepository(AppDbContext ctx) => _ctx = ctx;
+        private readonly IDbContextFactory<AppDbContext> _factory;
+        public UserProfileRepository(IDbContextFactory<AppDbContext> factory) => _factory = factory;
 
-        public Task<UserProfile?> GetByIdentityIdAsync(string identityUserId)
+        public async Task<UserProfile?> GetByIdentityIdAsync(string identityUserId)
         {
-            return _ctx.UserProfiles
+            await using var _ctx = _factory.CreateDbContext();
+            return await _ctx.UserProfiles
                        .SingleOrDefaultAsync(p => p.IdentityUserId == identityUserId);
         }
 
         public async Task AddAsync(UserProfile profile)
         {
+            await using var _ctx = _factory.CreateDbContext();
             await _ctx.UserProfiles.AddAsync(profile);
             await _ctx.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(UserProfile profile)
         {
+            await using var _ctx = _factory.CreateDbContext();
             _ctx.UserProfiles.Update(profile);
             await _ctx.SaveChangesAsync();
         }

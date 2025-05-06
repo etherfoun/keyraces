@@ -2,8 +2,12 @@
 @using System.Text.Json
 @using System.Collections.Generic
 @using keyraces.Server.Dtos
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @inject IJSRuntime JS
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+@inject HttpClient Http
 
 <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
     <DataAnnotationsValidator />
@@ -16,8 +20,8 @@
     <div class="mb-3">
         <label>Password</label>
         <InputText @bind-Value="loginModel.Password"
-                   type="password"
-                   class="form-control" />
+        type="password"
+        class="form-control" />
     </div>
     <button type="submit" class="btn btn-primary">Login</button>
 </EditForm>
@@ -25,14 +29,22 @@
 @code {
     private LoginDto loginModel = new();
 
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            Nav.NavigateTo("/", forceLoad: true);
+        }
+    }
+
     private async Task HandleLogin()
     {
-        // Собираем JS-опции
-        var options = new Dictionary<string, object>
+        var fetchOptions = new Dictionary<string, object>
             {
                 ["method"] = "POST",
-                ["credentials"] = "include",    // ← чтобы браузер сохранял куки
-                ["headers"] = new Dictionary<string, object>
+                ["credentials"] = "include", 
+                ["headers"] = new Dictionary<string, string>
                 {
                     ["Content-Type"] = "application/json"
                 },
@@ -42,13 +54,12 @@
         var status = await JS.InvokeAsync<int>(
             "loginInterop.doLogin",
             "/api/auth/login",
-            options);
+            fetchOptions);
 
         Console.WriteLine($">>> fetch status: {status}");
+
         if (status == 200)
         {
-            // После того, как браузер получит Set-Cookie,
-            // можно навигировать дальше.
             Nav.NavigateTo("/train", forceLoad: true);
         }
         else

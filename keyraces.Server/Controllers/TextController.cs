@@ -13,7 +13,8 @@ namespace keyraces.Server.Controllers
         public TextController(ITextSnippetService service) => _service = service;
 
         [HttpGet]
-        public Task<IEnumerable<TextSnippet>> GetAll() => _service.GetAllAsync();
+        public async Task<IEnumerable<TextSnippetDto>> GetAll() => (await _service.GetAllAsync()).
+            Select(t => new TextSnippetDto(t.Id, t.Content));
 
         [HttpGet("{id}")]
         public Task<TextSnippet> Get(int id) => _service.GetByIdAsync(id);

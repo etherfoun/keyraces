@@ -1,10 +1,5 @@
 ﻿using keyraces.Core.Entities;
 using keyraces.Core.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace keyraces.Infrastructure.Services
 {
@@ -33,5 +28,7 @@ namespace keyraces.Infrastructure.Services
 
         public Task<IEnumerable<TypingSession>> GetByUserAsync(int userId) =>
             _repo.ListByUserAsync(userId);
+
+        public Task<TypingSession?> GetByIdAsync(int sessionId) => _repo.GetByIdAsync(sessionId);
     }
 }

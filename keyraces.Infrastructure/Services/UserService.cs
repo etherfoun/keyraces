@@ -20,7 +20,7 @@ namespace keyraces.Infrastructure.Services
         {
             var user = new IdentityUser
             {
-                UserName = email,
+                UserName = name,
                 Email = email
             };
             var result = await _userManager.CreateAsync(user, password);

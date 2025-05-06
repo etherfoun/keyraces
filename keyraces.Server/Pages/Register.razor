@@ -1,8 +1,10 @@
 ﻿@page "/register"
 @using keyraces.Server.Dtos
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
 
 <h3>Registration</h3>
 
@@ -27,6 +29,15 @@
 
 @code {
     private RegisterDto model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            Nav.NavigateTo("/", forceLoad: true);
+        }
+    }
 
     private async Task HandleRegister()
     {

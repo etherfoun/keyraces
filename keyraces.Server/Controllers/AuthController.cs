@@ -3,6 +3,7 @@ using keyraces.Server.Dtos;
 using keyraces.Core.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using keyraces.Core.Entities;
+using Microsoft.AspNetCore.Authorization;
 
 namespace keyraces.Server.Controllers
 {
@@ -28,6 +29,7 @@ namespace keyraces.Server.Controllers
         }
 
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
             var newUserId = await _userService.RegisterAsync(
@@ -50,6 +52,7 @@ namespace keyraces.Server.Controllers
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login(LoginDto dto)
         {
             var result = await _signInManager.PasswordSignInAsync(
@@ -62,11 +65,12 @@ namespace keyraces.Server.Controllers
                 : Unauthorized();
         }
 
-        [HttpPost("logout")]
+        [HttpGet("logout")]
+        [AllowAnonymous]
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
-            return Ok();
+            return Redirect("/login");
         }
     }
 }

@@ -1,4 +1,9 @@
-﻿@inherits LayoutComponentBase
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using keyraces.Core.Interfaces
+@using System.Security.Claims
+@inject IUserProfileService ProfileService
+
+@inherits LayoutComponentBase
 
 <PageTitle>keyraces.Server</PageTitle>
 
@@ -9,11 +14,73 @@
 
     <main>
         <div class="top-row px-4">
+            <AuthorizeView>
+                <Authorized Context="auth">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle" @onclick="ToggleUserMenu">
+                            @userName
+                        </button>
+                        @if (userMenuVisible)
+                        {
+                            <ul class="dropdown-menu dropdown-menu-end show">
+                                <li><a class="dropdown-item" href="/profile">My Profile</a></li>
+                                <li><a class="dropdown-item" href="/settings">Settings</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <button class="dropdown-item" @onclick="Logout">Logout</button>
+                                </li>
+                            </ul>
+                        }
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <NavLink class="btn btn-outline-light ms-2" href="login">Sign in</NavLink>
+                    <NavLink class="btn btn-outline-light ms-2" href="register">Sign up</NavLink>
+                </NotAuthorized>
+            </AuthorizeView>
+
             <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
         </div>
+
+
 
         <article class="content px-4">
             @Body
         </article>
     </main>
 </div>
+
+@code {
+    private bool userMenuVisible;
+    private string userName = "";
+    private string menuCss => userMenuVisible ? "show" : "";
+
+    [Inject] HttpClient Http { get; set; } = default!;
+    [Inject] NavigationManager Nav { get; set; } = default!;
+    [CascadingParameter] Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthStateTask;
+        var user = auth.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var identityId = auth.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value
+                             ?? throw new InvalidOperationException("No NameIdentifier");
+
+            var profile = await ProfileService.GetOrCreateAsync(
+                                identityId,
+                                user.Identity.Name!
+                            );
+
+            userName = profile.Name;
+        }
+    }
+
+    private void ToggleUserMenu() => userMenuVisible = !userMenuVisible;
+
+    private void HideUserMenu() => userMenuVisible = false;
+
+    private void Logout() => Nav.NavigateTo("/api/auth/logout", forceLoad: true);
+
+}
