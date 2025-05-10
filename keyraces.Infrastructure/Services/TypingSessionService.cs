@@ -29,6 +29,6 @@ namespace keyraces.Infrastructure.Services
         public Task<IEnumerable<TypingSession>> GetByUserAsync(int userId) =>
             _repo.ListByUserAsync(userId);
 
-        public Task<TypingSession?> GetByIdAsync(int sessionId) => _repo.GetByIdAsync(sessionId);
+        public Task<TypingSession?> GetByIdAsync(int sessionId) => _repo.GetByIdAsync(sessionId) as Task<TypingSession?>;
     }
 }

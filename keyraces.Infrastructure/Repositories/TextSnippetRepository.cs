@@ -10,8 +10,15 @@ namespace keyraces.Infrastructure.Repositories
         private readonly AppDbContext _ctx;
         public TextSnippetRepository(AppDbContext ctx) => _ctx = ctx;
 
-        public async Task<TextSnippet> GetByIdAsync(int id) =>
-            await _ctx.TextSnippets.FindAsync(id);
+        public async Task<TextSnippet> GetByIdAsync(int id)
+        {
+            var snippet = await _ctx.TextSnippets.FindAsync(id);
+            if (snippet == null)
+            {
+                throw new InvalidOperationException($"TextSnippet with ID {id} not found.");
+            }
+            return snippet;
+        }
 
         public async Task<IEnumerable<TextSnippet>> ListAsync() =>
             await _ctx.TextSnippets.ToListAsync();

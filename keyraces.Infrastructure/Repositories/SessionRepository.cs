@@ -10,8 +10,15 @@ namespace keyraces.Infrastructure.Repositories
         private readonly AppDbContext _ctx;
         public SessionRepository(AppDbContext ctx) => _ctx = ctx;
 
-        public async Task<TypingSession> GetByIdAsync(int id) =>
-            await _ctx.Sessions.FindAsync(id);
+        public async Task<TypingSession> GetByIdAsync(int id)
+        {
+            var session = await _ctx.Sessions.FindAsync(id);
+            if (session == null)
+            {
+                throw new InvalidOperationException($"TextSnippet with ID {id} not found.");
+            }
+            return session;
+        }
 
         public async Task<IEnumerable<TypingSession>> ListByUserAsync(int userId) =>
             await _ctx.Sessions

@@ -51,11 +51,11 @@
 </div>
 
 @code {
-    [CascadingParameter] Task<AuthenticationState> AuthStateTask { get; set; }
+    [CascadingParameter] Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
-    [Inject] NavigationManager Nav { get; set; }
-    [Inject] HttpClient Http { get; set; }
-    [Inject] IUserProfileService ProfileService { get; set; }
+    [Inject] NavigationManager Nav { get; set; } = default!;
+    [Inject] HttpClient Http { get; set; } = default!;
+    [Inject] IUserProfileService ProfileService { get; set; } = default!;
 
     private bool userMenuVisible;
     private string userName = "";

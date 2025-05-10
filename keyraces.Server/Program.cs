@@ -136,28 +136,25 @@ using (var scope = app.Services.CreateScope())
     if (!ctx.TextSnippets.Any())
     {
         var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
-        var file = Path.Combine(env.ContentRootPath, "Data", "snippets.json");
+        var file = Path.Combine(env.ContentRootPath, "Data", "Seed", "texts.json");
+        Console.WriteLine($"SEED: looking for {file}, exists? {File.Exists(file)}");
+
         if (File.Exists(file))
         {
             var json = await File.ReadAllTextAsync(file);
             var seeds = JsonSerializer.Deserialize<List<TextSnippetSeed>>(json,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                        ?? new List<TextSnippetSeed>();
-
+                        ?? new();
+            Console.WriteLine($"[SEED] Deserialized seed entries: {seeds.Count}");
             foreach (var seed in seeds)
             {
-                if (string.IsNullOrWhiteSpace(seed.Content))
-                    continue;
-
-                if (Enum.IsDefined(typeof(DifficultyLevel), seed.Difficulty))
-                {
-                    var level = (DifficultyLevel)seed.Difficulty;
-                    var snippet = new TextSnippet(seed.Content, level);
-                    ctx.TextSnippets.Add(snippet);
-                }
+                Console.WriteLine($"[SEED] Entry: Content='{seed.Content}', Difficulty={seed.Difficulty}");
+                if (string.IsNullOrWhiteSpace(seed.Content)) continue;
+                if (!Enum.IsDefined(typeof(DifficultyLevel), seed.Difficulty)) continue;
+                ctx.TextSnippets.Add(new TextSnippet(seed.Content, (DifficultyLevel)seed.Difficulty));
             }
-
-            await ctx.SaveChangesAsync();
+            var saved = await ctx.SaveChangesAsync();
+            Console.WriteLine($"[SEED] SaveChangesAsync added {saved} records");
         }
     }
 }

@@ -84,7 +84,7 @@ else
         errors = 0;
         session = null;
 
-        current = await Http.GetFromJsonAsync<TextSnippetDto>("api/text/random");
+        current = await Http.GetFromJsonAsync<TextSnippetDto>("/api/TextSnippet/random");
     }
 
     private async Task Start()
