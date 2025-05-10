@@ -1,10 +1,5 @@
 ﻿using keyraces.Core.Entities;
 using keyraces.Core.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace keyraces.Infrastructure.Services
 {
@@ -33,6 +28,14 @@ namespace keyraces.Infrastructure.Services
             var snippet = await _repo.GetByIdAsync(id);
             snippet.Update(content, difficulty);
             await _repo.UpdateAsync(snippet);
+        }
+
+        public async Task<TextSnippet?> GetRandomAsync()
+        {
+            var all = await _repo.ListAsync();
+            if (!all.Any()) return null;
+            var idx = new Random().Next(all.Count());
+            return all.ElementAt(idx);
         }
     }
 }

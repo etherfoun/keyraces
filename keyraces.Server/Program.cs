@@ -9,6 +9,9 @@ using keyraces.Infrastructure.Services;
 using Microsoft.OpenApi.Models;
 using keyraces.Server.Hubs;
 using Microsoft.AspNetCore.Components;
+using keyraces.Core.Entities;
+using System.Text.Json;
+using keyraces.Server.Dtos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -123,6 +126,41 @@ app.MapHub<TypingHub>("/hub/typing");
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
+
+
+using (var scope = app.Services.CreateScope())
+{
+    var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    ctx.Database.Migrate();
+
+    if (!ctx.TextSnippets.Any())
+    {
+        var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+        var file = Path.Combine(env.ContentRootPath, "Data", "snippets.json");
+        if (File.Exists(file))
+        {
+            var json = await File.ReadAllTextAsync(file);
+            var seeds = JsonSerializer.Deserialize<List<TextSnippetSeed>>(json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                        ?? new List<TextSnippetSeed>();
+
+            foreach (var seed in seeds)
+            {
+                if (string.IsNullOrWhiteSpace(seed.Content))
+                    continue;
+
+                if (Enum.IsDefined(typeof(DifficultyLevel), seed.Difficulty))
+                {
+                    var level = (DifficultyLevel)seed.Difficulty;
+                    var snippet = new TextSnippet(seed.Content, level);
+                    ctx.TextSnippets.Add(snippet);
+                }
+            }
+
+            await ctx.SaveChangesAsync();
+        }
+    }
+}
 
 app.Run();
 

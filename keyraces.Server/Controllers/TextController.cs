@@ -32,5 +32,30 @@ namespace keyraces.Server.Controllers
             await _service.UpdateAsync(id, dto.Content, dto.Difficulty);
             return NoContent();
         }
+
+        // GET api/text/random?lang=ru&diff=2
+        [HttpGet("random")]
+        public async Task<IActionResult> GetRandom(
+            [FromQuery] string? lang,
+            [FromQuery] int? diff)
+        {
+            var all = await _service.GetAllAsync();
+            var filtered = all.Where(t =>
+            {
+                if (diff.HasValue && t.Difficulty != (DifficultyLevel)diff.Value) return false;
+                if (lang != null)
+                {
+                    bool isCyr = t.Content.Any(c => c >= 'А' && c <= 'я');
+                    return lang == "ru" ? isCyr
+                         : lang == "en" ? !isCyr
+                         : true;
+                }
+                return true;
+            }).ToList();
+
+            if (!filtered.Any()) return NotFound();
+            var pick = filtered[new Random().Next(filtered.Count)];
+            return Ok(pick);
+        }
     }
 }

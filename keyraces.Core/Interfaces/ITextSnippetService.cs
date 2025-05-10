@@ -8,6 +8,7 @@ namespace keyraces.Core.Interfaces
         Task<TextSnippet> GetByIdAsync(int id);
         Task<TextSnippet> CreateAsync(string content, DifficultyLevel difficulty);
         Task UpdateAsync(int id, string content, DifficultyLevel difficulty);
+        Task<TextSnippet?> GetRandomAsync();
     }
 
 }

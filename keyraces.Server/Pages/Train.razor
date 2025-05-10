@@ -1,13 +1,12 @@
 ﻿@page "/train"
 @attribute [Authorize]
+@using System.Net.Http.Json
+@using System.Security.Claims
+@using keyraces.Server.Dtos
 @using keyraces.Core.Entities
 @using keyraces.Core.Interfaces
-@using keyraces.Infrastructure.Services
-@using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.AspNetCore.Authorization
-@using System.Security.Claims
-@inject ITextSnippetService TextService
+@inject HttpClient Http
 @inject ITypingSessionService SessionService
 @inject IUserProfileService UserProfileService
 @inject NavigationManager Nav
@@ -15,103 +14,110 @@
 
 <h3>Тренировка скорости печати</h3>
 
-@if (snippets == null)
+@if (current == null)
 {
-    <p>Загрузка текстов...</p>
+    <p>Загрузка текста…</p>
 }
 else if (!sessionStarted)
 {
-    <div class="mb-3">
-        <label>Выберите текст:</label>
-        <InputSelect @bind-Value="selectedSnippetId" class="form-select">
-            @foreach (var s in snippets)
-            {
-                <option value="@s.Id">
-                    @s.Content.Substring(0, Math.Min(50, s.Content.Length))...
-                </option>
-            }
-        </InputSelect>
-    </div>
-    <button class="btn btn-primary" @onclick="StartSession">Начать</button>
+    <p><strong>Текст для тренировки:</strong></p>
+    <blockquote>
+        @current.Content
+    </blockquote>
+    <button class="btn btn-outline-secondary mb-2" @onclick="LoadRandom">
+        Другой текст
+    </button>
+    <button class="btn btn-primary" @onclick="Start">
+        Начать
+    </button>
 }
 else
 {
-    <p><strong>Текст для набора:</strong></p>
-    <blockquote>@currentSnippet.Content</blockquote>
+    <p><strong>Набирайте:</strong></p>
+    <blockquote>@current.Content</blockquote>
 
     <textarea @bind="userInput" @oninput="OnInput"
-    rows="6" class="form-control mb-2" />
+              rows="6" class="form-control mb-2" />
 
-    <p>Скорость: @wpm:F1 WPM</p>
-    <p>Ошибки: @errors</p>
+    <div>
+        Скорость: <strong>@wpm:F1 WPM</strong>
+        <span class="ms-3">Ошибки: <strong>@errors</strong></span>
+    </div>
 
-    <button class="btn btn-success" @onclick="CompleteSession">Завершить</button>
+    <button class="btn btn-success mt-3" @onclick="Complete">
+        Завершить
+    </button>
 }
 
 @code {
-    private List<TextSnippet> snippets;
-    private int selectedSnippetId;
-    private TextSnippet currentSnippet;
-    private TypingSession session;
-    private UserProfile userProfile;
-    private int userProfileId;
+    private TextSnippetDto? current;
+    private TypingSession? session;
+    private UserProfile? profile;
     private bool sessionStarted;
-    private string userInput = string.Empty;
+    private string userInput = "";
     private double wpm;
     private int errors;
-    private int userId;
+    private string identityId = "";
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (!user.Identity?.IsAuthenticated ?? true)
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = auth.User;
+        if (user.Identity?.IsAuthenticated != true)
         {
-            Nav.NavigateTo("/login");
+            Nav.NavigateTo("/login", forceLoad: true);
             return;
         }
 
-        var identityId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                     ?? throw new InvalidOperationException("No NameIdentifier");
+        identityId = user.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+        var fallback = user.Identity.Name ?? user.FindFirst(ClaimTypes.Email)!.Value;
+        profile = await UserProfileService.GetOrCreateAsync(identityId, fallback);
 
-        var fallBackName = user.Identity?.Name ?? user.FindFirst(ClaimTypes.Email)?.Value!;
-        userProfile = await UserProfileService.GetOrCreateAsync(identityId, fallBackName);
-
-        snippets = (await TextService.GetAllAsync()).ToList();
-        if (snippets.Any())
-        {
-            selectedSnippetId = snippets.First().Id;
-        }
+        await LoadRandom();
     }
 
-    private async Task StartSession()
+    private async Task LoadRandom()
     {
-        currentSnippet = snippets.First(s => s.Id == selectedSnippetId);
-        session = await SessionService.StartSessionAsync(userId, currentSnippet.Id);
+        sessionStarted = false;
         userInput = "";
+        wpm = 0;
+        errors = 0;
+        session = null;
+
+        current = await Http.GetFromJsonAsync<TextSnippetDto>("api/text/random");
+    }
+
+    private async Task Start()
+    {
+        if (current == null || profile == null) return;
+
+        session = await SessionService.StartSessionAsync(
+            profile.Id,      
+            current.Id       
+        );
         sessionStarted = true;
     }
 
     private void OnInput(ChangeEventArgs e)
     {
-        userInput = e.Value?.ToString() ?? string.Empty;
-        var elapsed = DateTime.UtcNow - session.StartTime;
+        userInput = e.Value?.ToString() ?? "";
+        var elapsed = DateTime.UtcNow - session!.StartTime;
         var words = userInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
         wpm = elapsed.TotalMinutes > 0 ? words / elapsed.TotalMinutes : 0;
-        errors = CalculateErrors(userInput, currentSnippet.Content);
+        errors = CalculateErrors(userInput, current!.Content);
     }
 
-    private async Task CompleteSession()
+    private async Task Complete()
     {
+        if (session == null) return;
         await SessionService.CompleteSessionAsync(session.Id, DateTime.UtcNow);
         sessionStarted = false;
     }
 
     private int CalculateErrors(string input, string target)
     {
-        int errs = 0;
         var len = Math.Min(input.Length, target.Length);
+        var errs = 0;
         for (int i = 0; i < len; i++)
             if (input[i] != target[i]) errs++;
         errs += Math.Abs(input.Length - target.Length);
