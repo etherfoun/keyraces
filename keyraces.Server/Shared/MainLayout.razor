@@ -1,84 +1,33 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
-@using keyraces.Core.Interfaces
-@using keyraces.Core.Entities
-@using System.Security.Claims
-
-@inherits LayoutComponentBase
-
-<PageTitle>keyraces.Server</PageTitle>
+﻿@inherits LayoutComponentBase
 
 <div class="page">
-    <div class="sidebar">
+    <div class="navbar-container">
         <NavMenu />
     </div>
 
-    <main>
-        <div class="top-row px-4">
-            <AuthorizeView>
-                <Authorized Context="auth">
-                    <div class="dropdown">
-                        <button class="btn btn-outline-light dropdown-toggle" @onclick="ToggleUserMenu">
-                            @userName
-                        </button>
-                        @if (userMenuVisible)
-                        {
-                            <ul class="dropdown-menu dropdown-menu-end show">
-                                <li><a class="dropdown-item" href="/profile">My Profile</a></li>
-                                <li><a class="dropdown-item" href="/settings">Settings</a></li>
-                                <li><hr class="dropdown-divider" /></li>
-                                <li>
-                                    <button class="dropdown-item" @onclick="Logout">Logout</button>
-                                </li>
-                            </ul>
-                        }
-                    </div>
-                </Authorized>
-                <NotAuthorized>
-                    <NavLink class="btn btn-outline-light ms-2" href="login">Sign in</NavLink>
-                    <NavLink class="btn btn-outline-light ms-2" href="register">Sign up</NavLink>
-                </NotAuthorized>
-            </AuthorizeView>
-
-            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
-        </div>
-
-
-
+    <main class="main-content">
         <article class="content px-4">
             @Body
         </article>
     </main>
 </div>
 
-@code {
-    [CascadingParameter] Task<AuthenticationState> AuthStateTask { get; set; } = default!;
-
-    [Inject] NavigationManager Nav { get; set; } = default!;
-    [Inject] HttpClient Http { get; set; } = default!;
-    [Inject] IUserProfileService ProfileService { get; set; } = default!;
-
-    private bool userMenuVisible;
-    private string userName = "";
-
-    protected override async Task OnInitializedAsync()
-    {
-        var auth = await AuthStateTask;
-        var user = auth.User;
-        if (user.Identity?.IsAuthenticated == true)
-        {
-            var identityId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(identityId))
-            {
-                var profile = await ProfileService.GetOrCreateAsync(identityId, "New user");
-                userName = profile.Name;
-            }
-        }
+<style>
+    .page {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
     }
 
-    private void ToggleUserMenu() => userMenuVisible = !userMenuVisible;
-
-    private void Logout()
-    {
-        Nav.NavigateTo("/api/auth/logout", forceLoad: true);
+    .main-content {
+        padding-top: 0;
+        flex: 1;
     }
-}
+
+    .content {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+</style>

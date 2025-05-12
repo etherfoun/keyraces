@@ -1,7 +1,5 @@
-﻿using keyraces.Core.Entities;
-using keyraces.Core.Interfaces;
+﻿using keyraces.Core.Interfaces;
 using keyraces.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace keyraces.Infrastructure.Repositories
 {

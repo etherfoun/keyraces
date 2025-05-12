@@ -7,6 +7,7 @@
         public int TextSnippetId { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+        public DateTime CompletedAt => EndTime;
 
         public UserProfile User { get; set; } = null!;
         public TextSnippet TextSnippet { get; set; } = null!;

@@ -1,64 +1,248 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">KeyRaces</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
+﻿@using keyraces.Core.Interfaces
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
 
-<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="oi oi-plus" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="fetchdata">
-                <span class="oi oi-list-rich" aria-hidden="true"></span> Fetch data
-            </NavLink>
-        </div>
-        <AuthorizeView>
-            <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="register">
-                        <span class="oi oi-person" aria-hidden="true"></span> Register
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="login">
-                        <span class="oi oi-lock-locked" aria-hidden="true"></span> Login
-                    </NavLink>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
+<div class="navbar-wrapper">
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-brand">
+                <a href="/">
+                    <img src="/images/logo.png" alt="KeyRaces Logo" class="logo" />
+                </a>
+            </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="train">
-                <span class="oi oi-keyboard" aria-hidden="true"></span> Train
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="race">
-                <span class="oi oi-speedometer" aria-hidden="true"></span> Race
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="leaderboard">
-                <span class="oi oi-trophy" aria-hidden="true"></span> Leaderboard
-            </NavLink>
+            <div class="navbar-links">
+                <a href="/train" class="nav-link">Practice</a>
+                <a href="/competitions" class="nav-link">Competitions</a>
+                <a href="/leaderboard" class="nav-link">Leaderboard</a>
+                <a href="/about" class="nav-link">About</a>
+            </div>
+
+            <div class="navbar-user">
+                @if (!string.IsNullOrEmpty(username))
+                {
+                    <div class="user-profile">
+                        <span>@username</span>
+                        <div class="dropdown-menu">
+                            <a href="/profile" class="dropdown-item">Profile</a>
+                            <a href="javascript:void(0)" @onclick="HandleLogout" class="dropdown-item">Logout</a>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <a href="/login" class="login-button">Login</a>
+                }
+            </div>
         </div>
     </nav>
 </div>
 
+<style>
+    .navbar-wrapper {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        padding: 10px 20px;
+        height: 80px;
+    }
+
+    .navbar {
+        background-color: #222;
+        border-radius: 50px;
+        padding: 0 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .navbar-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 60px;
+    }
+
+    .navbar-brand {
+        display: flex;
+        align-items: center;
+    }
+
+    .logo {
+        height: 40px;
+        width: auto;
+    }
+
+    .navbar-links {
+        display: flex;
+        gap: 30px;
+    }
+
+    .nav-link {
+        color: #fff;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 500;
+        transition: color 0.3s;
+    }
+
+        .nav-link:hover {
+            color: #ccc;
+        }
+
+    .navbar-user {
+        position: relative;
+    }
+
+    .user-profile {
+        background-color: white;
+        color: #333;
+        padding: 8px 16px;
+        border-radius: 50px;
+        font-weight: 500;
+        cursor: pointer;
+        position: relative;
+    }
+
+        .user-profile::after {
+            content: "";
+            position: absolute;
+            height: 15px;
+            width: 100%;
+            bottom: -15px;
+            left: 0;
+        }
+
+        .user-profile:hover .dropdown-menu,
+        .dropdown-menu:hover {
+            display: block;
+        }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% - 5px);
+        right: 0;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        padding-top: 10px;
+        min-width: 150px;
+        z-index: 1001;
+    }
+
+    .dropdown-item {
+        display: block;
+        padding: 10px 15px;
+        color: #333;
+        text-decoration: none;
+        transition: background-color 0.3s;
+    }
+
+        .dropdown-item:hover {
+            background-color: #f5f5f5;
+        }
+
+    .login-button {
+        background-color: white;
+        color: #333;
+        padding: 8px 16px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background-color 0.3s;
+    }
+
+        .login-button:hover {
+            background-color: #f5f5f5;
+        }
+
+    @@media (max-width: 768px) {
+        .navbar-links {
+            display: none;
+        }
+    }
+</style>
+
 @code {
-    private bool collapseNavMenu = true;
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+    private string username;
+    private bool isFirstRender = true;
+
+    protected override void OnInitialized()
+    {
+        
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            isFirstRender = false;
+            await LoadUserInfoAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadUserInfoAsync()
+    {
+        try
+        {
+            if (JS is null)
+            {
+                Console.WriteLine("JS runtime is not available");
+                return;
+            }
+
+            username = await JS.InvokeAsync<string>("localStorage.getItem", "user_name");
+
+            if (string.IsNullOrEmpty(username))
+            {
+                try
+                {
+                    var authStatus = await JS.InvokeAsync<object>("authInterop.checkAuthStatus");
+
+                    if (authStatus != null)
+                    {
+                        var authData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(
+                            System.Text.Json.JsonSerializer.Serialize(authStatus)
+                        );
+
+                        if (authData != null && authData.ContainsKey("isAuthenticated") &&
+                            authData["isAuthenticated"].ToString() == "True")
+                        {
+                            if (authData.ContainsKey("email"))
+                            {
+                                username = authData["email"].ToString();
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error checking auth status: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user info: {ex.Message}");
+            username = null!;
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("authInterop.logout");
+
+            NavigationManager.NavigateTo("/", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during logout: {ex.Message}");
+        }
+    }
 }

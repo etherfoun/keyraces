@@ -23,6 +23,19 @@ namespace keyraces.Infrastructure.Repositories
                        .SingleOrDefaultAsync(p => p.IdentityUserId == identityUserId);
         }
 
+        public async Task<UserProfile?> GetByIdAsync(int id)
+        {
+            await using var _ctx = _factory.CreateDbContext();
+            return await _ctx.UserProfiles
+                       .SingleOrDefaultAsync(p => p.Id == id);
+        }
+
+        public async Task<IEnumerable<UserProfile>> ListAllAsync()
+        {
+            await using var _ctx = _factory.CreateDbContext();
+            return await _ctx.UserProfiles.ToListAsync();
+        }
+
         public async Task AddAsync(UserProfile profile)
         {
             await using var _ctx = _factory.CreateDbContext();

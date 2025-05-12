@@ -1,62 +1,123 @@
-.navbar-toggler {
-    background-color: rgba(255, 255, 255, 0.1);
+.navbar-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 10px 20px;
+    background-color: #f8f9fa;
 }
 
-.top-row {
-    height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
+.navbar {
+    width: 100%;
+    max-width: 1200px;
+    background-color: #212529;
+    border-radius: 50px;
+    padding: 0 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
 }
 
 .navbar-brand {
-    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
 }
 
-.oi {
-    width: 2rem;
-    font-size: 1.1rem;
-    vertical-align: text-top;
-    top: -2px;
+.logo {
+    height: 36px;
+    width: auto;
+    border-radius: 50%;
+    background-color: white;
+    padding: 2px;
 }
 
-.nav-item {
-    font-size: 0.9rem;
-    padding-bottom: 0.5rem;
+.navbar-links {
+    display: flex;
+    gap: 30px;
 }
 
-    .nav-item:first-of-type {
-        padding-top: 1rem;
-    }
-
-    .nav-item:last-of-type {
-        padding-bottom: 1rem;
-    }
-
-    .nav-item ::deep a {
-        color: #d7d7d7;
-        border-radius: 4px;
-        height: 3rem;
-        display: flex;
-        align-items: center;
-        line-height: 3rem;
-    }
-
-.nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.25);
+.nav-link {
     color: white;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 16px;
+    transition: color 0.2s ease;
 }
 
-.nav-item ::deep a:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
-}
-
-@media (min-width: 641px) {
-    .navbar-toggler {
-        display: none;
+    .nav-link:hover {
+        color: #adb5bd;
     }
 
-    .collapse {
-        /* Never collapse the sidebar for wide screens */
-        display: block;
+.navbar-user {
+    display: flex;
+    align-items: center;
+}
+
+.user-profile {
+    background-color: white;
+    color: #212529;
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-weight: 500;
+}
+
+.login-button {
+    background-color: white;
+    color: #212529;
+    padding: 8px 20px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+    .login-button:hover {
+        background-color: #f8f9fa;
+    }
+
+@media (max-width: 768px) {
+    .navbar {
+        border-radius: 25px;
+        padding: 0 15px;
+    }
+
+    .navbar-content {
+        height: 50px;
+    }
+
+    .navbar-links {
+        gap: 15px;
+    }
+
+    .nav-link {
+        font-size: 14px;
+    }
+
+    .user-profile,
+    .login-button {
+        padding: 6px 15px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 576px) {
+    .navbar-wrapper {
+        padding: 5px 10px;
+    }
+
+    .navbar {
+        padding: 0 10px;
+    }
+
+    .navbar-links {
+        gap: 10px;
+    }
+
+    .logo {
+        height: 30px;
     }
 }

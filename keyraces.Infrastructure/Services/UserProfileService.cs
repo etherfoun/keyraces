@@ -5,39 +5,56 @@ namespace keyraces.Infrastructure.Services
 {
     public class UserProfileService : IUserProfileService
     {
-        private readonly IUserProfileRepository _repo;
+        private readonly IUserProfileRepository _repository;
 
-        public UserProfileService(IUserProfileRepository repo)
+        public UserProfileService(IUserProfileRepository repository)
         {
-            _repo = repo;
+            _repository = repository;
         }
 
         public async Task<UserProfile> GetOrCreateAsync(string identityUserId, string name)
         {
-            var existing = await _repo.FindByIdentityIdAsync(identityUserId);
+            var existing = await _repository.FindByIdentityIdAsync(identityUserId);
             if (existing is not null)
                 return existing;
 
             var profile = new UserProfile(identityUserId, name);
-            await _repo.AddAsync(profile);
+            await _repository.AddAsync(profile);
             return profile;
         }
 
-        public async Task<UserProfile> CreateProfileAsync(string identityUserId, string name)
+        public async Task<UserProfile> GetByIdentityIdAsync(string identityUserId)
+        {
+            var profile = await _repository.GetByIdentityIdAsync(identityUserId);
+            if (profile == null)
+                throw new InvalidOperationException($"Profile for identity user {identityUserId} not found");
+
+            return profile;
+        }
+
+        public async Task<UserProfile> GetByIdAsync(int id)
+        {
+            var profile = await _repository.GetByIdAsync(id);
+            if (profile == null)
+                throw new InvalidOperationException($"Profile with ID {id} not found");
+
+            return profile;
+        }
+
+        public async Task<IEnumerable<UserProfile>> GetAllAsync()
+        {
+            return await _repository.ListAllAsync();
+        }
+
+        public async Task UpdateAsync(UserProfile profile)
+        {
+            await _repository.UpdateAsync(profile);
+        }
+
+        public async Task CreateProfileAsync(string identityUserId, string name)
         {
             var profile = new UserProfile(identityUserId, name);
-            await _repo.AddAsync(profile);
-            return profile;
-        }
-
-        public async Task UpdateNameAsync(string identityUserId, string newName)
-        {
-            var profile = await _repo.GetByIdentityIdAsync(identityUserId);
-            if (profile == null)
-                throw new KeyNotFoundException($"Profile for user {identityUserId} not found.");
-
-            profile.Update(newName);
-            await _repo.UpdateAsync(profile);
+            await _repository.AddAsync(profile);
         }
     }
 }

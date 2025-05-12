@@ -17,14 +17,25 @@ namespace keyraces.Infrastructure.Data
         public DbSet<TypingSession> Sessions { get; set; }
         public DbSet<TypingStatistic> Statistics { get; set; }
         public DbSet<Competition> Competitions { get; set; }
-        public DbSet<CompetitionParticipant> Participants { get; set; }
+        public DbSet<CompetitionParticipant> Participants { get; set; } 
         public DbSet<LeaderboardEntry> LeaderboardEntries { get; set; }
         public DbSet<Achievement> Achievements { get; set; }
         public DbSet<UserAchievement> UserAchievements { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            builder.Entity<RefreshToken>(entity =>
+            {
+                entity.HasKey(rt => rt.Id);
+                entity.Property(rt => rt.Token).IsRequired();
+                entity.Property(rt => rt.JwtId).IsRequired();
+                entity.Property(rt => rt.UserId).IsRequired();
+                entity.Property(rt => rt.CreationDate).IsRequired();
+                entity.Property(rt => rt.ExpiryDate).IsRequired();
+            });
 
             builder.Entity<UserProfile>(b =>
             {

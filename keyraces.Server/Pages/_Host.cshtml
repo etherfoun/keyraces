@@ -7,9 +7,5 @@
 
 <component type="typeof(App)" render-mode="ServerPrerendered" />
 
-<script>
-    window.authInterop = {
-      fetchWithCredentials: (url, opts) =>
-        fetch(url, opts).then(r => r.status)
-    };
-</script>
+<script src="_framework/blazor.server.js"></script>
+<script src="~/js/authInterop.js"></script>
