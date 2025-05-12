@@ -1,6 +1,18 @@
 [
   {
-    "content": "It was the best of times, it was the worst of times - it was the age of wisdom, it was the age of foolishness",
-    "difficulty": 3
+    "content": "The quick brown fox jumps over the lazy dog. This pangram contains all the letters of the English alphabet. It is often used to test typewriters or computer keyboards, and in other applications involving all of the letters in the English alphabet.",
+    "difficulty": 0
+  },
+  {
+    "content": "Programming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages, such as JavaScript, Python, and C++.",
+    "difficulty": 1
+  },
+  {
+    "content": "In computer science, artificial intelligence (AI), sometimes called machine intelligence, is intelligence demonstrated by machines, in contrast to the natural intelligence displayed by humans and animals.",
+    "difficulty": 1
+  },
+  {
+    "content": "The World Wide Web (WWW), commonly known as the Web, is an information system where documents and other web resources are identified by Uniform Resource Locators, which may be interlinked by hypertext, and are accessible over the Internet.",
+    "difficulty": 2
   }
 ]

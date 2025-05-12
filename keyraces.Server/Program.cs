@@ -10,11 +10,10 @@ using Microsoft.OpenApi.Models;
 using keyraces.Server.Hubs;
 using Microsoft.AspNetCore.Components;
 using keyraces.Core.Entities;
-using System.Text.Json;
-using keyraces.Server.Dtos;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using keyraces.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +22,8 @@ builder.Services.AddScoped<HttpClient>(sp =>
     var nav = sp.GetRequiredService<NavigationManager>();
     return new HttpClient { BaseAddress = new Uri(nav.BaseUri) };
 });
+
+builder.Services.AddHttpClient();
 
 // Add services to the container.
 builder.Services.AddRazorPages();
@@ -120,7 +121,18 @@ builder.Services.AddScoped<ITypingStatisticService, TypingStatisticService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<IUserAchievementService, UserAchievementService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITextGenerationService, LocalTextGenerationService>();
+builder.Services.AddSingleton<LocalTextGenerationService>();
+builder.Services.AddScoped<ITextGenerationService, LocalLLMTextGenerationService>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<LocalLLMTextGenerationService>>();
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
 
+    var apiUrl = "http://localhost:11434/api/generate";
+    var modelName = "llama2";
+
+    return new LocalLLMTextGenerationService(logger, httpClient, sp, apiUrl, modelName);
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -193,38 +205,53 @@ app.MapFallbackToPage("/_Host");
 using (var scope = app.Services.CreateScope())
 {
     var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    ctx.Database.Migrate();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-    if (!ctx.TextSnippets.Any())
+    try
     {
-        var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
-        var file = Path.Combine(env.ContentRootPath, "Data", "Seed", "texts.json");
-        Console.WriteLine($"SEED: looking for {file}, exists? {File.Exists(file)}");
-
-        if (File.Exists(file))
+        if (!ctx.TextSnippets.Any())
         {
-            var json = await File.ReadAllTextAsync(file);
-            var seeds = JsonSerializer.Deserialize<List<TextSnippetSeed>>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                        ?? new();
-            Console.WriteLine($"[SEED] Deserialized seed entries: {seeds.Count}");
-            foreach (var seed in seeds)
+            logger.LogInformation("No text snippets found in database. Adding default texts.");
+
+            ctx.TextSnippets.Add(new TextSnippet
             {
-                Console.WriteLine($"[SEED] Entry: Content='{seed.Content}', Difficulty={seed.Difficulty}");
-                if (string.IsNullOrWhiteSpace(seed.Content)) continue;
-                if (!Enum.IsDefined(typeof(DifficultyLevel), seed.Difficulty)) continue;
-                ctx.TextSnippets.Add(new TextSnippet(seed.Content, (DifficultyLevel)seed.Difficulty));
-            }
-            var saved = await ctx.SaveChangesAsync();
-            Console.WriteLine($"[SEED] SaveChangesAsync added {saved} records");
+                Title = "Easy Text",
+                Content = "The quick brown fox jumps over the lazy dog. This pangram contains all the letters of the English alphabet.",
+                Difficulty = "easy",
+                IsGenerated = false,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            ctx.TextSnippets.Add(new TextSnippet
+            {
+                Title = "Medium Text",
+                Content = "Programming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages.",
+                Difficulty = "medium",
+                IsGenerated = false,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            ctx.TextSnippets.Add(new TextSnippet
+            {
+                Title = "Hard Text",
+                Content = "In computer science, artificial intelligence (AI), sometimes called machine intelligence, is intelligence demonstrated by machines, in contrast to the natural intelligence displayed by humans and animals.",
+                Difficulty = "hard",
+                IsGenerated = false,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await ctx.SaveChangesAsync();
+            logger.LogInformation("Default text snippets added successfully.");
         }
+        else
+        {
+            logger.LogInformation($"Database already contains {await ctx.TextSnippets.CountAsync()} text snippets.");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while seeding the database with text snippets.");
     }
 }
 
 app.Run();
-
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-}

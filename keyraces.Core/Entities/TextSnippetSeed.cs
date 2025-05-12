@@ -2,7 +2,7 @@
 {
     public class TextSnippetSeed
     {
-        public string Content { get; set; } = null!;
+        public string Content { get; set; }
         public int Difficulty { get; set; }
     }
 }

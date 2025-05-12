@@ -227,6 +227,7 @@
     private bool isProcessing = false;
     private string errorMessage = string.Empty;
     private string activeTab = "login";
+    private string returnUrl;
 
     protected override void OnInitialized()
     {
@@ -238,6 +239,10 @@
         {
             activeTab = "login";
         }
+
+        var uri = new Uri(Nav.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        returnUrl = query["returnUrl"] ?? "/";
     }
 
     protected override async Task OnInitializedAsync()
@@ -265,8 +270,8 @@
 
                 if (!isExpired)
                 {
-                    Console.WriteLine("User is already authenticated, redirecting to home page");
-                    Nav.NavigateTo("/", false);
+                    Console.WriteLine("User is already authenticated, redirecting to: " + returnUrl);
+                    Nav.NavigateTo(returnUrl, false);
                 }
             }
         }
@@ -279,14 +284,14 @@
     private void NavigateToLogin()
     {
         activeTab = "login";
-        Nav.NavigateTo("/login", false);
+        Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(returnUrl)}", false);
         errorMessage = string.Empty;
     }
 
     private void NavigateToRegister()
     {
         activeTab = "register";
-        Nav.NavigateTo("/register", false);
+        Nav.NavigateTo($"/register?returnUrl={Uri.EscapeDataString(returnUrl)}", false);
         errorMessage = string.Empty;
     }
 
@@ -311,8 +316,8 @@
             if (resultDict != null && resultDict.ContainsKey("success") &&
                 resultDict["success"].ValueKind == JsonValueKind.True)
             {
-                Console.WriteLine("Login successful, redirecting...");
-                Nav.NavigateTo("/", forceLoad: true);
+                Console.WriteLine("Login successful, redirecting to: " + returnUrl);
+                Nav.NavigateTo(returnUrl, forceLoad: true);
             }
             else
             {
@@ -360,8 +365,8 @@
             if (resultDict != null && resultDict.ContainsKey("success") &&
                 resultDict["success"].ValueKind == JsonValueKind.True)
             {
-                Console.WriteLine("Registration successful, redirecting...");
-                Nav.NavigateTo("/", forceLoad: true);
+                Console.WriteLine("Registration successful, redirecting to: " + returnUrl);
+                Nav.NavigateTo(returnUrl, forceLoad: true);
             }
             else
             {
