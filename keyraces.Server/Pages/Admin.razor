@@ -1,0 +1,260 @@
+﻿@page "/admin"
+@using keyraces.Core.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject ITextSnippetRepository TextSnippetRepository
+
+<div class="admin-container">
+    <div class="card">
+        <div class="card-header">
+            <h3>Панель администратора</h3>
+        </div>
+        <div class="card-body">
+            <h4>Управление текстами</h4>
+            <div class="alert alert-warning">
+                <strong>Внимание!</strong> Следующие действия удалят все тексты из базы данных. Это действие нельзя отменить.
+            </div>
+
+            <div class="d-flex gap-3 mb-4">
+                <button class="btn btn-danger" @onclick="ShowConfirmClearDialog">
+                    Очистить все тексты
+                </button>
+            </div>
+
+            <div class="mt-4">
+                <h4>Статистика базы данных</h4>
+                @if (isLoading)
+                {
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <span>Загрузка статистики...</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-title">Всего текстов</div>
+                            <div class="stat-value">@statistics.TotalTexts</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Русских текстов</div>
+                            <div class="stat-value">@statistics.RussianTexts</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Английских текстов</div>
+                            <div class="stat-value">@statistics.EnglishTexts</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Легких текстов</div>
+                            <div class="stat-value">@statistics.EasyTexts</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Средних текстов</div>
+                            <div class="stat-value">@statistics.MediumTexts</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-title">Сложных текстов</div>
+                            <div class="stat-value">@statistics.HardTexts</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (showConfirmDialog)
+    {
+        <div class="confirmation-dialog">
+            <div class="confirmation-dialog-content">
+                <h4>Подтвердите действие</h4>
+                <p>Вы уверены, что хотите удалить <strong>ВСЕ тексты</strong> из базы данных?</p>
+                <p>Это действие нельзя отменить.</p>
+                <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-secondary" @onclick="() => showConfirmDialog = false">Отмена</button>
+                    <button class="btn btn-danger" @onclick="ClearAllTexts">
+                        @if (isClearing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            <span>Удаление...</span>
+                        }
+                        else
+                        {
+                            <span>Да, удалить все</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .admin-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .stat-card {
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-title {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .confirmation-dialog {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .confirmation-dialog-content {
+        background-color: white;
+        border-radius: 5px;
+        padding: 20px;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+</style>
+
+@code {
+    private bool isLoading = true;
+    private bool showConfirmDialog = false;
+    private bool isClearing = false;
+    private TextStatistics statistics = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthAndNavigate();
+        await LoadStatistics();
+    }
+
+    private async Task CheckAuthAndNavigate()
+    {
+        try
+        {
+            // Проверяем аутентификацию
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (!user.Identity.IsAuthenticated)
+            {
+                Nav.NavigateTo("/login", forceLoad: true);
+                return;
+            }
+
+            // Здесь можно добавить проверку роли, если это необходимо
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error checking auth: {ex.Message}");
+            Nav.NavigateTo("/login", forceLoad: true);
+        }
+    }
+
+    private async Task LoadStatistics()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var texts = await TextSnippetRepository.GetAllAsync();
+            var textsList = texts.ToList();
+
+            statistics = new TextStatistics
+                {
+                    TotalTexts = textsList.Count,
+                    RussianTexts = textsList.Count(t => t.Language == "ru"),
+                    EnglishTexts = textsList.Count(t => t.Language == "en"),
+                    EasyTexts = textsList.Count(t => t.Difficulty == "easy"),
+                    MediumTexts = textsList.Count(t => t.Difficulty == "medium"),
+                    HardTexts = textsList.Count(t => t.Difficulty == "hard")
+                };
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error loading statistics: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"Ошибка при загрузке статистики: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ShowConfirmClearDialog()
+    {
+        showConfirmDialog = true;
+    }
+
+    private async Task ClearAllTexts()
+    {
+        try
+        {
+            isClearing = true;
+            StateHasChanged();
+
+            await TextSnippetRepository.ClearAllAsync();
+
+            showConfirmDialog = false;
+
+            await JS.InvokeVoidAsync("alert", "Все тексты успешно удалены из базы данных");
+
+            await LoadStatistics();
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Error clearing texts: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"Ошибка при удалении текстов: {ex.Message}");
+        }
+        finally
+        {
+            isClearing = false;
+            StateHasChanged();
+        }
+    }
+
+    private class TextStatistics
+    {
+        public int TotalTexts { get; set; }
+        public int RussianTexts { get; set; }
+        public int EnglishTexts { get; set; }
+        public int EasyTexts { get; set; }
+        public int MediumTexts { get; set; }
+        public int HardTexts { get; set; }
+    }
+}

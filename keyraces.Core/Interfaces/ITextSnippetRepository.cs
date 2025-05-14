@@ -10,10 +10,11 @@ namespace keyraces.Core.Interfaces
         Task<TextSnippet> GetByIdAsync(int id);
         Task<IEnumerable<TextSnippet>> GetAllAsync();
         Task<IEnumerable<TextSnippet>> ListAllAsync();
-        Task<TextSnippet> GetRandomAsync(string difficulty = "");
-        Task<TextSnippet> GetRandomByDifficultyAsync(string difficulty);
+        Task<TextSnippet> GetRandomAsync(string difficulty = "", string language = "ru");
+        Task<TextSnippet> GetRandomByDifficultyAsync(string difficulty, string language = "ru");
         Task<TextSnippet> AddAsync(TextSnippet textSnippet);
         Task UpdateAsync(TextSnippet textSnippet);
         Task DeleteAsync(int id);
+        Task ClearAllAsync();
     }
 }

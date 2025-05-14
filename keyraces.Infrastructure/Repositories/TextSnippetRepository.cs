@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using keyraces.Core.Entities;
+﻿using keyraces.Core.Entities;
 using keyraces.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using keyraces.Infrastructure.Data;
@@ -42,7 +38,7 @@ namespace keyraces.Infrastructure
             return await _context.TextSnippets.ToListAsync();
         }
 
-        public async Task<TextSnippet> GetRandomAsync(string difficulty = "")
+        public async Task<TextSnippet> GetRandomAsync(string difficulty = "", string language = "ru")
         {
             try
             {
@@ -53,6 +49,9 @@ namespace keyraces.Infrastructure
                     _logger.LogInformation($"Filtering by difficulty: {difficulty}");
                     query = query.Where(t => t.Difficulty == difficulty);
                 }
+
+                _logger.LogInformation($"Filtering by language: {language}");
+                query = query.Where(t => t.Language == language);
 
                 var count = await query.CountAsync();
                 _logger.LogInformation($"Found {count} text snippets matching criteria");
@@ -75,9 +74,9 @@ namespace keyraces.Infrastructure
             }
         }
 
-        public async Task<TextSnippet> GetRandomByDifficultyAsync(string difficulty)
+        public async Task<TextSnippet> GetRandomByDifficultyAsync(string difficulty, string language = "ru")
         {
-            return await GetRandomAsync(difficulty);
+            return await GetRandomAsync(difficulty, language);
         }
 
         public async Task<TextSnippet> AddAsync(TextSnippet textSnippet)
@@ -133,6 +132,23 @@ namespace keyraces.Infrastructure
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error deleting text snippet with ID: {id}");
+                throw;
+            }
+        }
+
+        public async Task ClearAllAsync()
+        {
+            try
+            {
+                _logger.LogWarning("Clearing all text snippets from database");
+
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"TextSnippets\"");
+
+                _logger.LogWarning("All text snippets have been cleared");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error clearing text snippets");
                 throw;
             }
         }

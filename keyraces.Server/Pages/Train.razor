@@ -13,26 +13,30 @@
 @inject IJSRuntime JS
 
 <div class="train-container">
-    <h3>Тренировка скорости печати</h3>
-
-    @if (loading)
+    @if (!isAuthenticated)
     {
+        <div class="auth-check">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Проверка авторизации...</span>
+            </div>
+            <p>Проверка авторизации...</p>
+        </div>
+    }
+    else
+    {
+        <h3>Тренировка скорости печати</h3>
+
+        @if (loading)
+        {
             <div class="loading-container">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Загрузка...</span>
                 </div>
                 <p>Загрузка текста…</p>
             </div>
-    }
-    else if (current == null)
-    {
-            <div class="alert alert-warning">
-                <p>Не удалось загрузить текст. Пожалуйста, попробуйте позже.</p>
-                <button class="btn btn-primary" @onclick="LoadRandom">Попробовать снова</button>
-            </div>
-    }
-    else if (!sessionStarted)
-    {
+        }
+        else if (current == null)
+        {
             <div class="text-options">
                 <div class="card mb-4">
                     <div class="card-header">
@@ -40,7 +44,7 @@
                     </div>
                     <div class="card-body">
                         <div class="row mb-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="textSource">Источник текста:</label>
                                     <select id="textSource" class="form-select" @bind="textSource">
@@ -49,7 +53,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="difficulty">Сложность:</label>
                                     <select id="difficulty" class="form-select" @bind="difficulty">
@@ -59,42 +63,174 @@
                                     </select>
                                 </div>
                             </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="language">Язык:</label>
+                                    <select id="language" class="form-select" @bind="language">
+                                        <option value="ru">Русский</option>
+                                        <option value="en">English</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
-                    @if (textSource == "generated")
-                    {
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="topic">Тема текста (опционально):</label>
-                                            <input type="text" id="topic" class="form-control" @bind="topic" placeholder="Введите тему или оставьте пустым для случайной темы" />
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="length">Длина текста (символов):</label>
-                                            <input type="number" id="length" class="form-control" @bind="length" min="100" max="1000" step="50" />
-                                        </div>
+                        @if (textSource == "generated")
+                        {
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="topic">Тема текста (опционально):</label>
+                                        <input type="text" id="topic" class="form-control" @bind="topic" placeholder="Введите тему или оставьте пустым для случайной темы" />
                                     </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="length">Длина текста (символов):</label>
+                                        <input type="number" id="length" class="form-control" @bind="length" min="100" max="1000" step="50" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
                                 <button class="btn btn-primary" @onclick="GenerateText" disabled="@isGenerating">
-                            @if (isGenerating)
-                            {
-                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                            <span class="ms-2">Генерация...</span>
-                            }
-                            else
-                            {
-                                            <span>Сгенерировать текст</span>
-                            }
+                                    @if (isGenerating)
+                                    {
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        <span class="ms-2">Генерация...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Сгенерировать текст</span>
+                                    }
                                 </button>
-                    }
-                    else
-                    {
+                                <button class="btn btn-outline-secondary" @onclick="ResetOllamaContext" disabled="@isResettingContext">
+                                    @if (isResettingContext)
+                                    {
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        <span class="ms-2">Сброс...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Сбросить контекст AI</span>
+                                    }
+                                </button>
+                                <button class="btn btn-outline-secondary" @onclick="ResetText">
+                                    Сбросить
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" @onclick="LoadRandom">
+                                    Загрузить текст
+                                </button>
+                                <button class="btn btn-outline-secondary" @onclick="ResetText">
+                                    Сбросить
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <p>Выберите источник текста и нажмите кнопку для начала тренировки.</p>
+            </div>
+        }
+        else if (!sessionStarted)
+        {
+            <div class="text-options">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Настройки текста</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="textSource">Источник текста:</label>
+                                    <select id="textSource" class="form-select" @bind="textSource">
+                                        <option value="random">Случайный текст из базы</option>
+                                        <option value="generated">Сгенерировать с помощью AI</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="difficulty">Сложность:</label>
+                                    <select id="difficulty" class="form-select" @bind="difficulty">
+                                        <option value="easy">Легкий</option>
+                                        <option value="medium">Средний</option>
+                                        <option value="hard">Сложный</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="language">Язык:</label>
+                                    <select id="language" class="form-select" @bind="language">
+                                        <option value="ru">Русский</option>
+                                        <option value="en">English</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (textSource == "generated")
+                        {
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="topic">Тема текста (опционально):</label>
+                                        <input type="text" id="topic" class="form-control" @bind="topic" placeholder="Введите тему или оставьте пустым для случайной темы" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="length">Длина текста (символов):</label>
+                                        <input type="number" id="length" class="form-control" @bind="length" min="100" max="1000" step="50" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" @onclick="GenerateText" disabled="@isGenerating">
+                                    @if (isGenerating)
+                                    {
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        <span class="ms-2">Генерация...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Сгенерировать текст</span>
+                                    }
+                                </button>
+                                <button class="btn btn-outline-secondary" @onclick="ResetOllamaContext" disabled="@isResettingContext">
+                                    @if (isResettingContext)
+                                    {
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        <span class="ms-2">Сброс...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Сбросить контекст AI</span>
+                                    }
+                                </button>
+                                <button class="btn btn-outline-secondary" @onclick="ResetText">
+                                    Сбросить
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex gap-2">
                                 <button class="btn btn-outline-secondary" @onclick="LoadRandom">
                                     Другой текст
                                 </button>
-                    }
+                                <button class="btn btn-outline-secondary" @onclick="ResetText">
+                                    Сбросить
+                                </button>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -102,7 +238,10 @@
             <div class="text-preview card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Текст для тренировки</h5>
-                    <span class="badge bg-secondary">@current.Difficulty</span>
+                    <div>
+                        <span class="badge bg-secondary me-2">@current.Difficulty</span>
+                        <span class="badge bg-info">@(current.Language == "ru" ? "Русский" : "English")</span>
+                    </div>
                 </div>
                 <div class="card-body">
                     <p class="text-content">@current.Content</p>
@@ -113,9 +252,9 @@
                     </button>
                 </div>
             </div>
-    }
-    else
-    {
+        }
+        else
+        {
             <div class="typing-session card">
                 <div class="card-header">
                     <h5 class="mb-0">Набирайте текст:</h5>
@@ -127,7 +266,7 @@
 
                     <div class="form-group">
                         <textarea @bind="userInput" @oninput="OnInput"
-                                  rows="6" class="form-control mb-3" 
+                                  rows="6" class="form-control mb-3"
                                   placeholder="Начните печатать здесь..."></textarea>
                     </div>
 
@@ -160,6 +299,7 @@
                     </button>
                 </div>
             </div>
+        }
     }
 </div>
 
@@ -170,7 +310,7 @@
         padding: 20px;
     }
 
-    .loading-container {
+    .auth-check, .loading-container {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -224,77 +364,95 @@
     private int errors;
     private double accuracy = 100;
     private string identityId = "";
-    private bool loading = true;
-    private bool authCheckCompleted = false;
+    private bool loading = false;
+    private bool isAuthenticated = false;
 
     private string textSource = "random";
     private string difficulty = "medium";
     private string topic = "";
     private int length = 300;
+    private string language = "ru";
     private bool isGenerating = false;
+    private bool isResettingContext = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = auth.User;
+        Console.WriteLine("Train page initialized");
+    }
 
-        if (user.Identity?.IsAuthenticated != true)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
         {
             try
             {
+                Console.WriteLine("Checking authentication in OnAfterRenderAsync");
+
+                var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+                var user = auth.User;
+
+                if (user.Identity?.IsAuthenticated == true)
+                {
+                    Console.WriteLine("User is authenticated via AuthenticationStateProvider");
+
+                    identityId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    var identityUserDisplayName = user.Identity.Name;
+
+                    if (!string.IsNullOrEmpty(identityId) && !string.IsNullOrEmpty(identityUserDisplayName))
+                    {
+                        Console.WriteLine($"User ID: {identityId}, Name: {identityUserDisplayName}");
+                        profile = await UserProfileService.GetOrCreateAsync(identityId, identityUserDisplayName);
+                        isAuthenticated = true;
+                        StateHasChanged();
+                        return;
+                    }
+                }
+
+                Console.WriteLine("Checking localStorage authentication");
+
                 var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
-                var isExpired = string.IsNullOrEmpty(token) || await JS.InvokeAsync<bool>("authInterop.isTokenExpired");
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    Console.WriteLine("No auth_token found in localStorage");
+                    Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Nav.Uri)}", false);
+                    return;
+                }
+
+                var isExpired = await JS.InvokeAsync<bool>("authInterop.isTokenExpired");
 
                 if (isExpired)
                 {
-                    Console.WriteLine("User is not authenticated, redirecting to login page");
+                    Console.WriteLine("Token is expired");
                     Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Nav.Uri)}", false);
                     return;
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error checking token: {ex.Message}");
-                Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Nav.Uri)}", false);
-                return;
-            }
-        }
 
-        authCheckCompleted = true;
-
-        try
-        {
-            identityId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrEmpty(identityId))
-            {
                 identityId = await JS.InvokeAsync<string>("localStorage.getItem", "user_id");
+                var userDisplayName = await JS.InvokeAsync<string>("localStorage.getItem", "user_name");
 
                 if (string.IsNullOrEmpty(identityId))
                 {
-                    Console.WriteLine("User ID not found");
+                    Console.WriteLine("No user_id found in localStorage");
                     Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Nav.Uri)}", false);
                     return;
                 }
+
+                if (string.IsNullOrEmpty(userDisplayName))
+                {
+                    userDisplayName = "User";
+                }
+
+                Console.WriteLine($"User ID from localStorage: {identityId}, Name: {userDisplayName}");
+                profile = await UserProfileService.GetOrCreateAsync(identityId, userDisplayName);
+                isAuthenticated = true;
+                StateHasChanged();
             }
-
-            var fallback = user.Identity?.Name ??
-                           user.FindFirst(ClaimTypes.Email)?.Value ??
-                           await JS.InvokeAsync<string>("localStorage.getItem", "user_name");
-
-            if (string.IsNullOrEmpty(fallback))
+            catch (Exception ex)
             {
-                fallback = "User";
+                Console.WriteLine($"Error checking authentication in OnAfterRenderAsync: {ex.Message}");
+                await JS.InvokeVoidAsync("alert", $"Ошибка при проверке аутентификации: {ex.Message}");
             }
-
-            profile = await UserProfileService.GetOrCreateAsync(identityId, fallback);
-
-            await LoadRandom();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error initializing training page: {ex.Message}");
-            loading = false;
         }
     }
 
@@ -310,7 +468,7 @@
             accuracy = 100;
             session = null;
 
-            var response = await Http.GetAsync($"/api/TextSnippet/random?difficulty={difficulty}");
+            var response = await Http.GetAsync($"/api/TextSnippet/random?difficulty={difficulty}&language={language}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -353,22 +511,14 @@
             {
                 Topic = topic,
                 Difficulty = difficulty,
-                Length = length
+                Length = length,
+                Language = language,
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
 
-            Console.WriteLine($"Generating text with topic: {topic}, difficulty: {difficulty}, length: {length}");
+            Console.WriteLine($"Generating text with topic: {topic}, difficulty: {difficulty}, length: {length}, language: {language}, timestamp: {request.Timestamp}");
 
-            var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
-
-            var requestMessage = new HttpRequestMessage(HttpMethod.Post, "/api/TextGeneration/generate");
-            requestMessage.Content = JsonContent.Create(request);
-
-            if (!string.IsNullOrEmpty(token))
-            {
-                requestMessage.Headers.Add("Authorization", $"Bearer {token}");
-            }
-
-            var response = await Http.SendAsync(requestMessage);
+            var response = await Http.PostAsJsonAsync("/api/TextGeneration/generate", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -381,9 +531,6 @@
                 Console.WriteLine($"Error generating text: {error}");
 
                 await JS.InvokeVoidAsync("alert", $"Ошибка при генерации текста: {error}");
-
-                Console.WriteLine("Loading random text instead");
-                await LoadRandom();
             }
         }
         catch (Exception ex)
@@ -398,6 +545,50 @@
             loading = false;
             StateHasChanged();
         }
+    }
+
+    private async Task ResetOllamaContext()
+    {
+        try
+        {
+            isResettingContext = true;
+            StateHasChanged();
+
+            var response = await Http.PostAsync("/api/TextGeneration/reset-context", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                await JS.InvokeVoidAsync("alert", "Контекст AI успешно сброшен");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error resetting Ollama context: {error}");
+                await JS.InvokeVoidAsync("alert", $"Ошибка при сбросе контекста AI: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception during context reset: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"Ошибка при сбросе контекста AI: {ex.Message}");
+        }
+        finally
+        {
+            isResettingContext = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetText()
+    {
+        current = null;
+        sessionStarted = false;
+        userInput = "";
+        wpm = 0;
+        errors = 0;
+        accuracy = 100;
+        session = null;
+        StateHasChanged();
     }
 
     private async Task Start()
@@ -455,6 +646,7 @@
             wpm = 0;
             errors = 0;
             accuracy = 100;
+            current = null;
         }
         catch (Exception ex)
         {

@@ -1,9 +1,0 @@
-{
-  "profiles": {
-    "KeyRacesTextGenerator": {
-      "commandName": "Project",
-      "commandLineArgs": "--port 0",
-      "launchBrowser": false
-    }
-  }
-}

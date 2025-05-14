@@ -18,13 +18,24 @@
                 <a href="/about" class="nav-link">About</a>
             </div>
 
+            // Измените блок отображения пользователя в navbar-user, чтобы показывать статус админа
             <div class="navbar-user">
                 @if (!string.IsNullOrEmpty(username))
                 {
                     <div class="user-profile">
-                        <span>@username</span>
+                        <span>
+                            @username
+                            @if (isAdmin)
+                            {
+                                <span class="admin-badge">Админ</span>
+                            }
+                        </span>
                         <div class="dropdown-menu">
                             <a href="/profile" class="dropdown-item">Profile</a>
+                            @if (isAdmin)
+                            {
+                                <a href="/admin" class="dropdown-item admin-link">Админ-панель</a>
+                            }
                             <a href="javascript:void(0)" @onclick="HandleLogout" class="dropdown-item">Logout</a>
                         </div>
                     </div>
@@ -164,15 +175,30 @@
             display: none;
         }
     }
+
+    .admin-badge {
+        background-color: #ff4500;
+        color: white;
+        font-size: 12px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        margin-left: 5px;
+        font-weight: bold;
+    }
+
+    .dropdown-item.admin-link {
+        color: #ff4500;
+        font-weight: bold;
+    }
 </style>
 
 @code {
     private string username;
     private bool isFirstRender = true;
+    private bool isAdmin = false;
 
     protected override void OnInitialized()
     {
-        
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -224,12 +250,24 @@
                     Console.WriteLine($"Error checking auth status: {ex.Message}");
                 }
             }
+
+            if (!string.IsNullOrEmpty(username))
+            {
+                isAdmin = IsAdminUser(username);
+            }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading user info: {ex.Message}");
-            username = null!;
+            username = null;
         }
+    }
+
+    private bool IsAdminUser(string email)
+    {
+        return email.ToLower().EndsWith("@admin.com") ||
+               email.ToLower() == "admin@example.com" ||
+               email.ToLower() == "admin@keyraces.com";
     }
 
     private async Task HandleLogout()

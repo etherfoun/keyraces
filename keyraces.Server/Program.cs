@@ -121,8 +121,6 @@ builder.Services.AddScoped<ITypingStatisticService, TypingStatisticService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<IUserAchievementService, UserAchievementService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<ITextGenerationService, LocalTextGenerationService>();
-builder.Services.AddSingleton<LocalTextGenerationService>();
 builder.Services.AddScoped<ITextGenerationService, LocalLLMTextGenerationService>(sp =>
 {
     var logger = sp.GetRequiredService<ILogger<LocalLLMTextGenerationService>>();
@@ -133,7 +131,6 @@ builder.Services.AddScoped<ITextGenerationService, LocalLLMTextGenerationService
 
     return new LocalLLMTextGenerationService(logger, httpClient, sp, apiUrl, modelName);
 });
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSignalR();
@@ -215,9 +212,40 @@ using (var scope = app.Services.CreateScope())
 
             ctx.TextSnippets.Add(new TextSnippet
             {
+                Title = "Простой текст",
+                Content = "Быстрая коричневая лиса прыгает через ленивую собаку. Этот текст содержит все буквы алфавита.",
+                Difficulty = "easy",
+                Language = "ru",
+                IsGenerated = false,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            ctx.TextSnippets.Add(new TextSnippet
+            {
+                Title = "Средний текст",
+                Content = "Программирование — это процесс создания набора инструкций, который указывает компьютеру, как выполнить задачу. Программирование может выполняться с использованием различных языков программирования.",
+                Difficulty = "medium",
+                Language = "ru",
+                IsGenerated = false,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            ctx.TextSnippets.Add(new TextSnippet
+            {
+                Title = "Сложный текст",
+                Content = "В компьютерной науке искусственный интеллект (ИИ), иногда называемый машинным интеллектом, — это интеллект, демонстрируемый машинами, в отличие от естественного интеллекта, проявляемого людьми и животными.",
+                Difficulty = "hard",
+                Language = "ru",
+                IsGenerated = false,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            ctx.TextSnippets.Add(new TextSnippet
+            {
                 Title = "Easy Text",
                 Content = "The quick brown fox jumps over the lazy dog. This pangram contains all the letters of the English alphabet.",
                 Difficulty = "easy",
+                Language = "en",
                 IsGenerated = false,
                 CreatedAt = DateTime.UtcNow
             });
@@ -227,6 +255,7 @@ using (var scope = app.Services.CreateScope())
                 Title = "Medium Text",
                 Content = "Programming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages.",
                 Difficulty = "medium",
+                Language = "en",
                 IsGenerated = false,
                 CreatedAt = DateTime.UtcNow
             });
@@ -236,6 +265,7 @@ using (var scope = app.Services.CreateScope())
                 Title = "Hard Text",
                 Content = "In computer science, artificial intelligence (AI), sometimes called machine intelligence, is intelligence demonstrated by machines, in contrast to the natural intelligence displayed by humans and animals.",
                 Difficulty = "hard",
+                Language = "en",
                 IsGenerated = false,
                 CreatedAt = DateTime.UtcNow
             });
@@ -245,6 +275,20 @@ using (var scope = app.Services.CreateScope())
         }
         else
         {
+            var textsWithoutLanguage = await ctx.TextSnippets.Where(t => t.Language == null).ToListAsync();
+            if (textsWithoutLanguage.Any())
+            {
+                logger.LogInformation($"Found {textsWithoutLanguage.Count} text snippets without language. Setting default language to 'ru'.");
+
+                foreach (var text in textsWithoutLanguage)
+                {
+                    text.Language = "ru";
+                }
+
+                await ctx.SaveChangesAsync();
+                logger.LogInformation("Updated text snippets with default language.");
+            }
+
             logger.LogInformation($"Database already contains {await ctx.TextSnippets.CountAsync()} text snippets.");
         }
     }
