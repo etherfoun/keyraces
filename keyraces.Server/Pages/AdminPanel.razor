@@ -1,6 +1,8 @@
 ﻿@page "/admin"
 @using keyraces.Core.Interfaces
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
 @inject NavigationManager Nav
@@ -12,15 +14,35 @@
             <h3>Панель администратора</h3>
         </div>
         <div class="card-body">
-            <h4>Управление текстами</h4>
-            <div class="alert alert-warning">
-                <strong>Внимание!</strong> Следующие действия удалят все тексты из базы данных. Это действие нельзя отменить.
-            </div>
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h4>Управление пользователями</h4>
+                        </div>
+                        <div class="card-body">
+                            <p>Управление пользователями и ролями в системе.</p>
+                            <a href="/admin/users" class="btn btn-primary">Перейти</a>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="d-flex gap-3 mb-4">
-                <button class="btn btn-danger" @onclick="ShowConfirmClearDialog">
-                    Очистить все тексты
-                </button>
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h4>Управление текстами</h4>
+                        </div>
+                        <div class="card-body">
+                            <p>Управление текстами для тренировки печати.</p>
+                            <div class="alert alert-warning">
+                                <strong>Внимание!</strong> Следующие действия удалят все тексты из базы данных. Это действие нельзя отменить.
+                            </div>
+                            <button class="btn btn-danger" @onclick="ShowConfirmClearDialog">
+                                Очистить все тексты
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="mt-4">
@@ -154,42 +176,27 @@
     private bool showConfirmDialog = false;
     private bool isClearing = false;
     private TextStatistics statistics = new();
+    private bool firstRender = true;
 
     protected override async Task OnInitializedAsync()
     {
-        await CheckAuthAndNavigate();
-        await LoadStatistics();
+        // Загружаем статистику без вызовов JavaScript
+        await LoadStatisticsData();
     }
 
-    private async Task CheckAuthAndNavigate()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        try
+        if (firstRender)
         {
-            // Проверяем аутентификацию
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-
-            if (!user.Identity.IsAuthenticated)
-            {
-                Nav.NavigateTo("/login", forceLoad: true);
-                return;
-            }
-
-            // Здесь можно добавить проверку роли, если это необходимо
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("console.error", $"Error checking auth: {ex.Message}");
-            Nav.NavigateTo("/login", forceLoad: true);
+            this.firstRender = false;
         }
     }
 
-    private async Task LoadStatistics()
+    private async Task LoadStatisticsData()
     {
         try
         {
             isLoading = true;
-            StateHasChanged();
 
             var texts = await TextSnippetRepository.GetAllAsync();
             var textsList = texts.ToList();
@@ -204,15 +211,14 @@
                     HardTexts = textsList.Count(t => t.Difficulty == "hard")
                 };
         }
-        catch (Exception ex)
+        catch
         {
-            await JS.InvokeVoidAsync("console.error", $"Error loading statistics: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", $"Ошибка при загрузке статистики: {ex.Message}");
+            // Обрабатываем ошибки без вызова JavaScript
+            statistics = new TextStatistics();
         }
         finally
         {
             isLoading = false;
-            StateHasChanged();
         }
     }
 
@@ -234,7 +240,7 @@
 
             await JS.InvokeVoidAsync("alert", "Все тексты успешно удалены из базы данных");
 
-            await LoadStatistics();
+            await LoadStatisticsData();
         }
         catch (Exception ex)
         {

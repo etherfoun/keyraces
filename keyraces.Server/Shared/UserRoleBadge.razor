@@ -1,0 +1,36 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using keyraces.Core.Interfaces
+@inject IRoleService RoleService
+@inject IJSRuntime JS
+
+@if (!string.IsNullOrEmpty(Role))
+{
+    <span class="role-badge @GetRoleClass(Role)">@Role</span>
+}
+
+@code {
+    [Parameter]
+    public string UserId { get; set; }
+
+    private string Role { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(UserId))
+        {
+            var roles = await RoleService.GetUserRolesAsync(UserId);
+            Role = roles.FirstOrDefault(); // Берем первую роль
+        }
+    }
+
+    private string GetRoleClass(string role)
+    {
+        return role?.ToLower() switch
+        {
+            "admin" => "role-admin",
+            "moderator" => "role-moderator",
+            "premium" => "role-premium",
+            _ => "role-user"
+        };
+    }
+}

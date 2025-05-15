@@ -1,0 +1,45 @@
+﻿/* Стили для бейджа с ролью пользователя */
+.user-role {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    border-radius: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.2s ease-in-out;
+}
+
+    .user-role:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+.role-admin {
+    color: #fff;
+    background-color: #dc3545;
+    border: 1px solid #c82333;
+}
+
+.role-moderator {
+    color: #fff;
+    background-color: #17a2b8;
+    border: 1px solid #138496;
+}
+
+.role-premium {
+    color: #212529;
+    background-color: #ffc107;
+    border: 1px solid #e0a800;
+}
+
+.role-user {
+    color: #fff;
+    background-color: #6c757d;
+    border: 1px solid #5a6268;
+}

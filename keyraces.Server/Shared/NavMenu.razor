@@ -1,6 +1,7 @@
 ﻿@using keyraces.Core.Interfaces
 @inject IJSRuntime JS
 @inject NavigationManager NavigationManager
+@inject IRoleService RoleService
 
 <div class="navbar-wrapper">
     <nav class="navbar">
@@ -18,23 +19,22 @@
                 <a href="/about" class="nav-link">About</a>
             </div>
 
-            // Измените блок отображения пользователя в navbar-user, чтобы показывать статус админа
             <div class="navbar-user">
                 @if (!string.IsNullOrEmpty(username))
                 {
                     <div class="user-profile">
-                        <span>
+                        <span class="user-info">
                             @username
-                            @if (isAdmin)
+                            @if (!string.IsNullOrEmpty(userId))
                             {
-                                <span class="admin-badge">Админ</span>
+                                <UserRoleBadge UserId="@userId" />
                             }
                         </span>
                         <div class="dropdown-menu">
                             <a href="/profile" class="dropdown-item">Profile</a>
                             @if (isAdmin)
                             {
-                                <a href="/admin" class="dropdown-item admin-link">Админ-панель</a>
+                                <a href="/admin" class="dropdown-item admin-link">Admin Panel</a>
                             }
                             <a href="javascript:void(0)" @onclick="HandleLogout" class="dropdown-item">Logout</a>
                         </div>
@@ -131,6 +131,12 @@
             display: block;
         }
 
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
     .dropdown-menu {
         display: none;
         position: absolute;
@@ -170,36 +176,60 @@
             background-color: #f5f5f5;
         }
 
-    @@media (max-width: 768px) {
-        .navbar-links {
-            display: none;
-        }
+    .role-badge {
+        display: inline-block;
+        font-size: 12px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-weight: bold;
+        transition: all 0.2s ease;
     }
 
-    .admin-badge {
+    .role-admin {
         background-color: #ff4500;
         color: white;
-        font-size: 12px;
-        padding: 2px 6px;
-        border-radius: 10px;
-        margin-left: 5px;
-        font-weight: bold;
+    }
+
+    .role-moderator {
+        background-color: #1e90ff;
+        color: white;
+    }
+
+    .role-premium {
+        background-color: #ffd700;
+        color: #333;
+    }
+
+    .role-user {
+        background-color: #e0e0e0;
+        color: #333;
+    }
+
+    .role-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
 
     .dropdown-item.admin-link {
         color: #ff4500;
         font-weight: bold;
     }
+
+    @@media (max-width: 768px) {
+        .navbar-links
+
+    {
+        display: none;
+    }
+
+    }
 </style>
 
 @code {
     private string username;
+    private string userId;
     private bool isFirstRender = true;
     private bool isAdmin = false;
-
-    protected override void OnInitialized()
-    {
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -222,6 +252,7 @@
             }
 
             username = await JS.InvokeAsync<string>("localStorage.getItem", "user_name");
+            userId = await JS.InvokeAsync<string>("localStorage.getItem", "user_id");
 
             if (string.IsNullOrEmpty(username))
             {
@@ -242,6 +273,10 @@
                             {
                                 username = authData["email"].ToString();
                             }
+                            if (authData.ContainsKey("userId"))
+                            {
+                                userId = authData["userId"].ToString();
+                            }
                         }
                     }
                 }
@@ -251,8 +286,15 @@
                 }
             }
 
-            if (!string.IsNullOrEmpty(username))
+            if (!string.IsNullOrEmpty(userId))
             {
+                // Проверяем, является ли пользователь администратором через сервис ролей
+                var roles = await RoleService.GetUserRolesAsync(userId);
+                isAdmin = roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase));
+            }
+            else if (!string.IsNullOrEmpty(username))
+            {
+                // Запасной вариант, если ID пользователя недоступен
                 isAdmin = IsAdminUser(username);
             }
         }
@@ -275,7 +317,6 @@
         try
         {
             await JS.InvokeVoidAsync("authInterop.logout");
-
             NavigationManager.NavigateTo("/", forceLoad: true);
         }
         catch (Exception ex)

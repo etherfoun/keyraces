@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using keyraces.Infrastructure;
+using keyraces.Server;
+using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -131,6 +133,9 @@ builder.Services.AddScoped<ITextGenerationService, LocalLLMTextGenerationService
 
     return new LocalLLMTextGenerationService(logger, httpClient, sp, apiUrl, modelName);
 });
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSignalR();
