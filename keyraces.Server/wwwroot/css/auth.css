@@ -1,20 +1,20 @@
-﻿.auth-container {
+﻿/* Обновленные стили для страниц аутентификации с поддержкой тем */
+.auth-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: calc(100vh - 80px);
+    min-height: 100vh;
+    background-color: var(--background-primary);
     padding: 20px;
-    background-color: #f5f5f5;
 }
 
 .auth-card {
     width: 100%;
-    max-width: 450px;
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
     padding: 30px;
-    overflow: hidden;
 }
 
 .auth-header {
@@ -22,122 +22,137 @@
     margin-bottom: 30px;
 }
 
+    .auth-header h2 {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: 24px;
+    }
+
+    .auth-header p {
+        color: var(--text-secondary);
+        margin-top: 10px;
+    }
+
 .auth-logo {
-    width: 80px;
-    height: auto;
-    margin-bottom: 15px;
-}
-
-.auth-header h2 {
-    font-size: 24px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #333;
-}
-
-.auth-header p {
-    color: #666;
-    font-size: 14px;
+    height: 60px;
+    margin-bottom: 20px;
 }
 
 .tabs {
     display: flex;
-    margin-bottom: 25px;
-    border-bottom: 1px solid #eee;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .tab-button {
     flex: 1;
     background: none;
     border: none;
-    padding: 12px;
+    padding: 10px;
     font-size: 16px;
-    font-weight: 500;
-    color: #666;
     cursor: pointer;
-    transition: all 0.3s ease;
+    color: var(--text-secondary);
+    transition: all 0.3s;
 }
 
     .tab-button.active {
-        color: #333;
-        border-bottom: 2px solid #333;
+        color: var(--text-primary);
+        font-weight: bold;
+        border-bottom: 2px solid var(--accent-color);
     }
 
 .auth-form {
     display: flex;
     flex-direction: column;
+    gap: 20px;
 }
 
 .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     margin-bottom: 20px;
 }
 
     .form-group label {
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 5px;
         font-weight: 500;
-        color: #333;
+        color: var(--text-secondary);
     }
 
 .form-control {
     width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
     font-size: 16px;
-    transition: border-color 0.3s;
+    background-color: var(--bg-input);
+    color: var(--text-primary);
 }
 
     .form-control:focus {
-        border-color: #333;
         outline: none;
+        border-color: var(--accent-color);
     }
 
-.submit-button {
-    margin-top: 10px;
-    padding: 14px;
-    background-color: #333;
+.auth-button {
+    background-color: var(--accent-color);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 5px;
+    padding: 12px;
     font-size: 16px;
-    font-weight: 500;
     cursor: pointer;
     transition: background-color 0.3s;
+    margin-top: 10px;
 }
 
-    .submit-button:hover {
-        background-color: #222;
+    .auth-button:hover {
+        background-color: var(--accent-hover);
     }
 
-    .submit-button:disabled {
-        background-color: #999;
+    .auth-button:disabled {
+        background-color: var(--text-muted);
         cursor: not-allowed;
     }
 
-.alert {
-    padding: 12px 15px;
-    border-radius: 6px;
+.auth-error {
+    background-color: var(--error-background);
+    color: var(--error-text);
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.validation-message {
+    color: var(--error-text);
     font-size: 14px;
+    margin-top: 4px;
 }
 
-.alert-danger {
-    background-color: #fee;
-    color: #c33;
-    border: 1px solid #fcc;
+.spinner-border {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 0.2em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
 }
 
-@media (max-width: 576px) {
-    .auth-card {
-        padding: 20px;
+@keyframes spinner-border {
+    to {
+        transform: rotate(360deg);
     }
+}
 
-    .auth-header h2 {
-        font-size: 20px;
-    }
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.2em;
+}
 
-    .form-control,
-    .submit-button {
-        font-size: 14px;
-    }
+.ms-2 {
+    margin-left: 0.5rem;
 }

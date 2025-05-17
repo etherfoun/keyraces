@@ -1,0 +1,198 @@
+﻿:root {
+    /* Светлая тема */
+    --light-bg-primary: #f8f9fa;
+    --light-bg-secondary: #ffffff;
+    --light-bg-tertiary: #e9ecef;
+    --light-text-primary: #212529;
+    --light-text-secondary: #495057;
+    --light-text-muted: #6c757d;
+    --light-border-color: #dee2e6;
+    --light-accent-color: #3182ce;
+    --light-accent-hover: #2c5282;
+    --light-accent-light: #ebf8ff;
+    --light-hover-color: #f1f5f9;
+    --light-card-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    --light-error-background: #fff5f5;
+    --light-error-text: #c53030;
+    --light-success-background: #f0fff4;
+    --light-success-text: #2f855a;
+    /* Темная тема */
+    --dark-bg-primary: #121212;
+    --dark-bg-secondary: #1e1e1e;
+    --dark-bg-tertiary: #2d2d2d;
+    --dark-text-primary: #e2e8f0;
+    --dark-text-secondary: #cbd5e0;
+    --dark-text-muted: #a0aec0;
+    --dark-border-color: #2d3748;
+    --dark-accent-color: #4299e1;
+    --dark-accent-hover: #63b3ed;
+    --dark-accent-light: #2a4365;
+    --dark-hover-color: #2d3748;
+    --dark-card-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    --dark-error-background: #742a2a;
+    --dark-error-text: #feb2b2;
+    --dark-success-background: #22543d;
+    --dark-success-text: #9ae6b4;
+    /* Навбар */
+    --light-navbar-bg: #ffffff;
+    --light-navbar-text: #212529;
+    --light-navbar-text-hover: #3182ce;
+    --light-user-profile-bg: #f8f9fa;
+    --light-user-profile-text: #212529;
+    --light-dropdown-bg: #ffffff;
+    --light-dropdown-text: #212529;
+    --light-dropdown-hover: #f8f9fa;
+    --light-button-bg: #3182ce;
+    --light-button-text: #ffffff;
+    --light-button-hover: #2c5282;
+    --dark-navbar-bg: #1a1d21;
+    --dark-navbar-text: #e2e8f0;
+    --dark-navbar-text-hover: #4299e1;
+    --dark-user-profile-bg: #2d3748;
+    --dark-user-profile-text: #e2e8f0;
+    --dark-dropdown-bg: #2d3748;
+    --dark-dropdown-text: #e2e8f0;
+    --dark-dropdown-hover: #4a5568;
+    --dark-button-bg: #4299e1;
+    --dark-button-text: #ffffff;
+    --dark-button-hover: #63b3ed;
+    /* Цвета для кнопок в светлой теме */
+    --light-primary-color: #3182ce;
+    --light-primary-dark: #2c5282;
+    --light-success-color: #38a169;
+    --light-success-dark: #2f855a;
+    --light-info-color: #3182ce;
+    --light-secondary-color: #718096;
+    --light-secondary-dark: #4a5568;
+    /* Цвета для кнопок в темной теме */
+    --dark-primary-color: #4299e1;
+    --dark-primary-dark: #3182ce;
+    --dark-success-color: #48bb78;
+    --dark-success-dark: #38a169;
+    --dark-info-color: #4299e1;
+    --dark-secondary-color: #a0aec0;
+    --dark-secondary-dark: #718096;
+    /* RGB версии для использования с opacity */
+    --light-primary-rgb: 49, 130, 206;
+    --light-success-rgb: 56, 161, 105;
+    --light-info-rgb: 49, 130, 206;
+    --light-secondary-rgb: 113, 128, 150;
+    --dark-primary-rgb: 66, 153, 225;
+    --dark-success-rgb: 72, 187, 120;
+    --dark-info-rgb: 66, 153, 225;
+    --dark-secondary-rgb: 160, 174, 192;
+    /* Формы */
+    --light-bg-input: #ffffff;
+    --light-bg-input-focus: #ffffff;
+    --dark-bg-input: #2d3748;
+    --dark-bg-input-focus: #3a4a63;
+}
+
+/* Применение темной темы по умолчанию */
+:root {
+    --background-primary: var(--dark-bg-primary);
+    --background-secondary: var(--dark-bg-secondary);
+    --background-tertiary: var(--dark-bg-tertiary);
+    --text-primary: var(--dark-text-primary);
+    --text-secondary: var(--dark-text-secondary);
+    --text-muted: var(--dark-text-muted);
+    --border-color: var(--dark-border-color);
+    --accent-color: var(--dark-accent-color);
+    --accent-hover: var(--dark-accent-hover);
+    --accent-light: var(--dark-accent-light);
+    --hover-color: var(--dark-hover-color);
+    --card-shadow: var(--dark-card-shadow);
+    --error-background: var(--dark-error-background);
+    --error-text: var(--dark-error-text);
+    --success-background: var(--dark-success-background);
+    --success-text: var(--dark-success-text);
+    /* Навбар */
+    --navbar-bg: var(--dark-navbar-bg);
+    --navbar-text: var(--dark-navbar-text);
+    --navbar-text-hover: var(--dark-navbar-text-hover);
+    --user-profile-bg: var(--dark-user-profile-bg);
+    --user-profile-text: var(--dark-user-profile-text);
+    --dropdown-bg: var(--dark-dropdown-bg);
+    --dropdown-text: var(--dark-dropdown-text);
+    --dropdown-hover: var(--dark-dropdown-hover);
+    --button-bg: var(--dark-button-bg);
+    --button-text: var(--dark-button-text);
+    --button-hover: var(--dark-button-hover);
+    /* Общие настройки */
+    --bg-primary: var(--dark-bg-primary);
+    --bg-secondary: var(--dark-bg-secondary);
+    --bg-tertiary: var(--dark-bg-tertiary);
+    --text-color: var(--dark-text-primary);
+    --primary-color: var(--dark-primary-color);
+    --primary-dark: var(--dark-primary-dark);
+    --success-color: var(--dark-success-color);
+    --success-dark: var(--dark-success-dark);
+    --info-color: var(--dark-info-color);
+    --secondary-color: var(--dark-secondary-color);
+    --secondary-dark: var(--dark-secondary-dark);
+    /* RGB версии */
+    --primary-rgb: var(--dark-primary-rgb);
+    --success-rgb: var(--dark-success-rgb);
+    --info-rgb: var(--dark-info-rgb);
+    --secondary-rgb: var(--dark-secondary-rgb);
+    /* Формы */
+    --bg-input: var(--dark-bg-input);
+    --bg-input-focus: var(--dark-bg-input-focus);
+}
+
+/* Светлая тема */
+[data-theme="light"] {
+    --background-primary: var(--light-bg-primary);
+    --background-secondary: var(--light-bg-secondary);
+    --background-tertiary: var(--light-bg-tertiary);
+    --text-primary: var(--light-text-primary);
+    --text-secondary: var(--light-text-secondary);
+    --text-muted: var(--light-text-muted);
+    --border-color: var(--light-border-color);
+    --accent-color: var(--light-accent-color);
+    --accent-hover: var(--light-accent-hover);
+    --accent-light: var(--light-accent-light);
+    --hover-color: var(--light-hover-color);
+    --card-shadow: var(--light-card-shadow);
+    --error-background: var(--light-error-background);
+    --error-text: var(--light-error-text);
+    --success-background: var(--light-success-background);
+    --success-text: var(--light-success-text);
+    /* Навбар */
+    --navbar-bg: var(--light-navbar-bg);
+    --navbar-text: var(--light-navbar-text);
+    --navbar-text-hover: var(--light-navbar-text-hover);
+    --user-profile-bg: var(--light-user-profile-bg);
+    --user-profile-text: var(--light-user-profile-text);
+    --dropdown-bg: var(--light-dropdown-bg);
+    --dropdown-text: var(--light-dropdown-text);
+    --dropdown-hover: var(--light-dropdown-hover);
+    --button-bg: var(--light-button-bg);
+    --button-text: var(--light-button-text);
+    --button-hover: var(--light-button-hover);
+    /* Общие настройки */
+    --bg-primary: var(--light-bg-primary);
+    --bg-secondary: var(--light-bg-secondary);
+    --bg-tertiary: var(--light-bg-tertiary);
+    --text-color: var(--light-text-primary);
+    --primary-color: var(--light-primary-color);
+    --primary-dark: var(--light-primary-dark);
+    --success-color: var(--light-success-color);
+    --success-dark: var(--light-success-dark);
+    --info-color: var(--light-info-color);
+    --secondary-color: var(--light-secondary-color);
+    --secondary-dark: var(--light-secondary-dark);
+    /* RGB версии */
+    --primary-rgb: var(--light-primary-rgb);
+    --success-rgb: var(--light-success-rgb);
+    --info-rgb: var(--light-info-rgb);
+    --secondary-rgb: var(--light-secondary-rgb);
+    /* Формы */
+    --bg-input: var(--light-bg-input);
+    --bg-input-focus: var(--light-bg-input-focus);
+}
+
+/* Плавные переходы для всех элементов */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}

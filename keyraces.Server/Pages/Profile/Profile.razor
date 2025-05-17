@@ -1,0 +1,328 @@
+﻿@page "/profile"
+@using keyraces.Core.Interfaces
+@using keyraces.Core.Entities
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@inject IUserProfileService UserProfileService
+
+<div class="profile-container">
+    <div class="sidebar @(isSidebarCollapsed ? "collapsed" : "")">
+        <div class="sidebar-header">
+            <div class="user-info">
+                <div class="avatar">
+                    @if (!string.IsNullOrEmpty(userInitials))
+                    {
+                        <span>@userInitials</span>
+                    }
+                    else
+                    {
+                        <span>?</span>
+                    }
+                </div>
+                @if (!isSidebarCollapsed)
+                {
+                    <div class="user-details">
+                        <h3>@username</h3>
+                        <p>@userEmail</p>
+                    </div>
+                }
+            </div>
+            <button class="collapse-btn" @onclick="ToggleSidebar">
+                <span class="oi @(isSidebarCollapsed ? "oi-chevron-right" : "oi-chevron-left")"></span>
+            </button>
+        </div>
+
+        <div class="sidebar-menu">
+            <a href="/profile" class="menu-item active">
+                <span class="oi oi-person"></span>
+                @if (!isSidebarCollapsed)
+                {
+                    <span>Profile</span>
+                }
+            </a>
+            <a href="/profile/customization" class="menu-item">
+                <span class="oi oi-brush"></span>
+                @if (!isSidebarCollapsed)
+                {
+                    <span>Customization</span>
+                }
+            </a>
+            <a href="/profile/settings" class="menu-item">
+                <span class="oi oi-cog"></span>
+                @if (!isSidebarCollapsed)
+                {
+                    <span>Settings</span>
+                }
+            </a>
+            <a href="/profile/achievements" class="menu-item">
+                <span class="oi oi-badge"></span>
+                @if (!isSidebarCollapsed)
+                {
+                    <span>Achievements</span>
+                }
+            </a>
+            <a href="/profile/statistics" class="menu-item">
+                <span class="oi oi-graph"></span>
+                @if (!isSidebarCollapsed)
+                {
+                    <span>Statistics</span>
+                }
+            </a>
+        </div>
+
+        <div class="sidebar-footer">
+            @if (!isSidebarCollapsed)
+            {
+                <div class="support-section">
+                    <h4>Need help?</h4>
+                    <p>Get in touch with our support team</p>
+                    <button class="contact-btn" @onclick="ContactSupport">Contact us</button>
+                </div>
+            }
+            else
+            {
+                <button class="help-btn" @onclick="ContactSupport">
+                    <span class="oi oi-question-mark"></span>
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="content-area">
+        <div class="profile-header">
+            <h1>Профиль</h1>
+            <button class="edit-button"><i class="oi oi-pencil"></i> Редактировать</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p>Загрузка профиля...</p>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="error-message">
+                <i class="oi oi-warning"></i>
+                <p>@errorMessage</p>
+            </div>
+        }
+        else if (userProfile != null)
+        {
+            <div class="profile-card">
+                <div class="profile-avatar large">
+                    @GetInitials(userProfile.Name)
+                </div>
+                <div class="profile-info">
+                    <h2>@userProfile.Name</h2>
+                    <p class="email">@userEmail</p>
+
+                    <div class="stats-container">
+                        <div class="stat-item">
+                            <div class="stat-value">@userProfile.AverageWPM.ToString("0.0")</div>
+                            <div class="stat-label">Средняя скорость (WPM)</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">@userProfile.AverageAccuracy.ToString("0.0")%</div>
+                            <div class="stat-label">Точность</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">@(userProfile.TotalRaces + userProfile.TotalPractices)</div>
+                            <div class="stat-label">Сессий</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="error-message">
+                <i class="oi oi-warning"></i>
+                <p>Профиль не найден. Пожалуйста, войдите в систему.</p>
+            </div>
+        }
+
+        <div class="profile-content">
+            <div class="recent-activity">
+                <h3>Recent Activity</h3>
+                <div class="activity-list">
+                    @if (activities.Count > 0)
+                    {
+                        @foreach (var activity in activities)
+                        {
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <span class="oi @activity.Icon"></span>
+                                </div>
+                                <div class="activity-details">
+                                    <h4>@activity.Title</h4>
+                                    <p>@activity.Description</p>
+                                    <span class="activity-time">@activity.Time</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="no-activity">
+                            <p>No recent activity to display.</p>
+                            <a href="/train" class="start-practice-btn">Start practicing</a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isCollapsed = false;
+    private string userId;
+    private UserProfile userProfile;
+    private bool isLoading = true;
+    private string errorMessage;
+
+    private string username = "User";
+    private string userEmail = "user@example.com";
+    private string userInitials = "U";
+    private bool isSidebarCollapsed = false;
+
+    private List<ActivityItem> activities = new List<ActivityItem>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Получаем ID пользователя из localStorage
+            userId = await JS.InvokeAsync<string>("localStorage.getItem", "user_id");
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                // Если ID нет в localStorage, пробуем получить через authInterop
+                var authStatus = await JS.InvokeAsync<object>("authInterop.checkAuthStatus");
+                if (authStatus != null)
+                {
+                    var authData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(
+                        System.Text.Json.JsonSerializer.Serialize(authStatus)
+                    );
+
+                    if (authData != null && authData.ContainsKey("userId"))
+                    {
+                        userId = authData["userId"].ToString();
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                // Получаем профиль пользователя из базы данных
+                userProfile = await UserProfileService.GetByIdentityIdAsync(userId);
+
+                if (userProfile != null)
+                {
+                    username = userProfile.Name;
+                    // Email получаем из localStorage, так как в модели UserProfile его нет
+                    userEmail = await JS.InvokeAsync<string>("localStorage.getItem", "user_email") ?? "Email не указан";
+                }
+            }
+            else
+            {
+                errorMessage = "Не удалось получить ID пользователя. Пожалуйста, войдите в систему.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка при загрузке профиля: {ex.Message}";
+            Console.WriteLine(errorMessage);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+
+        // Populate with sample data for now
+        activities.Add(new ActivityItem
+        {
+            Icon = "oi-timer",
+            Title = "Completed Practice Session",
+            Description = "You achieved 78 WPM with 95% accuracy",
+            Time = "Today at 10:23 AM"
+        });
+        activities.Add(new ActivityItem
+        {
+            Icon = "oi-badge",
+            Title = "Achievement Unlocked",
+            Description = "Speed Demon: Type at 75+ WPM for 5 minutes",
+            Time = "Yesterday at 3:45 PM"
+        });
+        activities.Add(new ActivityItem
+        {
+            Icon = "oi-people",
+            Title = "Competition Completed",
+            Description = "You placed 2nd in 'Weekly Challenge'",
+            Time = "2 days ago"
+        });
+
+        await LoadUserInfoAsync();
+    }
+
+    private async Task LoadUserInfoAsync()
+    {
+        try
+        {
+            var storedUsername = await JS.InvokeAsync<string>("localStorage.getItem", "user_name");
+            var storedEmail = await JS.InvokeAsync<string>("localStorage.getItem", "user_email");
+
+            if (!string.IsNullOrEmpty(storedUsername))
+            {
+                username = storedUsername;
+
+                if (!string.IsNullOrEmpty(storedEmail))
+                {
+                    userEmail = storedEmail;
+                }
+
+                // Generate initials from username
+                userInitials = GetInitials(username);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user info: {ex.Message}");
+        }
+    }
+
+    private void ToggleSidebar()
+    {
+        isSidebarCollapsed = !isSidebarCollapsed;
+    }
+
+    private void ContactSupport()
+    {
+        // Implement contact support functionality
+        JS.InvokeVoidAsync("alert", "Support feature coming soon!");
+    }
+
+    private class ActivityItem
+    {
+        public string Icon { get; set; }
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public string Time { get; set; }
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return "?";
+
+        var parts = name.Split(' ');
+        if (parts.Length > 1)
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        else if (name.Length > 0)
+            return name[0].ToString().ToUpper();
+        else
+            return "?";
+    }
+}

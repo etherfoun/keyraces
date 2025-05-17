@@ -1,0 +1,281 @@
+﻿.train-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    color: var(--text-color);
+}
+
+.auth-check,
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.text-content {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.original-text {
+    background-color: var(--bg-secondary);
+    padding: 15px;
+    border-radius: 5px;
+    border-left: 4px solid var(--border-color);
+}
+
+.stats-container {
+    margin-top: 20px;
+}
+
+.stat-card {
+    background-color: var(--bg-secondary);
+    border-radius: 5px;
+    padding: 10px;
+    text-align: center;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+/* Карточки и контейнеры */
+.card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    background-color: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 16px;
+}
+
+.card-body {
+    padding: 16px;
+}
+
+.card-footer {
+    background-color: var(--bg-tertiary);
+    border-top: 1px solid var(--border-color);
+    padding: 12px 16px;
+}
+
+/* Формы и элементы ввода */
+.form-control,
+.form-select {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    border-radius: 0.25rem;
+}
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+        background-color: var(--bg-input-focus);
+    }
+
+/* Улучшенные стили для выпадающих списков */
+.form-select {
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    appearance: none;
+}
+
+/* Темная тема для стрелки выпадающего списка */
+[data-theme="dark"] .form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}
+
+/* Стили для опций в выпадающем списке - применяются через JS */
+option {
+    background-color: var(--bg-secondary);
+    color: var(--text-color);
+    padding: 8px;
+}
+
+/* Группировка формы */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-color);
+    }
+
+textarea.form-control {
+    min-height: 120px;
+    font-family: "Courier New", monospace;
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+
+/* Кнопки */
+.btn {
+    border-radius: 4px;
+    padding: 8px 16px;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white; /* Явно задаем белый цвет текста для кнопки primary */
+}
+
+    .btn-primary:hover {
+        background-color: var(--primary-dark);
+        border-color: var(--primary-dark);
+        color: white;
+    }
+
+.btn-success {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+    color: white; /* Явно задаем белый цвет текста для кнопки success */
+}
+
+    .btn-success:hover {
+        background-color: var(--success-dark);
+        border-color: var(--success-dark);
+        color: white;
+    }
+
+.btn-outline-secondary {
+    color: var(--text-color);
+    border-color: var(--border-color);
+    background-color: transparent;
+}
+
+    .btn-outline-secondary:hover {
+        background-color: var(--bg-hover);
+        color: var(--text-color);
+        border-color: var(--accent-color);
+    }
+
+/* Добавляем стили для отключенных кнопок */
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.65;
+    pointer-events: none;
+}
+
+/* Спиннеры и индикаторы загрузки */
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+    margin-bottom: 10px;
+    color: var(--primary-color);
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Бейджи */
+.badge {
+    padding: 5px 8px;
+    font-weight: 500;
+    border-radius: 4px;
+}
+
+.bg-secondary {
+    background-color: var(--secondary-color) !important;
+}
+
+.bg-info {
+    background-color: var(--info-color) !important;
+}
+
+/* Предупреждения */
+.alert {
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.alert-info {
+    background-color: rgba(var(--info-rgb), 0.1);
+    border: 1px solid rgba(var(--info-rgb), 0.2);
+    color: var(--info-color);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .train-container {
+        padding: 15px;
+    }
+
+    .row {
+        margin-right: -10px;
+        margin-left: -10px;
+    }
+
+    .col-md-4,
+    .col-md-6 {
+        padding-right: 10px;
+        padding-left: 10px;
+    }
+
+    .card-body {
+        padding: 12px;
+    }
+
+    .text-content {
+        font-size: 1rem;
+    }
+
+    .stat-value {
+        font-size: 1.2rem;
+    }
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeIn 0.3s ease-out forwards;
+}

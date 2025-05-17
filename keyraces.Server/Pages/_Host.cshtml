@@ -9,4 +9,34 @@
 
 <script src="_framework/blazor.server.js"></script>
 <script src="~/js/authInterop.js"></script>
+<script src="~/js/themeInterop.js" defer></script>
 <link href="css/user-role.css" rel="stylesheet" />
+<link href="css/profile.css" rel="stylesheet" />
+<link href="css/theme.css" rel="stylesheet" />
+<link href="css/auth.css" rel="stylesheet" />
+<script>
+    // Проверка доступности themeInterop
+    window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            if (typeof window.themeInterop === 'undefined') {
+                console.error('themeInterop is not defined after page load! Loading it manually...');
+
+                // Создаем и добавляем скрипт вручную
+                var script = document.createElement('script');
+                script.src = '/js/themeInterop.js';
+                script.onload = function() {
+                    console.log('themeInterop.js loaded manually');
+                    if (typeof window.themeInterop !== 'undefined') {
+                        console.log('themeInterop is now available');
+                        window.themeInterop.initTheme();
+                    } else {
+                        console.error('themeInterop is still undefined after manual loading');
+                    }
+                };
+                document.head.appendChild(script);
+            } else {
+                console.log('themeInterop is available after page load');
+            }
+        }, 500); // Даем время на загрузку скрипта
+    });
+</script>
