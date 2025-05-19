@@ -19,7 +19,7 @@
         if (!string.IsNullOrEmpty(UserId))
         {
             var roles = await RoleService.GetUserRolesAsync(UserId);
-            Role = roles.FirstOrDefault(); // Берем первую роль
+            Role = roles.FirstOrDefault();
         }
     }
 

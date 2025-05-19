@@ -1,37 +1,34 @@
-﻿/*.admin-container {
+﻿.admin-container {
     max-width: 900px;
     margin: 0 auto;
     padding: 20px;
-}*/
+}
 
-/* Карточки */
-/*.card {
-    background-color: var(--bg-secondary);
+.card {
+    background-color: var(--background-secondary);
     border: 1px solid var(--border-color);
     border-radius: 5px;
     margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--card-shadow);
 }
 
 .card-header {
-    background-color: var(--bg-tertiary);
+    background-color: var(--background-tertiary);
     border-bottom: 1px solid var(--border-color);
     padding: 12px 16px;
 }
 
 .card-body {
     padding: 16px;
-    color: var(--text-color);
 }
 
 h3,
 h4 {
-    color: var(--text-color);
     margin: 0;
-}*/
+    color: var(--text-primary);
+}
 
-/* Статистика */
-/*.stats-grid {
+.stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 15px;
@@ -39,18 +36,18 @@ h4 {
 }
 
 .stat-card {
-    background-color: var(--bg-secondary);
+    background-color: var(--background-tertiary);
     border-radius: 5px;
     padding: 15px;
     text-align: center;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--card-shadow);
     border: 1px solid var(--border-color);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
     .stat-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        box-shadow: var(--card-shadow-hover);
     }
 
 .stat-title {
@@ -59,11 +56,10 @@ h4 {
 }
 
 .stat-value {
-    color: var(--primary-color);
-}*/
+    color: var(--accent-color);
+}
 
-/* Кнопки */
-/*.btn {
+.btn {
     border-radius: 4px;
     padding: 8px 16px;
     transition: all 0.2s;
@@ -71,7 +67,7 @@ h4 {
 
 .btn-primary {
     background-color: var(--primary-color);
-    border-color: var(--primary-color);
+    border-color: var(--primary-dark);
     color: white;
 }
 
@@ -81,42 +77,40 @@ h4 {
     }
 
 .btn-danger {
-    background-color: var(--error-color, #dc3545);
-    border-color: var(--error-color, #dc3545);
+    background-color: var(--error-text);
+    border-color: var(--error-text);
     color: white;
 }
 
     .btn-danger:hover {
-        background-color: var(--error-dark, #bd2130);
-        border-color: var(--error-dark, #bd2130);
+        background-color: #c82333;
+        border-color: #bd2130;
     }
 
 .btn-secondary {
-    background-color: var(--secondary-color, #6c757d);
-    border-color: var(--secondary-color, #6c757d);
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-dark);
     color: white;
 }
 
     .btn-secondary:hover {
-        background-color: var(--secondary-dark, #5a6268);
-        border-color: var(--secondary-dark, #5a6268);
-    }*/
+        background-color: var(--secondary-dark);
+        border-color: var(--secondary-dark);
+    }
 
-/* Предупреждения */
-/*.alert {
+.alert {
     border-radius: 4px;
     padding: 12px 16px;
     margin-bottom: 16px;
 }
 
 .alert-warning {
-    background-color: rgba(var(--warning-rgb, 255, 193, 7), 0.1);
-    border: 1px solid rgba(var(--warning-rgb, 255, 193, 7), 0.2);
-    color: var(--warning-color, #ffc107);
-}*/
+    background-color: var(--warning-background, #fff3cd);
+    border: 1px solid var(--warning-border, #ffeeba);
+    color: var(--warning-text, #856404);
+}
 
-/* Диалог подтверждения */
-/*.confirmation-dialog {
+.confirmation-dialog {
     position: fixed;
     top: 0;
     left: 0;
@@ -127,51 +121,66 @@ h4 {
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    animation: fadeIn 0.2s ease-out;
 }
 
 .confirmation-dialog-content {
-    background-color: var(--bg-secondary);
+    background-color: var(--background-secondary);
     border-radius: 5px;
     padding: 20px;
     width: 100%;
     max-width: 500px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    color: var(--text-color);
-    animation: slideIn 0.2s ease-out;
-}*/
+    color: var(--text-primary);
+}
 
-/* Спиннеры */
-/*.spinner-border {
-    color: var(--primary-color);
-}*/
+.spinner-border {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 0.2em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
+}
 
-/* Анимации */
-/*@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
+@keyframes spinner-border {
     to {
-        opacity: 1;
+        transform: rotate(360deg);
     }
 }
 
-@keyframes slideIn {
-    from {
-        transform: translateY(-20px);
-        opacity: 0;
-    }
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.2em;
+}
 
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}*/
+.me-2 {
+    margin-right: 0.5rem;
+}
 
-/* Адаптивность */
-/*@media (max-width: 768px) {
+.gap-2 {
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
     .stats-grid {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     }
-}*/
+}
+
+[data-theme="dark"] p {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

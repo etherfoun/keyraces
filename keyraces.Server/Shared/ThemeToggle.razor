@@ -53,32 +53,27 @@
     {
         if (firstRender)
         {
-            // Ждем немного, чтобы скрипт успел загрузиться
             await Task.Delay(500);
 
             try
             {
-                // Проверяем, доступен ли themeInterop
                 jsInitialized = await JS.InvokeAsync<bool>("eval", "typeof window.themeInterop !== 'undefined'");
 
                 if (!jsInitialized)
                 {
                     await JS.InvokeVoidAsync("console.error", "themeInterop is not available in OnAfterRenderAsync");
-                    // Ждем еще немного и пробуем снова
                     await Task.Delay(1000);
                     jsInitialized = await JS.InvokeAsync<bool>("eval", "typeof window.themeInterop !== 'undefined'");
                 }
 
                 if (jsInitialized)
                 {
-                    // Получаем текущую тему только после первого рендеринга
                     currentTheme = await ThemeService.GetCurrentThemeAsync();
                     await JS.InvokeVoidAsync("console.log", "Initial theme loaded:", currentTheme);
                 }
                 else
                 {
                     await JS.InvokeVoidAsync("console.error", "themeInterop is still not available after waiting");
-                    // Используем тему по умолчанию
                     currentTheme = ThemeService.DefaultTheme;
                 }
 
@@ -87,7 +82,6 @@
             catch (Exception ex)
             {
                 await JS.InvokeVoidAsync("console.error", "Error in OnAfterRenderAsync:", ex.Message);
-                // Используем тему по умолчанию в случае ошибки
                 currentTheme = ThemeService.DefaultTheme;
                 StateHasChanged();
             }
@@ -98,7 +92,6 @@
     {
         try
         {
-            // Проверяем, доступен ли themeInterop
             bool isAvailable = await JS.InvokeAsync<bool>("eval", "typeof window.themeInterop !== 'undefined'");
 
             if (!isAvailable)
@@ -109,15 +102,12 @@
 
             await JS.InvokeVoidAsync("console.log", "Before toggle, current theme:", currentTheme);
 
-            // Переключаем тему напрямую через JS
             string newTheme = await JS.InvokeAsync<string>("window.themeInterop.toggleTheme");
 
-            // Обновляем текущую тему
             currentTheme = newTheme;
 
             await JS.InvokeVoidAsync("console.log", "After toggle, new theme:", currentTheme);
 
-            // Обновляем UI
             StateHasChanged();
         }
         catch (Exception ex)

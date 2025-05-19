@@ -101,7 +101,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Загружаем данные без вызовов JavaScript
         await CheckAdminStatusData();
     }
 
@@ -121,15 +120,12 @@
 
             if (response.IsSuccessStatusCode)
             {
-                // Получаем JSON как строку
                 var jsonString = await response.Content.ReadAsStringAsync();
 
-                // Десериализуем JSON в словарь
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var jsonDoc = JsonDocument.Parse(jsonString);
                 var root = jsonDoc.RootElement;
 
-                // Проверяем наличие свойств и получаем их значения
                 if (root.TryGetProperty("adminExists", out var adminExistsElement))
                 {
                     adminExists = adminExistsElement.GetBoolean();

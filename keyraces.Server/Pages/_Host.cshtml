@@ -15,13 +15,11 @@
 <link href="css/theme.css" rel="stylesheet" />
 <link href="css/auth.css" rel="stylesheet" />
 <script>
-    // Проверка доступности themeInterop
     window.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
             if (typeof window.themeInterop === 'undefined') {
                 console.error('themeInterop is not defined after page load! Loading it manually...');
 
-                // Создаем и добавляем скрипт вручную
                 var script = document.createElement('script');
                 script.src = '/js/themeInterop.js';
                 script.onload = function() {
@@ -37,6 +35,6 @@
             } else {
                 console.log('themeInterop is available after page load');
             }
-        }, 500); // Даем время на загрузку скрипта
+        }, 500);
     });
 </script>

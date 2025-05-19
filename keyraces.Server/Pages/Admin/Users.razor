@@ -174,36 +174,6 @@
     }
 </div>
 
-<style>
-    .admin-container {
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    .confirmation-dialog {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    }
-
-    .confirmation-dialog-content {
-        background-color: white;
-        border-radius: 5px;
-        padding: 20px;
-        width: 100%;
-        max-width: 500px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    }
-</style>
-
 @code {
     private bool isLoading = true;
     private bool isRemoving = false;
@@ -221,7 +191,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Загружаем роли без вызовов JavaScript
         await LoadRolesData();
     }
 

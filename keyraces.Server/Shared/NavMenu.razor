@@ -65,7 +65,7 @@
 
     .navbar {
         background-color: var(--bg-secondary);
-        border-radius: 0; /* Убираем скругление */
+        border-radius: 0;
         padding: 0 20px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         width: 100%;
@@ -303,13 +303,11 @@
 
             if (!string.IsNullOrEmpty(userId))
             {
-                // Проверяем, является ли пользователь администратором через сервис ролей
                 var roles = await RoleService.GetUserRolesAsync(userId);
                 isAdmin = roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase));
             }
             else if (!string.IsNullOrEmpty(username))
             {
-                // Запасной вариант, если ID пользователя недоступен
                 isAdmin = IsAdminUser(username);
             }
         }

@@ -57,7 +57,6 @@
     color: var(--primary-color);
 }
 
-/* Карточки и контейнеры */
 .card {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
@@ -82,7 +81,6 @@
     padding: 12px 16px;
 }
 
-/* Формы и элементы ввода */
 .form-control,
 .form-select {
     background-color: var(--bg-input);
@@ -101,7 +99,6 @@
         background-color: var(--bg-input-focus);
     }
 
-/* Улучшенные стили для выпадающих списков */
 .form-select {
     padding-right: 2.25rem;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
@@ -111,19 +108,16 @@
     appearance: none;
 }
 
-/* Темная тема для стрелки выпадающего списка */
 [data-theme="dark"] .form-select {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
 }
 
-/* Стили для опций в выпадающем списке - применяются через JS */
 option {
     background-color: var(--bg-secondary);
     color: var(--text-color);
     padding: 8px;
 }
 
-/* Группировка формы */
 .form-group {
     margin-bottom: 1rem;
 }
@@ -142,7 +136,6 @@ textarea.form-control {
     line-height: 1.5;
 }
 
-/* Кнопки */
 .btn {
     border-radius: 4px;
     padding: 8px 16px;
@@ -152,7 +145,7 @@ textarea.form-control {
 .btn-primary {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
-    color: white; /* Явно задаем белый цвет текста для кнопки primary */
+    color: white;
 }
 
     .btn-primary:hover {
@@ -164,7 +157,7 @@ textarea.form-control {
 .btn-success {
     background-color: var(--success-color);
     border-color: var(--success-color);
-    color: white; /* Явно задаем белый цвет текста для кнопки success */
+    color: white;
 }
 
     .btn-success:hover {
@@ -185,14 +178,12 @@ textarea.form-control {
         border-color: var(--accent-color);
     }
 
-/* Добавляем стили для отключенных кнопок */
 .btn:disabled,
 .btn.disabled {
     opacity: 0.65;
     pointer-events: none;
 }
 
-/* Спиннеры и индикаторы загрузки */
 .spinner-border {
     width: 2rem;
     height: 2rem;
@@ -205,7 +196,6 @@ textarea.form-control {
     height: 1rem;
 }
 
-/* Бейджи */
 .badge {
     padding: 5px 8px;
     font-weight: 500;
@@ -220,7 +210,6 @@ textarea.form-control {
     background-color: var(--info-color) !important;
 }
 
-/* Предупреждения */
 .alert {
     border-radius: 8px;
     padding: 16px;
@@ -233,7 +222,6 @@ textarea.form-control {
     color: var(--info-color);
 }
 
-/* Адаптивность */
 @media (max-width: 768px) {
     .train-container {
         padding: 15px;
@@ -263,7 +251,6 @@ textarea.form-control {
     }
 }
 
-/* Анимации */
 @keyframes fadeIn {
     from {
         opacity: 0;
