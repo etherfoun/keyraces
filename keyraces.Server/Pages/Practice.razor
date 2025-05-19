@@ -1,0 +1,509 @@
+﻿@page "/practice"
+@using System.Timers
+@using keyraces.Core.Entities
+@using keyraces.Core.Interfaces
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@inject ITextSnippetService TextSnippetService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<div class="practice-container">
+    <div class="metrics-bar">
+        <div class="metrics-group">
+            <span class="metrics-label">Metrics:</span>
+            <span class="metrics-item">Speed: <span class="metrics-value">@wpm.ToString("0.0")</span> wpm (<span class="metrics-value">@rawWpm.ToString("0.0")</span> wpm)</span>
+            <span class="metrics-item">Accuracy: <span class="metrics-value">@accuracy.ToString("0")</span>%</span>
+            <span class="metrics-item">Score: <span class="metrics-value">@score</span></span>
+        </div>
+        <div class="controls-group">
+            <button class="icon-button" title="Help" @onclick="ShowHelp">
+                <span class="icon">?</span>
+            </button>
+            <button class="icon-button" title="Restart" @onclick="RestartPractice">
+                <span class="icon">↺</span>
+            </button>
+            <button class="icon-button" title="Next" @onclick="NextPractice">
+                <span class="icon">→</span>
+            </button>
+            <button class="icon-button" title="Fullscreen" @onclick="ToggleFullscreen">
+                <span class="icon">⛶</span>
+            </button>
+            <button class="settings-button" @onclick="OpenSettings">
+                <span class="icon">⚙</span> SETTINGS
+            </button>
+        </div>
+    </div>
+
+    <div class="practice-info">
+        <div class="info-row">
+            <span class="info-label">All keys:</span>
+            <div class="keys-list">
+                @foreach (var key in allKeys)
+                {
+                    <span class="key-badge @(key == currentKey ? "current" : "")">@key</span>
+                }
+            </div>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Current key:</span>
+            <span class="key-badge current">@currentKey</span>
+            <span class="info-text">@currentKeyStatus</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Accuracy:</span>
+            <span class="info-text">@accuracyStatus</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Daily goal:</span>
+            <span class="info-text">@practiceTime/30 minutes</span>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: @(practiceTime * 100 / 30)%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="typing-area" tabindex="0" @ref="typingAreaRef" @onkeydown="HandleKeyDown" @onkeypress="HandleKeyPress" @onkeyup="HandleKeyUp" @onfocus="HandleFocus" @onblur="HandleBlur">
+        <div class="text-display">
+            @foreach (var word in practiceWords)
+            {
+                <span class="practice-word">@word</span>
+            }
+        </div>
+        <div class="typing-prompt @(isFocused ? "focused" : "")">
+            Click here and start typing...
+        </div>
+    </div>
+
+    <div class="keyboard-container">
+        <div class="keyboard">
+            <div class="keyboard-row">
+                <div class="key @GetKeyClass('`')" data-key="`"><span class="key-char">`</span></div>
+                <div class="key @GetKeyClass('1')" data-key="1"><span class="key-char">1</span></div>
+                <div class="key @GetKeyClass('2')" data-key="2"><span class="key-char">2</span></div>
+                <div class="key @GetKeyClass('3')" data-key="3"><span class="key-char">3</span></div>
+                <div class="key @GetKeyClass('4')" data-key="4"><span class="key-char">4</span></div>
+                <div class="key @GetKeyClass('5')" data-key="5"><span class="key-char">5</span></div>
+                <div class="key @GetKeyClass('6')" data-key="6"><span class="key-char">6</span></div>
+                <div class="key @GetKeyClass('7')" data-key="7"><span class="key-char">7</span></div>
+                <div class="key @GetKeyClass('8')" data-key="8"><span class="key-char">8</span></div>
+                <div class="key @GetKeyClass('9')" data-key="9"><span class="key-char">9</span></div>
+                <div class="key @GetKeyClass('0')" data-key="0"><span class="key-char">0</span></div>
+                <div class="key @GetKeyClass('-')" data-key="-"><span class="key-char">-</span></div>
+                <div class="key @GetKeyClass('=')" data-key="="><span class="key-char">=</span></div>
+                <div class="key backspace" data-key="Backspace"><span class="key-char">Backspace</span></div>
+            </div>
+            <div class="keyboard-row">
+                <div class="key tab" data-key="Tab"><span class="key-char">Tab</span></div>
+                <div class="key @GetKeyClass('q')" data-key="q"><span class="key-char">Q</span></div>
+                <div class="key @GetKeyClass('w')" data-key="w"><span class="key-char">W</span></div>
+                <div class="key @GetKeyClass('e')" data-key="e"><span class="key-char">E</span></div>
+                <div class="key @GetKeyClass('r')" data-key="r"><span class="key-char">R</span></div>
+                <div class="key @GetKeyClass('t')" data-key="t"><span class="key-char">T</span></div>
+                <div class="key @GetKeyClass('y')" data-key="y"><span class="key-char">Y</span></div>
+                <div class="key @GetKeyClass('u')" data-key="u"><span class="key-char">U</span></div>
+                <div class="key @GetKeyClass('i')" data-key="i"><span class="key-char">I</span></div>
+                <div class="key @GetKeyClass('o')" data-key="o"><span class="key-char">O</span></div>
+                <div class="key @GetKeyClass('p')" data-key="p"><span class="key-char">P</span></div>
+                <div class="key @GetKeyClass('[')" data-key="["><span class="key-char">[</span></div>
+                <div class="key @GetKeyClass(']')" data-key="]"><span class="key-char">]</span></div>
+                <div class="key backslash" data-key="\"><span class="key-char">\</span></div>
+            </div>
+            <div class="keyboard-row">
+                <div class="key caps" data-key="CapsLock"><span class="key-char">Caps</span></div>
+                <div class="key @GetKeyClass('a')" data-key="a"><span class="key-char">A</span></div>
+                <div class="key @GetKeyClass('s')" data-key="s"><span class="key-char">S</span></div>
+                <div class="key @GetKeyClass('d')" data-key="d"><span class="key-char">D</span></div>
+                <div class="key @GetKeyClass('f')" data-key="f"><span class="key-char">F</span></div>
+                <div class="key @GetKeyClass('g')" data-key="g"><span class="key-char">G</span></div>
+                <div class="key @GetKeyClass('h')" data-key="h"><span class="key-char">H</span></div>
+                <div class="key @GetKeyClass('j')" data-key="j"><span class="key-char">J</span></div>
+                <div class="key @GetKeyClass('k')" data-key="k"><span class="key-char">K</span></div>
+                <div class="key @GetKeyClass('l')" data-key="l"><span class="key-char">L</span></div>
+                <div class="key @GetKeyClass(';')" data-key=";"><span class="key-char">;</span></div>
+                <div class="key @GetKeyClass('\'')" data-key="'"><span class="key-char">'</span></div>
+                <div class="key enter" data-key="Enter"><span class="key-char">Enter</span></div>
+            </div>
+            <div class="keyboard-row">
+                <div class="key shift left-shift" data-key="ShiftLeft"><span class="key-char">Shift</span></div>
+                <div class="key @GetKeyClass('z')" data-key="z"><span class="key-char">Z</span></div>
+                <div class="key @GetKeyClass('x')" data-key="x"><span class="key-char">X</span></div>
+                <div class="key @GetKeyClass('c')" data-key="c"><span class="key-char">C</span></div>
+                <div class="key @GetKeyClass('v')" data-key="v"><span class="key-char">V</span></div>
+                <div class="key @GetKeyClass('b')" data-key="b"><span class="key-char">B</span></div>
+                <div class="key @GetKeyClass('n')" data-key="n"><span class="key-char">N</span></div>
+                <div class="key @GetKeyClass('m')" data-key="m"><span class="key-char">M</span></div>
+                <div class="key @GetKeyClass(',')" data-key=","><span class="key-char">,</span></div>
+                <div class="key @GetKeyClass('.')" data-key="."><span class="key-char">.</span></div>
+                <div class="key @GetKeyClass('/')" data-key="/"><span class="key-char">/</span></div>
+                <div class="key shift right-shift" data-key="ShiftRight"><span class="key-char">Shift</span></div>
+            </div>
+            <div class="keyboard-row">
+                <div class="key ctrl left-ctrl" data-key="ControlLeft"><span class="key-char">Ctrl</span></div>
+                <div class="key win" data-key="MetaLeft"><span class="key-char">Win</span></div>
+                <div class="key alt" data-key="AltLeft"><span class="key-char">Alt</span></div>
+                <div class="key space" data-key=" "><span class="key-char"></span></div>
+                <div class="key alt" data-key="AltRight"><span class="key-char">Alt</span></div>
+                <div class="key win" data-key="MetaRight"><span class="key-char">Win</span></div>
+                <div class="key menu" data-key="ContextMenu"><span class="key-char">Menu</span></div>
+                <div class="key ctrl right-ctrl" data-key="ControlRight"><span class="key-char">Ctrl</span></div>
+            </div>
+        </div>
+    </div>
+
+    @if (showSettings)
+    {
+        <div class="settings-modal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h2>Settings</h2>
+                    <button class="close-button" @onclick="CloseSettings">×</button>
+                </div>
+                <div class="settings-body">
+                    <div class="settings-section">
+                        <h3>Keyboard Layout</h3>
+                        <div class="settings-option">
+                            <select @bind="keyboardLayout">
+                                <option value="qwerty">QWERTY</option>
+                                <option value="dvorak">Dvorak</option>
+                                <option value="colemak">Colemak</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Practice Mode</h3>
+                        <div class="settings-option">
+                            <select @bind="practiceMode">
+                                <option value="letters">Letters</option>
+                                <option value="words">Words</option>
+                                <option value="sentences">Sentences</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Difficulty</h3>
+                        <div class="settings-option">
+                            <select @bind="difficulty">
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Sound Effects</h3>
+                        <div class="settings-option">
+                            <label class="toggle">
+                                <input type="checkbox" @bind="soundEnabled" />
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-footer">
+                    <button class="settings-button save" @onclick="SaveSettings">Save</button>
+                    <button class="settings-button cancel" @onclick="CloseSettings">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showHelp)
+    {
+        <div class="help-modal">
+            <div class="help-content">
+                <div class="help-header">
+                    <h2>Help</h2>
+                    <button class="close-button" @onclick="CloseHelp">×</button>
+                </div>
+                <div class="help-body">
+                    <h3>How to Practice</h3>
+                    <p>Click on the typing area and start typing the words shown. The current key to focus on will be highlighted.</p>
+
+                    <h3>Keyboard Shortcuts</h3>
+                    <ul>
+                        <li><strong>Esc</strong> - Reset current practice</li>
+                        <li><strong>Ctrl+Enter</strong> - Start new practice</li>
+                        <li><strong>F11</strong> - Toggle fullscreen</li>
+                    </ul>
+
+                    <h3>Metrics</h3>
+                    <p><strong>WPM</strong> - Words Per Minute, measures your typing speed</p>
+                    <p><strong>Accuracy</strong> - Percentage of correctly typed characters</p>
+                    <p><strong>Score</strong> - Points earned based on speed and accuracy</p>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private ElementReference typingAreaRef;
+    private Timer practiceTimer;
+    private DateTime startTime;
+    private bool isPracticeActive = false;
+    private bool isFocused = false;
+    private bool showSettings = false;
+    private bool showHelp = false;
+    private bool soundEnabled = true;
+    private string keyboardLayout = "qwerty";
+    private string practiceMode = "letters";
+    private string difficulty = "medium";
+
+    // Metrics
+    private double wpm = 0;
+    private double rawWpm = 0;
+    private int accuracy = 0;
+    private int score = 0;
+    private int practiceTime = 0;
+
+    // Practice data
+    private char currentKey = 'e';
+    private string currentKeyStatus = "Not calibrated, need more samples.";
+    private string accuracyStatus = "No accuracy streaks.";
+    private List<string> practiceWords = new List<string> {
+        "line", "area", "rear", "arena", "era", "ear", "era", "nearer", "inner", "real", "eerie", "era", "rear",
+        "lean", "alien", "era", "alien", "lean", "inner", "lean", "eerie", "arena", "real", "linen"
+    };
+    private char[] allKeys = new char[] { 'e', 'n', 'i', 'a', 'r', 'l', 't', 'o', 's', 'u', 'd', 'y', 'c', 'g', 'h', 'p', 'k', 'b', 'm', 'f', 'z', 'v', 'x', 'q', 'j' };
+
+    // Keyboard state
+    private HashSet<string> pressedKeys = new HashSet<string>();
+    private Dictionary<char, int> keyHeatMap = new Dictionary<char, int>();
+    private char? highlightedKey = null;
+
+    protected override void OnInitialized()
+    {
+        practiceTimer = new Timer(1000);
+        practiceTimer.Elapsed += OnPracticeTimerElapsed;
+
+        // Initialize key heat map
+        foreach (var key in allKeys)
+        {
+            keyHeatMap[key] = 0;
+        }
+
+        // Set current key
+        highlightedKey = currentKey;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'F11') {
+                        e.preventDefault();
+                        document.dispatchEvent(new CustomEvent('toggleFullscreen'));
+                    }
+                });
+            ");
+        }
+    }
+
+    private void OnPracticeTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        if (isPracticeActive)
+        {
+            var elapsed = DateTime.Now - startTime;
+            var totalSeconds = elapsed.TotalSeconds;
+
+            if (totalSeconds > 0)
+            {
+                wpm = (keyHeatMap.Values.Sum() / 5.0) / (totalSeconds / 60.0);
+                rawWpm = wpm;
+            }
+
+            practiceTime = Math.Min(30, (int)(elapsed.TotalMinutes));
+
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (!isPracticeActive)
+        {
+            StartPractice();
+        }
+
+        pressedKeys.Add(e.Key);
+        StateHasChanged();
+    }
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key.Length == 1)
+        {
+            char key = e.Key.ToLower()[0];
+
+            if (keyHeatMap.ContainsKey(key))
+            {
+                keyHeatMap[key]++;
+            }
+
+            if (key == currentKey)
+            {
+                accuracy = Math.Min(100, accuracy + 1);
+            }
+            else
+            {
+                accuracy = Math.Max(0, accuracy - 1);
+            }
+
+            score += (key == currentKey) ? 1 : 0;
+
+            StateHasChanged();
+        }
+    }
+
+    private void HandleKeyUp(KeyboardEventArgs e)
+    {
+        pressedKeys.Remove(e.Key);
+        StateHasChanged();
+    }
+
+    private void HandleFocus()
+    {
+        isFocused = true;
+    }
+
+    private void HandleBlur()
+    {
+        isFocused = false;
+    }
+
+    private void StartPractice()
+    {
+        isPracticeActive = true;
+        startTime = DateTime.Now;
+        practiceTimer.Start();
+    }
+
+    private void RestartPractice()
+    {
+        isPracticeActive = false;
+        practiceTimer.Stop();
+
+        wpm = 0;
+        rawWpm = 0;
+        accuracy = 0;
+        score = 0;
+
+        foreach (var key in allKeys)
+        {
+            keyHeatMap[key] = 0;
+        }
+
+        StateHasChanged();
+    }
+
+    private void NextPractice()
+    {
+        int currentIndex = Array.IndexOf(allKeys, currentKey);
+        currentIndex = (currentIndex + 1) % allKeys.Length;
+        currentKey = allKeys[currentIndex];
+        highlightedKey = currentKey;
+
+        GeneratePracticeWords();
+
+        RestartPractice();
+    }
+
+    private void GeneratePracticeWords()
+    {
+        if (currentKey == 'e')
+        {
+            practiceWords = new List<string> {
+                "line", "area", "rear", "arena", "era", "ear", "era", "nearer", "inner", "real", "eerie", "era", "rear",
+                "lean", "alien", "era", "alien", "lean", "inner", "lean", "eerie", "arena", "real", "linen"
+            };
+        }
+        else
+        {
+            practiceWords = new List<string>();
+            string[] commonWords = { "the", "and", "that", "have", "for", "not", "with", "you", "this", "but" };
+
+            foreach (var word in commonWords)
+            {
+                if (word.Contains(currentKey))
+                {
+                    practiceWords.Add(word);
+                }
+            }
+
+            while (practiceWords.Count < 10)
+            {
+                string newWord = "";
+                for (int i = 0; i < 4; i++)
+                {
+                    newWord += allKeys[new Random().Next(allKeys.Length)];
+                }
+                newWord = newWord.Insert(new Random().Next(newWord.Length), currentKey.ToString());
+                practiceWords.Add(newWord);
+            }
+        }
+    }
+
+    private string GetKeyClass(char key)
+    {
+        List<string> classes = new List<string>();
+
+        if (pressedKeys.Contains(key.ToString()))
+        {
+            classes.Add("pressed");
+        }
+
+        if (keyHeatMap.ContainsKey(key))
+        {
+            int heat = keyHeatMap[key];
+            if (heat > 20) classes.Add("heat-high");
+            else if (heat > 10) classes.Add("heat-medium");
+            else if (heat > 0) classes.Add("heat-low");
+        }
+
+        if (key == highlightedKey)
+        {
+            classes.Add("highlighted");
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private async Task ToggleFullscreen()
+    {
+        await JSRuntime.InvokeVoidAsync("document.documentElement.requestFullscreen");
+    }
+
+    private void OpenSettings()
+    {
+        showSettings = true;
+    }
+
+    private void CloseSettings()
+    {
+        showSettings = false;
+    }
+
+    private void SaveSettings()
+    {
+        showSettings = false;
+    }
+
+    private void ShowHelp()
+    {
+        showHelp = true;
+    }
+
+    private void CloseHelp()
+    {
+        showHelp = false;
+    }
+
+    public void Dispose()
+    {
+        practiceTimer?.Dispose();
+    }
+}
