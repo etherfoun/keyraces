@@ -24,6 +24,9 @@
             <button class="icon-button" title="Restart" @onclick="RestartPractice">
                 <span class="icon">↺</span>
             </button>
+            <button class="icon-button" title="Previous" @onclick="PreviousPractice">
+                <span class="icon">←</span>
+            </button>
             <button class="icon-button" title="Next" @onclick="NextPractice">
                 <span class="icon">→</span>
             </button>
@@ -55,21 +58,38 @@
             <span class="info-label">Accuracy:</span>
             <span class="info-text">@accuracyStatus</span>
         </div>
-        <div class="info-row">
-            <span class="info-label">Daily goal:</span>
-            <span class="info-text">@practiceTime/30 minutes</span>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: @(practiceTime * 100 / 30)%"></div>
-            </div>
-        </div>
     </div>
 
     <div class="typing-area" tabindex="0" @ref="typingAreaRef" @onkeydown="HandleKeyDown" @onkeypress="HandleKeyPress" @onkeyup="HandleKeyUp" @onfocus="HandleFocus" @onblur="HandleBlur">
         <div class="text-display">
-            @foreach (var word in practiceWords)
-            {
-                <span class="practice-word">@word</span>
-            }
+            <div class="target-text">
+                @for (int i = 0; i < practiceText.Length; i++)
+                {
+                    char c = practiceText[i];
+                    string charClass = "";
+
+                    if (i < typedText.Length)
+                    {
+                        charClass = typedText[i] == c ? "correct" : "incorrect";
+                    }
+                    else if (i == typedText.Length)
+                    {
+                        charClass = "current";
+                    }
+
+                    if (c == ' ')
+                    {
+                        <span class="@charClass space-dot">·</span>
+                    }
+                    else
+                    {
+                        <span class="@charClass">@c</span>
+                    }
+                }
+            </div>
+            <div class="typed-text">
+                @typedText
+            </div>
         </div>
         <div class="typing-prompt @(isFocused ? "focused" : "")">
             Click here and start typing...
@@ -143,7 +163,7 @@
                 <div class="key ctrl left-ctrl" data-key="ControlLeft"><span class="key-char">Ctrl</span></div>
                 <div class="key win" data-key="MetaLeft"><span class="key-char">Win</span></div>
                 <div class="key alt" data-key="AltLeft"><span class="key-char">Alt</span></div>
-                <div class="key space" data-key=" "><span class="key-char"></span></div>
+                <div class="key space @GetKeyClass(' ')" data-key=" "><span class="key-char"></span></div>
                 <div class="key alt" data-key="AltRight"><span class="key-char">Alt</span></div>
                 <div class="key win" data-key="MetaRight"><span class="key-char">Win</span></div>
                 <div class="key menu" data-key="ContextMenu"><span class="key-char">Menu</span></div>
@@ -187,17 +207,7 @@
                             <select @bind="difficulty">
                                 <option value="easy">Easy</option>
                                 <option value="medium">Medium</option>
-                                <option value="hard">Hard</option>
                             </select>
-                        </div>
-                    </div>
-                    <div class="settings-section">
-                        <h3>Sound Effects</h3>
-                        <div class="settings-option">
-                            <label class="toggle">
-                                <input type="checkbox" @bind="soundEnabled" />
-                                <span class="toggle-slider"></span>
-                            </label>
                         </div>
                     </div>
                 </div>
@@ -246,29 +256,35 @@
     private bool isFocused = false;
     private bool showSettings = false;
     private bool showHelp = false;
-    private bool soundEnabled = true;
     private string keyboardLayout = "qwerty";
     private string practiceMode = "letters";
     private string difficulty = "medium";
 
-    // Metrics
     private double wpm = 0;
     private double rawWpm = 0;
     private int accuracy = 0;
     private int score = 0;
     private int practiceTime = 0;
 
-    // Practice data
+    private int totalKeysPressed = 0;
+    private int correctKeysPressed = 0;
+
     private char currentKey = 'e';
     private string currentKeyStatus = "Not calibrated, need more samples.";
     private string accuracyStatus = "No accuracy streaks.";
-    private List<string> practiceWords = new List<string> {
-        "line", "area", "rear", "arena", "era", "ear", "era", "nearer", "inner", "real", "eerie", "era", "rear",
-        "lean", "alien", "era", "alien", "lean", "inner", "lean", "eerie", "arena", "real", "linen"
-    };
+    private List<string> practiceWords = new List<string>();
+
+    private string practiceText = "";
+    private string typedText = "";
+    private int currentPosition = 0;
+    private bool isCompleted = false;
+
+    private Random random = new Random();
+
     private char[] allKeys = new char[] { 'e', 'n', 'i', 'a', 'r', 'l', 't', 'o', 's', 'u', 'd', 'y', 'c', 'g', 'h', 'p', 'k', 'b', 'm', 'f', 'z', 'v', 'x', 'q', 'j' };
 
-    // Keyboard state
+    private Dictionary<char, List<string>> keyPracticeWords = new Dictionary<char, List<string>>();
+
     private HashSet<string> pressedKeys = new HashSet<string>();
     private Dictionary<char, int> keyHeatMap = new Dictionary<char, int>();
     private char? highlightedKey = null;
@@ -278,28 +294,173 @@
         practiceTimer = new Timer(1000);
         practiceTimer.Elapsed += OnPracticeTimerElapsed;
 
-        // Initialize key heat map
         foreach (var key in allKeys)
         {
             keyHeatMap[key] = 0;
         }
 
-        // Set current key
         highlightedKey = currentKey;
+
+        InitializeKeyPracticeWords();
+
+        GeneratePracticeWords();
+    }
+
+    private void InitializeKeyPracticeWords()
+    {
+        keyPracticeWords['e'] = new List<string> {
+            "line", "area", "rear", "arena", "era", "ear", "era", "nearer", "inner", "real",
+            "eerie", "era", "rear", "lean", "alien", "era", "alien", "lean", "inner", "lean",
+            "eerie", "arena", "real", "linen"
+        };
+
+        keyPracticeWords['n'] = new List<string> {
+            "nine", "next", "new", "never", "now", "name", "need", "nice", "night", "nature",
+            "nation", "number", "north", "note", "notice", "nothing", "near", "nearly", "necessary", "neither"
+        };
+
+        keyPracticeWords['i'] = new List<string> {
+            "in", "is", "it", "if", "into", "its", "idea", "item", "issue", "inside",
+            "indeed", "instead", "include", "increase", "indicate", "individual", "industry", "information", "interest", "interview"
+        };
+
+        keyPracticeWords['a'] = new List<string> {
+            "at", "an", "as", "all", "are", "and", "any", "about", "after", "again",
+            "against", "air", "along", "also", "always", "among", "amount", "another", "answer", "appear"
+        };
+
+        keyPracticeWords['r'] = new List<string> {
+            "run", "red", "rate", "role", "rule", "risk", "road", "room", "right", "rather",
+            "reach", "read", "ready", "real", "really", "reason", "receive", "recent", "record", "remain"
+        };
+
+        keyPracticeWords['l'] = new List<string> {
+            "like", "look", "long", "last", "late", "less", "life", "line", "list", "little",
+            "live", "local", "large", "later", "laugh", "learn", "leave", "legal", "level", "light"
+        };
+
+        keyPracticeWords['t'] = new List<string> {
+            "to", "the", "that", "this", "than", "they", "them", "then", "there", "these",
+            "time", "take", "talk", "tell", "tend", "term", "test", "than", "thank", "their"
+        };
+
+        keyPracticeWords['o'] = new List<string> {
+            "of", "on", "or", "one", "out", "our", "over", "only", "open", "other",
+            "offer", "often", "order", "once", "own", "owner", "occur", "office", "option", "origin"
+        };
+
+        keyPracticeWords['s'] = new List<string> {
+            "so", "see", "say", "she", "set", "six", "son", "sun", "sea", "sit",
+            "such", "same", "send", "side", "sign", "site", "size", "some", "soon", "sort"
+        };
+
+        keyPracticeWords['u'] = new List<string> {
+            "up", "us", "use", "unit", "upon", "user", "used", "under", "until", "usual",
+            "unique", "unless", "update", "useful", "usually", "ultimate", "universe", "university", "understand", "unfortunately"
+        };
+
+        keyPracticeWords['d'] = new List<string> {
+            "do", "day", "did", "due", "down", "deep", "door", "data", "dark", "dead",
+            "deal", "dear", "debt", "deck", "deed", "deem", "deep", "deer", "deny", "desk"
+        };
+
+        keyPracticeWords['y'] = new List<string> {
+            "you", "yes", "yet", "year", "your", "yard", "yarn", "yawn", "yeah", "yelp",
+            "yield", "young", "youth", "yearly", "yellow", "yesterday", "yogurt", "yonder", "yourself", "youthful"
+        };
+
+        keyPracticeWords['c'] = new List<string> {
+            "can", "car", "cat", "city", "come", "cost", "cold", "call", "case", "cash",
+            "cell", "cent", "chair", "chart", "check", "child", "claim", "class", "clean", "clear"
+        };
+
+        keyPracticeWords['g'] = new List<string> {
+            "go", "get", "good", "give", "game", "goal", "gold", "gone", "grow", "gain",
+            "gate", "gear", "gift", "girl", "give", "glad", "glass", "glory", "glove", "grade"
+        };
+
+        keyPracticeWords['h'] = new List<string> {
+            "he", "has", "had", "have", "here", "high", "home", "hand", "hard", "hate",
+            "head", "hear", "heat", "help", "hero", "hide", "hill", "hint", "hire", "hold"
+        };
+
+        keyPracticeWords['p'] = new List<string> {
+            "put", "pay", "per", "part", "past", "path", "pick", "plan", "play", "plus",
+            "poem", "poet", "poll", "pool", "poor", "port", "pose", "post", "pull", "pure"
+        };
+
+        keyPracticeWords['k'] = new List<string> {
+            "key", "kind", "know", "keep", "kick", "kill", "king", "kiss", "kite", "knee",
+            "knife", "knock", "knot", "known", "kneel", "kettle", "kernel", "keyboard", "keyhole", "keynote"
+        };
+
+        keyPracticeWords['b'] = new List<string> {
+            "be", "by", "but", "big", "boy", "buy", "bad", "bag", "ban", "bar",
+            "base", "bath", "bear", "beat", "beer", "bell", "belt", "bend", "best", "bike"
+        };
+
+        keyPracticeWords['m'] = new List<string> {
+            "me", "my", "man", "may", "map", "mad", "make", "many", "mark", "mask",
+            "mass", "math", "meal", "mean", "meat", "meet", "menu", "mere", "mess", "milk"
+        };
+
+        keyPracticeWords['f'] = new List<string> {
+            "for", "from", "find", "fact", "fair", "fall", "farm", "fast", "fate", "fear",
+            "feed", "feel", "feet", "fell", "felt", "file", "fill", "film", "find", "fine"
+        };
+
+        keyPracticeWords['z'] = new List<string> {
+            "zero", "zone", "zoom", "zeal", "zinc", "zest", "zing", "zany", "zeta", "zips",
+            "zombie", "zodiac", "zenith", "zealot", "zigzag", "zephyr", "zipper", "zoology", "zillion", "zucchini"
+        };
+
+        keyPracticeWords['v'] = new List<string> {
+            "very", "view", "vote", "value", "video", "visit", "vital", "voice", "valid", "vapor",
+            "vault", "vegan", "venom", "venue", "verse", "verve", "vessel", "vexed", "viable", "vibrant"
+        };
+
+        keyPracticeWords['x'] = new List<string> {
+            "box", "fix", "mix", "tax", "wax", "axe", "fox", "hex", "lax", "max",
+            "six", "vex", "exit", "exam", "next", "taxi", "text", "xray", "apex", "excel"
+        };
+
+        keyPracticeWords['q'] = new List<string> {
+            "quit", "quiz", "quick", "quiet", "quite", "quote", "quack", "quail", "quake", "qualm",
+            "queen", "queer", "quell", "query", "quest", "queue", "quick", "quiet", "quill", "quilt"
+        };
+
+        keyPracticeWords['j'] = new List<string> {
+            "job", "jam", "jar", "jaw", "jet", "jog", "join", "joke", "joy", "jump",
+            "just", "junk", "jury", "jazz", "jeans", "jelly", "jewel", "joint", "judge", "juice"
+        };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await JSRuntime.InvokeVoidAsync("eval", @"
-                document.addEventListener('keydown', function(e) {
-                    if (e.key === 'F11') {
-                        e.preventDefault();
-                        document.dispatchEvent(new CustomEvent('toggleFullscreen'));
-                    }
-                });
-            ");
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("eval", @"
+                document.querySelector('.typing-area').id = 'typing-area';
+                ");
+
+                bool functionExists = await JSRuntime.InvokeAsync<bool>("eval", @"
+                    typeof window.keyboardInterop !== 'undefined' &&
+                    typeof window.keyboardInterop.disableScroll === 'function'
+                ");
+
+                if (functionExists)
+                {
+                    await JSRuntime.InvokeVoidAsync("keyboardInterop.disableScroll");
+                }
+
+                await FocusTypingArea();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"JavaScript interop error: {ex.Message}");
+            }
         }
     }
 
@@ -330,11 +491,24 @@
         }
 
         pressedKeys.Add(e.Key);
+
+        if (e.Key == "Escape")
+        {
+            RestartPractice();
+        }
+        else if (e.Key == "Enter" && (e.CtrlKey || e.MetaKey))
+        {
+            NextPractice();
+        }
+
         StateHasChanged();
     }
 
     private void HandleKeyPress(KeyboardEventArgs e)
     {
+        if (isCompleted || !isPracticeActive)
+            return;
+
         if (e.Key.Length == 1)
         {
             char key = e.Key.ToLower()[0];
@@ -344,18 +518,73 @@
                 keyHeatMap[key]++;
             }
 
-            if (key == currentKey)
+            if (currentPosition < practiceText.Length)
             {
-                accuracy = Math.Min(100, accuracy + 1);
-            }
-            else
-            {
-                accuracy = Math.Max(0, accuracy - 1);
-            }
+                bool isCorrect = key == practiceText[currentPosition];
 
-            score += (key == currentKey) ? 1 : 0;
+                totalKeysPressed++;
 
-            StateHasChanged();
+                if (isCorrect)
+                {
+                    correctKeysPressed++;
+                }
+
+                CalculateAccuracy();
+
+                score = correctKeysPressed;
+
+                typedText += key;
+                currentPosition++;
+
+                if (currentPosition >= practiceText.Length)
+                {
+                    isCompleted = true;
+
+                    UpdateAccuracyStatus();
+                }
+
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void CalculateAccuracy()
+    {
+        if (totalKeysPressed > 0)
+        {
+            accuracy = (int)Math.Round((double)correctKeysPressed / totalKeysPressed * 100);
+        }
+        else
+        {
+            accuracy = 0;
+        }
+    }
+
+    private void UpdateAccuracyStatus()
+    {
+        if (accuracy >= 98)
+        {
+            accuracyStatus = "Perfect! Amazing accuracy.";
+        }
+        else if (accuracy >= 95)
+        {
+            accuracyStatus = "Excellent accuracy streak!";
+        }
+        else if (accuracy >= 90)
+        {
+            accuracyStatus = "Great accuracy, keep it up!";
+        }
+        else if (accuracy >= 80)
+        {
+            accuracyStatus = "Good accuracy, try to improve.";
+        }
+        else if (accuracy >= 70)
+        {
+            accuracyStatus = "Decent accuracy, focus on precision.";
+        }
+        else
+        {
+            accuracyStatus = "Try to type more carefully.";
         }
     }
 
@@ -391,11 +620,21 @@
         rawWpm = 0;
         accuracy = 0;
         score = 0;
+        totalKeysPressed = 0;
+        correctKeysPressed = 0;
 
         foreach (var key in allKeys)
         {
             keyHeatMap[key] = 0;
         }
+
+        typedText = "";
+        currentPosition = 0;
+        isCompleted = false;
+
+        accuracyStatus = "No accuracy streaks.";
+
+        GeneratePracticeWords();
 
         StateHasChanged();
     }
@@ -412,38 +651,145 @@
         RestartPractice();
     }
 
+    private void PreviousPractice()
+    {
+        int currentIndex = Array.IndexOf(allKeys, currentKey);
+        currentIndex = (currentIndex - 1 + allKeys.Length) % allKeys.Length;
+        currentKey = allKeys[currentIndex];
+        highlightedKey = currentKey;
+
+        GeneratePracticeWords();
+
+        RestartPractice();
+    }
+
     private void GeneratePracticeWords()
     {
-        if (currentKey == 'e')
+        if (keyPracticeWords.ContainsKey(currentKey))
         {
-            practiceWords = new List<string> {
-                "line", "area", "rear", "arena", "era", "ear", "era", "nearer", "inner", "real", "eerie", "era", "rear",
-                "lean", "alien", "era", "alien", "lean", "inner", "lean", "eerie", "arena", "real", "linen"
-            };
+            var wordsList = new List<string>(keyPracticeWords[currentKey]);
+
+            practiceWords = ShuffleList(wordsList);
+
+            UpdateKeyStatus();
         }
         else
         {
             practiceWords = new List<string>();
-            string[] commonWords = { "the", "and", "that", "have", "for", "not", "with", "you", "this", "but" };
-
-            foreach (var word in commonWords)
+            for (int i = 0; i < 10; i++)
             {
-                if (word.Contains(currentKey))
+                string word = "";
+                for (int j = 0; j < 4; j++)
                 {
-                    practiceWords.Add(word);
+                    word += allKeys[random.Next(allKeys.Length)];
                 }
+                word = word.Insert(random.Next(word.Length), currentKey.ToString());
+                practiceWords.Add(word);
             }
+        }
 
-            while (practiceWords.Count < 10)
-            {
-                string newWord = "";
-                for (int i = 0; i < 4; i++)
-                {
-                    newWord += allKeys[new Random().Next(allKeys.Length)];
-                }
-                newWord = newWord.Insert(new Random().Next(newWord.Length), currentKey.ToString());
-                practiceWords.Add(newWord);
-            }
+        practiceText = string.Join(" ", practiceWords);
+        typedText = "";
+        currentPosition = 0;
+        isCompleted = false;
+    }
+
+    private List<T> ShuffleList<T>(List<T> list)
+    {
+        int n = list.Count;
+        while (n > 1)
+        {
+            n--;
+            int k = random.Next(n + 1);
+            T value = list[k];
+            list[k] = list[n];
+            list[n] = value;
+        }
+        return list;
+    }
+
+    private void UpdateKeyStatus()
+    {
+        switch (currentKey)
+        {
+            case 'e':
+                currentKeyStatus = "Most common letter in English.";
+                break;
+            case 'n':
+                currentKeyStatus = "Common consonant, focus on rhythm.";
+                break;
+            case 'i':
+                currentKeyStatus = "Common vowel, keep fingers light.";
+                break;
+            case 'a':
+                currentKeyStatus = "Basic vowel, practice accuracy.";
+                break;
+            case 'r':
+                currentKeyStatus = "Common consonant, maintain posture.";
+                break;
+            case 'l':
+                currentKeyStatus = "Practice with right pinky finger.";
+                break;
+            case 't':
+                currentKeyStatus = "Index finger practice, stay relaxed.";
+                break;
+            case 'o':
+                currentKeyStatus = "Round vowel, maintain rhythm.";
+                break;
+            case 's':
+                currentKeyStatus = "Common initial consonant.";
+                break;
+            case 'u':
+                currentKeyStatus = "Vowel for right hand practice.";
+                break;
+            case 'd':
+                currentKeyStatus = "Middle finger exercise.";
+                break;
+            case 'y':
+                currentKeyStatus = "Both vowel and consonant uses.";
+                break;
+            case 'c':
+                currentKeyStatus = "Left hand middle finger practice.";
+                break;
+            case 'g':
+                currentKeyStatus = "Left hand index finger stretch.";
+                break;
+            case 'h':
+                currentKeyStatus = "Right hand index finger practice.";
+                break;
+            case 'p':
+                currentKeyStatus = "Right hand pinky stretch.";
+                break;
+            case 'k':
+                currentKeyStatus = "Middle finger right hand practice.";
+                break;
+            case 'b':
+                currentKeyStatus = "Left hand index finger practice.";
+                break;
+            case 'm':
+                currentKeyStatus = "Right hand index finger practice.";
+                break;
+            case 'f':
+                currentKeyStatus = "Left hand index finger practice.";
+                break;
+            case 'z':
+                currentKeyStatus = "Least common English letter.";
+                break;
+            case 'v':
+                currentKeyStatus = "Left hand index finger stretch.";
+                break;
+            case 'x':
+                currentKeyStatus = "Rare letter, left ring finger.";
+                break;
+            case 'q':
+                currentKeyStatus = "Always followed by 'u' in English.";
+                break;
+            case 'j':
+                currentKeyStatus = "Right hand index finger stretch.";
+                break;
+            default:
+                currentKeyStatus = "Practice this key carefully.";
+                break;
         }
     }
 
@@ -474,7 +820,36 @@
 
     private async Task ToggleFullscreen()
     {
-        await JSRuntime.InvokeVoidAsync("document.documentElement.requestFullscreen");
+        try
+        {
+            bool functionExists = await JSRuntime.InvokeAsync<bool>("eval", @"
+            typeof window.keyboardInterop !== 'undefined' &&
+            typeof window.keyboardInterop.toggleFullscreen === 'function'
+        ");
+
+            if (functionExists)
+            {
+                await JSRuntime.InvokeVoidAsync("keyboardInterop.toggleFullscreen");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("eval", @"
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch((err) => {
+                        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                    });
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            ");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error toggling fullscreen: {ex.Message}");
+        }
     }
 
     private void OpenSettings()
@@ -500,6 +875,35 @@
     private void CloseHelp()
     {
         showHelp = false;
+    }
+
+    private async Task FocusTypingArea()
+    {
+        try
+        {
+            bool functionExists = await JSRuntime.InvokeAsync<bool>("eval", @"
+            typeof window.keyboardInterop !== 'undefined' &&
+            typeof window.keyboardInterop.focusTypingArea === 'function'
+        ");
+
+            if (functionExists)
+            {
+                await JSRuntime.InvokeVoidAsync("keyboardInterop.focusTypingArea", "typing-area");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("eval", @"
+                const element = document.getElementById('typing-area');
+                if (element) {
+                    element.focus();
+                }
+            ");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error focusing typing area: {ex.Message}");
+        }
     }
 
     public void Dispose()

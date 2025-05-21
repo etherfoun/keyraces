@@ -1,48 +1,4 @@
-﻿// Keyboard interaction helpers
-window.keyboardInterop = {
-    // Play key sound
-    playKeySound: (keyType) => {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)()
-        const oscillator = audioContext.createOscillator()
-        const gainNode = audioContext.createGain()
-
-        // Different sound for different key types
-        switch (keyType) {
-            case "normal":
-                oscillator.type = "sine"
-                oscillator.frequency.value = 440 // A4 note
-                break
-            case "space":
-                oscillator.type = "sine"
-                oscillator.frequency.value = 330 // E4 note
-                break
-            case "enter":
-                oscillator.type = "triangle"
-                oscillator.frequency.value = 523.25 // C5 note
-                break
-            case "error":
-                oscillator.type = "sawtooth"
-                oscillator.frequency.value = 220 // A3 note
-                break
-            default:
-                oscillator.type = "sine"
-                oscillator.frequency.value = 440
-        }
-
-        // Connect nodes
-        oscillator.connect(gainNode)
-        gainNode.connect(audioContext.destination)
-
-        // Set volume and duration
-        gainNode.gain.value = 0.1
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2)
-
-        // Play sound
-        oscillator.start()
-        oscillator.stop(audioContext.currentTime + 0.2)
-    },
-
-    // Request focus on typing area
+﻿window.keyboardInterop = {
     focusTypingArea: (elementId) => {
         const element = document.getElementById(elementId)
         if (element) {
@@ -50,7 +6,6 @@ window.keyboardInterop = {
         }
     },
 
-    // Toggle fullscreen
     toggleFullscreen: () => {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch((err) => {
@@ -62,9 +17,85 @@ window.keyboardInterop = {
             }
         }
     },
+
+    disableScroll: () => {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
+
+        document.body.style.overflow = "hidden"
+        document.body.style.position = "fixed"
+        document.body.style.top = `-${scrollTop}px`
+        document.body.style.left = `-${scrollLeft}px`
+        document.body.style.width = "100%"
+
+        window.addEventListener("wheel", window.keyboardInterop.preventDefault, { passive: false })
+        window.addEventListener("touchmove", window.keyboardInterop.preventDefault, { passive: false })
+
+        window.addEventListener(
+            "keydown",
+            (e) => {
+                const keys = {
+                    33: 1, // Page Up
+                    34: 1, // Page Down
+                    35: 1, // End
+                    36: 1, // Home
+                    37: 1, // Left
+                    38: 1, // Up
+                    39: 1, // Right
+                    40: 1, // Down
+                }
+
+                if (e.keyCode === 32) {
+                    const activeElement = document.activeElement
+                    const isInputElement =
+                        activeElement.tagName === "INPUT" ||
+                        activeElement.tagName === "TEXTAREA" ||
+                        activeElement.classList.contains("typing-area")
+
+                    if (!isInputElement) {
+                        e.preventDefault()
+                        return false
+                    }
+                    return true
+                }
+
+                if (keys[e.keyCode]) {
+                    e.preventDefault()
+                    return false
+                }
+            },
+            { passive: false },
+        )
+    },
+
+    enableScroll: () => {
+        document.body.style.overflow = ""
+        document.body.style.position = ""
+        document.body.style.top = ""
+        document.body.style.left = ""
+        document.body.style.width = ""
+
+        window.removeEventListener("wheel", window.keyboardInterop.preventDefault)
+        window.removeEventListener("touchmove", window.keyboardInterop.preventDefault)
+        window.removeEventListener("keydown", window.keyboardInterop.preventScrollKeys)
+    },
+
+    preventDefault: (e) => {
+        e.preventDefault()
+    },
 }
 
-// Listen for fullscreen toggle event
-document.addEventListener("toggleFullscreen", () => {
-    window.keyboardInterop.toggleFullscreen()
+document.addEventListener("DOMContentLoaded", () => {
+    if (window.location.pathname.includes("/practice")) {
+        window.keyboardInterop.disableScroll()
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "F11") {
+                e.preventDefault()
+                window.keyboardInterop.toggleFullscreen()
+            }
+        })
+
+        console.log("Scroll prevention enabled for Practice page")
+    }
 })

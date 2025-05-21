@@ -181,7 +181,7 @@
 
 .typing-prompt {
     position: absolute;
-    top: 50%;
+    top: 90%;
     left: 50%;
     transform: translate(-50%, -50%);
     color: var(--text-tertiary);
@@ -194,6 +194,64 @@
     .typing-prompt.focused {
         opacity: 0;
     }
+
+.space-dot {
+    opacity: 0.5;
+    position: relative;
+    display: inline-block;
+    width: 0.5em;
+}
+
+    .space-dot.current {
+        opacity: 0.8;
+    }
+
+.target-text {
+    font-family: monospace;
+    font-size: 1.5rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    letter-spacing: 0.05em;
+}
+
+    .target-text span {
+        position: relative;
+        transition: all 0.1s ease;
+    }
+
+        .target-text span.correct {
+            color: var(--success-color, #4caf50);
+        }
+
+        .target-text span.incorrect {
+            color: var(--error-color, #f44336);
+            text-decoration: underline;
+        }
+
+        .target-text span.current {
+            background-color: var(--accent-primary);
+            color: var(--text-on-accent);
+            border-radius: 2px;
+            animation: blink 1s infinite;
+        }
+
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.typed-text {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+}
 
 .keyboard-container {
     display: flex;
@@ -469,6 +527,16 @@ input:checked + .toggle-slider {
 
 .help-body li {
     margin-bottom: 0.5rem;
+}
+
+:root {
+    --success-color: #4caf50;
+    --error-color: #f44336;
+}
+
+[data-theme="dark"] {
+    --success-color: #81c784;
+    --error-color: #e57373;
 }
 
 @media (max-width: 768px) {
