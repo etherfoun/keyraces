@@ -1,0 +1,666 @@
+﻿@page "/competitions"
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+
+<div class="competitions-container">
+    <div class="competitions-content">
+        <div class="competitions-header">
+            <h1>Соревнования</h1>
+            <div class="header-actions">
+                <button class="filter-btn" @onclick="ToggleFilterSidebar">
+                    <i class="oi oi-filter"></i> Фильтры
+                </button>
+                <button class="create-lobby-btn" @onclick="OpenCreateLobbyModal">
+                    <i class="oi oi-plus"></i> Создать лобби
+                </button>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p class="loading-text">Загрузка соревнований...</p>
+            </div>
+        }
+        else if (lobbies.Count == 0)
+        {
+            <div class="empty-state">
+                <i class="oi oi-people empty-icon"></i>
+                <h3 class="empty-title">Нет активных соревнований</h3>
+                <p class="empty-description">Создайте новое лобби или попробуйте изменить параметры фильтрации</p>
+                <button class="create-lobby-btn" @onclick="OpenCreateLobbyModal">
+                    <i class="oi oi-plus"></i> Создать лобби
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="lobby-list">
+                @foreach (var lobby in filteredLobbies)
+                {
+                    <div class="lobby-card">
+                        <div class="lobby-header">
+                            <h3 class="lobby-title">
+                                @lobby.Name
+                                @if (lobby.HasPassword)
+                                {
+                                    <i class="oi oi-lock-locked lock-icon"></i>
+                                }
+                            </h3>
+                            <div class="lobby-status @GetStatusClass(lobby.Status)">
+                                @lobby.Status
+                            </div>
+                        </div>
+                        <div class="lobby-info">
+                            <div class="lobby-host">
+                                <div class="host-avatar">
+                                    @GetInitials(lobby.HostName)
+                                </div>
+                                <span class="host-name">@lobby.HostName</span>
+                            </div>
+                            <div class="lobby-details">
+                                <div class="lobby-detail">
+                                    <i class="oi oi-people"></i>
+                                    <span>@lobby.ParticipantsCount/@lobby.MaxParticipants</span>
+                                </div>
+                                <div class="lobby-detail">
+                                    <i class="oi oi-clock"></i>
+                                    <span>@FormatTime(lobby.CreatedAt)</span>
+                                </div>
+                                <button class="join-btn" @onclick="() => JoinLobby(lobby)" disabled="@(!CanJoinLobby(lobby))">
+                                    Присоединиться
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="pagination">
+                <button class="page-btn" @onclick="PreviousPage" disabled="@(currentPage == 1)">
+                    <i class="oi oi-chevron-left"></i>
+                </button>
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    var pageNumber = i;
+                    <button class="page-btn @(currentPage == pageNumber ? "active" : "")" @onclick="() => GoToPage(pageNumber)">
+                        @pageNumber
+                    </button>
+                }
+                <button class="page-btn" @onclick="NextPage" disabled="@(currentPage == totalPages)">
+                    <i class="oi oi-chevron-right"></i>
+                </button>
+            </div>
+        }
+    </div>
+
+    <div class="filter-sidebar @(isFilterOpen ? "open" : "")">
+        <div class="filter-header">
+            <h3>Фильтры</h3>
+            <button class="close-filter-btn" @onclick="ToggleFilterSidebar">
+                <i class="oi oi-x"></i>
+            </button>
+        </div>
+        <div class="filter-content">
+            <div class="filter-group">
+                <h4>Поиск</h4>
+                <input type="text" class="search-input" placeholder="Название лобби или имя хоста..." 
+                       @bind-value="searchQuery" @bind-value:event="oninput" @onkeyup="ApplyFilters" />
+            </div>
+
+            <div class="filter-group">
+                <h4>Статус лобби</h4>
+                <div class="filter-options">
+                    <div class="filter-option">
+                        <input type="checkbox" id="status-waiting" class="filter-checkbox" 
+                               checked="@filterWaiting" @onchange="e => { filterWaiting = (bool)e.Value; ApplyFilters(); }" />
+                        <label for="status-waiting" class="filter-label">Ожидание</label>
+                    </div>
+                    <div class="filter-option">
+                        <input type="checkbox" id="status-in-game" class="filter-checkbox" 
+                               checked="@filterInGame" @onchange="e => { filterInGame = (bool)e.Value; ApplyFilters(); }" />
+                        <label for="status-in-game" class="filter-label">В игре</label>
+                    </div>
+                    <div class="filter-option">
+                        <input type="checkbox" id="status-completed" class="filter-checkbox" 
+                               checked="@filterCompleted" @onchange="e => { filterCompleted = (bool)e.Value; ApplyFilters(); }" />
+                        <label for="status-completed" class="filter-label">Завершено</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <h4>Пароль</h4>
+                <div class="filter-options">
+                    <div class="filter-option">
+                        <input type="radio" id="password-all" name="password" class="filter-radio" 
+                               checked="@(passwordFilter == "all")" @onchange="@(() => SetPasswordFilter("all"))" />
+                        <label for="password-all" class="filter-label">Все лобби</label>
+                    </div>
+                    <div class="filter-option">
+                        <input type="radio" id="password-yes" name="password" class="filter-radio" 
+                               checked="@(passwordFilter == "yes")" @onchange="@(() => SetPasswordFilter("yes"))" />
+                        <label for="password-yes" class="filter-label">С паролем</label>
+                    </div>
+                    <div class="filter-option">
+                        <input type="radio" id="password-no" name="password" class="filter-radio" 
+                               checked="@(passwordFilter == "no")" @onchange="@(() => SetPasswordFilter("no"))" />
+                        <label for="password-no" class="filter-label">Без пароля</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <h4>Количество участников</h4>
+                <div class="filter-options">
+                    <div class="filter-option">
+                        <input type="radio" id="participants-all" name="participants" class="filter-radio" 
+                               checked="@(participantsFilter == "all")" @onchange="@(() => SetParticipantsFilter("all"))" />
+                        <label for="participants-all" class="filter-label">Все</label>
+                    </div>
+                    <div class="filter-option">
+                        <input type="radio" id="participants-available" name="participants" class="filter-radio" 
+                               checked="@(participantsFilter == "available")" @onchange="@(() => SetParticipantsFilter("available"))" />
+                        <label for="participants-available" class="filter-label">Есть свободные места</label>
+                    </div>
+                    <div class="filter-option">
+                        <input type="radio" id="participants-almost-full" name="participants" class="filter-radio" 
+                               checked="@(participantsFilter == "almost-full")" @onchange="@(() => SetParticipantsFilter("almost-full"))" />
+                        <label for="participants-almost-full" class="filter-label">Почти заполнены</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <h4>Сортировка по времени</h4>
+                <div class="filter-options">
+                    <div class="filter-option">
+                        <input type="radio" id="time-newest" name="time" class="filter-radio" 
+                               checked="@(timeFilter == "newest")" @onchange="@(() => SetTimeFilter("newest"))" />
+                        <label for="time-newest" class="filter-label">Сначала новые</label>
+                    </div>
+                    <div class="filter-option">
+                        <input type="radio" id="time-oldest" name="time" class="filter-radio" 
+                               checked="@(timeFilter == "oldest")" @onchange="@(() => SetTimeFilter("oldest"))" />
+                        <label for="time-oldest" class="filter-label">Сначала старые</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button class="reset-filters-btn" @onclick="ResetFilters">Сбросить</button>
+                <button class="apply-filters-btn" @onclick="ApplyFilters">Применить</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="mobile-filter-btn" @onclick="ToggleFilterSidebar">
+        <i class="oi oi-filter"></i>
+    </button>
+
+    @if (showCreateLobbyModal)
+    {
+        <div class="modal-overlay @(showCreateLobbyModal ? "show" : "")" @onclick="CloseCreateLobbyModal">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>Создать новое лобби</h2>
+                    <button class="close-modal-btn" @onclick="CloseCreateLobbyModal">
+                        <i class="oi oi-x"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    @if (!isAuthenticated)
+                    {
+                        <div class="auth-required">
+                            <i class="oi oi-lock-locked auth-required-icon"></i>
+                            <h3 class="auth-required-title">Требуется авторизация</h3>
+                            <p class="auth-required-text">Для создания лобби необходимо войти в систему</p>
+                            <a href="/login?returnUrl=%2Fcompetitions" class="auth-login-btn">Войти</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="form-group">
+                            <label for="lobby-name">Название лобби</label>
+                            <input type="text" id="lobby-name" class="form-control" @bind="newLobby.Name" />
+                        </div>
+                        <div class="form-group">
+                            <label for="max-participants">Максимальное количество участников</label>
+                            <input type="number" id="max-participants" class="form-control" min="2" max="10" @bind="newLobby.MaxParticipants" />
+                        </div>
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="checkbox" id="has-password" class="form-check-input" @bind="newLobby.HasPassword" />
+                                <label for="has-password" class="form-check-label">Защитить паролем</label>
+                            </div>
+                        </div>
+                        @if (newLobby.HasPassword)
+                        {
+                            <div class="form-group">
+                                <label for="lobby-password">Пароль</label>
+                                <input type="password" id="lobby-password" class="form-control" @bind="newLobby.Password" />
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseCreateLobbyModal">Отмена</button>
+                    @if (isAuthenticated)
+                    {
+                        <button class="btn btn-primary" @onclick="CreateLobby">Создать</button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showJoinLobbyModal)
+    {
+        <div class="modal-overlay @(showJoinLobbyModal ? "show" : "")" @onclick="CloseJoinLobbyModal">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>Присоединиться к лобби</h2>
+                    <button class="close-modal-btn" @onclick="CloseJoinLobbyModal">
+                        <i class="oi oi-x"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    @if (!isAuthenticated)
+                    {
+                        <div class="auth-required">
+                            <i class="oi oi-lock-locked auth-required-icon"></i>
+                            <h3 class="auth-required-title">Требуется авторизация</h3>
+                            <p class="auth-required-text">Для присоединения к лобби необходимо войти в систему</p>
+                            <a href="/login?returnUrl=%2Fcompetitions" class="auth-login-btn">Войти</a>
+                        </div>
+                    }
+                    else if (selectedLobby != null)
+                    {
+                        <div class="lobby-details-modal">
+                            <h3>@selectedLobby.Name</h3>
+                            <p>Хост: @selectedLobby.HostName</p>
+                            <p>Участники: @selectedLobby.ParticipantsCount/@selectedLobby.MaxParticipants</p>
+                            <p>Статус: @selectedLobby.Status</p>
+                            
+                            @if (selectedLobby.HasPassword)
+                            {
+                                <div class="form-group">
+                                    <label for="join-password">Пароль</label>
+                                    <input type="password" id="join-password" class="form-control" @bind="joinPassword" />
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseJoinLobbyModal">Отмена</button>
+                    @if (isAuthenticated && selectedLobby != null)
+                    {
+                        <button class="btn btn-primary" @onclick="ConfirmJoinLobby">Присоединиться</button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private bool isFilterOpen = false;
+    private bool showCreateLobbyModal = false;
+    private bool showJoinLobbyModal = false;
+    private bool isAuthenticated = false;
+    private List<LobbyModel> lobbies = new List<LobbyModel>();
+    private List<LobbyModel> filteredLobbies = new List<LobbyModel>();
+    private LobbyModel selectedLobby;
+    private string joinPassword = "";
+    private int currentPage = 1;
+    private int pageSize = 5;
+    private int totalPages = 1;
+
+    // Фильтры
+    private string searchQuery = "";
+    private bool filterWaiting = true;
+    private bool filterInGame = true;
+    private bool filterCompleted = false;
+    private string passwordFilter = "all"; // all, yes, no
+    private string participantsFilter = "all"; // all, available, almost-full
+    private string timeFilter = "newest"; // newest, oldest
+
+    // Модель нового лобби
+    private LobbyModel newLobby = new LobbyModel
+    {
+        Name = "",
+        MaxParticipants = 5,
+        HasPassword = false,
+        Password = ""
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthenticationAsync();
+        await LoadLobbiesAsync();
+    }
+
+    private async Task CheckAuthenticationAsync()
+    {
+        try
+        {
+            // Проверяем наличие токена
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
+            
+            if (string.IsNullOrEmpty(token))
+            {
+                isAuthenticated = false;
+                return;
+            }
+
+            // Проверяем, не истек ли токен
+            bool isTokenExpired = await JS.InvokeAsync<bool>("authInterop.isTokenExpired");
+            
+            if (isTokenExpired)
+            {
+                isAuthenticated = false;
+                return;
+            }
+
+            // Дополнительная проверка через authInterop
+            bool authCheck = await JS.InvokeAsync<bool>("authInterop.checkAuthentication");
+            
+            if (!authCheck)
+            {
+                isAuthenticated = false;
+                return;
+            }
+
+            isAuthenticated = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking authentication: {ex.Message}");
+            isAuthenticated = false;
+        }
+    }
+
+    private async Task LoadLobbiesAsync()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // Здесь будет загрузка лобби с сервера
+            // Пока используем тестовые данные
+            await Task.Delay(1000); // Имитация задержки загрузки
+            
+            lobbies = GenerateSampleLobbies();
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading lobbies: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private List<LobbyModel> GenerateSampleLobbies()
+    {
+        var sampleLobbies = new List<LobbyModel>();
+        var random = new Random();
+        var statuses = new[] { "Ожидание", "В игре", "Завершено" };
+        var names = new[] { 
+            "Скоростной набор", "Битва клавиатур", "Гонка пальцев", "Турнир мастеров", 
+            "Клавиатурный спринт", "Текстовая дуэль", "Марафон слов", "Быстрые клавиши", 
+            "Элитный набор", "Профессиональный вызов" 
+        };
+        var hosts = new[] { 
+            "SpeedTyper", "KeyMaster", "WordNinja", "TypeLord", "FastFingers", 
+            "KeyboardKing", "SwiftTypist", "TextWizard", "TypePro", "RapidKeys" 
+        };
+
+        for (int i = 0; i < 15; i++)
+        {
+            var maxParticipants = random.Next(2, 11);
+            var participantsCount = random.Next(1, maxParticipants + 1);
+            var status = statuses[random.Next(statuses.Length)];
+            
+            // Если статус "Завершено", то участников должно быть максимальное количество
+            if (status == "Завершено")
+            {
+                participantsCount = maxParticipants;
+            }
+
+            sampleLobbies.Add(new LobbyModel
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = names[random.Next(names.Length)],
+                HostName = hosts[random.Next(hosts.Length)],
+                MaxParticipants = maxParticipants,
+                ParticipantsCount = participantsCount,
+                HasPassword = random.Next(2) == 1,
+                Status = status,
+                CreatedAt = DateTime.Now.AddMinutes(-random.Next(1, 120))
+            });
+        }
+
+        return sampleLobbies;
+    }
+
+    private void ToggleFilterSidebar()
+    {
+        isFilterOpen = !isFilterOpen;
+    }
+
+    private void OpenCreateLobbyModal()
+    {
+        showCreateLobbyModal = true;
+    }
+
+    private void CloseCreateLobbyModal()
+    {
+        showCreateLobbyModal = false;
+    }
+
+    private void JoinLobby(LobbyModel lobby)
+    {
+        if (!isAuthenticated)
+        {
+            NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/competitions")}");
+            return;
+        }
+
+        selectedLobby = lobby;
+        joinPassword = "";
+        showJoinLobbyModal = true;
+    }
+
+    private void CloseJoinLobbyModal()
+    {
+        showJoinLobbyModal = false;
+        selectedLobby = null;
+    }
+
+    private void ConfirmJoinLobby()
+    {
+        // Здесь будет логика присоединения к лобби
+        // Пока просто закрываем модальное окно
+        CloseJoinLobbyModal();
+    }
+
+    private void CreateLobby()
+    {
+        // Здесь будет логика создания лобби
+        // Пока просто закрываем модальное окно
+        CloseCreateLobbyModal();
+    }
+
+    private void ApplyFilters()
+    {
+        filteredLobbies = lobbies.Where(lobby => 
+        {
+            // Фильтр по поиску
+            bool matchesSearch = string.IsNullOrEmpty(searchQuery) || 
+                                lobby.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) || 
+                                lobby.HostName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
+
+            // Фильтр по статусу
+            bool matchesStatus = (filterWaiting && lobby.Status == "Ожидание") || 
+                                (filterInGame && lobby.Status == "В игре") || 
+                                (filterCompleted && lobby.Status == "Завершено");
+
+            // Фильтр по паролю
+            bool matchesPassword = passwordFilter == "all" || 
+                                  (passwordFilter == "yes" && lobby.HasPassword) || 
+                                  (passwordFilter == "no" && !lobby.HasPassword);
+
+            // Фильтр по участникам
+            bool matchesParticipants = participantsFilter == "all" || 
+                                      (participantsFilter == "available" && lobby.ParticipantsCount < lobby.MaxParticipants) || 
+                                      (participantsFilter == "almost-full" && lobby.ParticipantsCount >= lobby.MaxParticipants * 0.7 && 
+                                       lobby.ParticipantsCount < lobby.MaxParticipants);
+
+            return matchesSearch && matchesStatus && matchesPassword && matchesParticipants;
+        }).ToList();
+
+        // Сортировка по времени
+        if (timeFilter == "newest")
+        {
+            filteredLobbies = filteredLobbies.OrderByDescending(l => l.CreatedAt).ToList();
+        }
+        else
+        {
+            filteredLobbies = filteredLobbies.OrderBy(l => l.CreatedAt).ToList();
+        }
+
+        // Пагинация
+        totalPages = (int)Math.Ceiling(filteredLobbies.Count / (double)pageSize);
+        if (currentPage > totalPages && totalPages > 0)
+        {
+            currentPage = totalPages;
+        }
+        else if (totalPages == 0)
+        {
+            currentPage = 1;
+        }
+
+        // Получаем элементы для текущей страницы
+        int skip = (currentPage - 1) * pageSize;
+        filteredLobbies = filteredLobbies
+            .Skip(skip)
+            .Take(pageSize)
+            .ToList();
+
+        StateHasChanged();
+    }
+
+    private void ResetFilters()
+    {
+        searchQuery = "";
+        filterWaiting = true;
+        filterInGame = true;
+        filterCompleted = false;
+        passwordFilter = "all";
+        participantsFilter = "all";
+        timeFilter = "newest";
+        
+        ApplyFilters();
+    }
+
+    private void SetPasswordFilter(string filter)
+    {
+        passwordFilter = filter;
+        ApplyFilters();
+    }
+
+    private void SetParticipantsFilter(string filter)
+    {
+        participantsFilter = filter;
+        ApplyFilters();
+    }
+
+    private void SetTimeFilter(string filter)
+    {
+        timeFilter = filter;
+        ApplyFilters();
+    }
+
+    private void PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+            ApplyFilters();
+        }
+    }
+
+    private void NextPage()
+    {
+        if (currentPage < totalPages)
+        {
+            currentPage++;
+            ApplyFilters();
+        }
+    }
+
+    private void GoToPage(int page)
+    {
+        currentPage = page;
+        ApplyFilters();
+    }
+
+    private string GetStatusClass(string status)
+    {
+        return status switch
+        {
+            "Ожидание" => "status-waiting",
+            "В игре" => "status-in-game",
+            "Завершено" => "status-completed",
+            _ => ""
+        };
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return "?";
+
+        return name.Substring(0, 1).ToUpper();
+    }
+
+    private string FormatTime(DateTime time)
+    {
+        var timeSpan = DateTime.Now - time;
+        
+        if (timeSpan.TotalMinutes < 1)
+            return "только что";
+        if (timeSpan.TotalMinutes < 60)
+            return $"{(int)timeSpan.TotalMinutes} мин. назад";
+        if (timeSpan.TotalHours < 24)
+            return $"{(int)timeSpan.TotalHours} ч. назад";
+        
+        return time.ToString("dd.MM.yyyy HH:mm");
+    }
+
+    private bool CanJoinLobby(LobbyModel lobby)
+    {
+        return lobby.Status == "Ожидание" && lobby.ParticipantsCount < lobby.MaxParticipants;
+    }
+
+    public class LobbyModel
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string HostName { get; set; }
+        public int MaxParticipants { get; set; }
+        public int ParticipantsCount { get; set; }
+        public bool HasPassword { get; set; }
+        public string Password { get; set; }
+        public string Status { get; set; } // "Ожидание", "В игре", "Завершено"
+        public DateTime CreatedAt { get; set; }
+    }
+}
