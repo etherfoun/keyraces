@@ -577,7 +577,6 @@
     private string keyboardLayout = "qwerty";
     private string language = "english";
 
-    // Для сохранения настроек
     private string tempKeyboardLayout;
     private string tempLanguage;
 
@@ -602,7 +601,6 @@
 
     private Random random = new Random();
 
-    // Ключи для разных языков
     private Dictionary<string, char[]> languageKeys = new Dictionary<string, char[]>
     {
         { "english", new char[] { 'e', 'n', 'i', 'a', 'r', 'l', 't', 'o', 's', 'u', 'd', 'y', 'c', 'g', 'h', 'p', 'k', 'b', 'm', 'f', 'z', 'v', 'x', 'q', 'j' } },
@@ -629,7 +627,6 @@
     private int completedKeysCount = 0;
     private bool isAllKeysCompleted = false;
 
-    // Добавить класс для статистики по клавишам
     private class KeyStatistics
     {
         public double Accuracy { get; set; }
@@ -638,28 +635,23 @@
         public bool IsCompleted { get; set; } = false;
     }
 
-    // Изменим метод OnInitializedAsync, чтобы он не вызывал JavaScript interop
     protected override async Task OnInitializedAsync()
     {
         practiceTimer = new Timer(1000);
         practiceTimer.Elapsed += OnPracticeTimerElapsed;
 
-        // Инициализация тепловой карты клавиш для текущего языка
         foreach (var key in GetCurrentLanguageKeys())
         {
             keyHeatMap[key] = 0;
         }
 
-        // Установка текущей клавиши из набора для текущего языка
         currentKey = GetCurrentLanguageKeys()[0];
         highlightedKey = currentKey;
 
-        // Создаем пустые словари, которые будут заполнены позже
         languagePracticeWords["english"] = new Dictionary<char, List<string>>();
         languagePracticeWords["russian"] = new Dictionary<char, List<string>>();
         languagePracticeWords["ukrainian"] = new Dictionary<char, List<string>>();
 
-        // Генерируем начальные слова (они будут обновлены после загрузки словарей)
         GeneratePracticeWords();
     }
 
@@ -683,7 +675,6 @@
                     await JSRuntime.InvokeVoidAsync("keyboardInterop.disableScroll");
                 }
 
-                // Проверка доступности файлов словарей
                 await JSRuntime.InvokeVoidAsync("eval", @"
             async function checkFileExists(url) {
                 try {
@@ -701,19 +692,14 @@
             checkFileExists('/data/ukrainian-words.json');
             ");
 
-                // Загрузка настроек из localStorage
                 await LoadSettingsFromLocalStorage();
 
-                // Загрузка словарей
                 await InitializeLanguagePracticeWords();
 
-                // Скрываем индикатор загрузки
                 isLoading = false;
 
-                // Обновляем слова после загрузки словарей
                 GeneratePracticeWords();
 
-                // Обновляем UI
                 StateHasChanged();
 
                 await FocusTypingArea();
@@ -721,7 +707,6 @@
             catch (Exception ex)
             {
                 Console.WriteLine($"JavaScript interop error: {ex.Message}");
-                // Скрываем индикатор загрузки даже при ошибке
                 isLoading = false;
                 StateHasChanged();
             }
@@ -735,12 +720,10 @@
             isLoading = true;
             StateHasChanged();
 
-            // Создаем пустые словари, которые будут заполнены позже
             languagePracticeWords["english"] = new Dictionary<char, List<string>>();
             languagePracticeWords["russian"] = new Dictionary<char, List<string>>();
             languagePracticeWords["ukrainian"] = new Dictionary<char, List<string>>();
 
-            // Запускаем загрузку полных словарей параллельно
             var loadTasks = new List<Task>
         {
             LoadDictionary("english", "/data/english-words.json"),
@@ -748,13 +731,11 @@
             LoadDictionary("ukrainian", "/data/ukrainian-words.json")
         };
 
-            // Ждем завершения загрузки всех словарей, но не более 10 секунд
             var completedTask = await Task.WhenAny(
                 Task.WhenAll(loadTasks),
-                Task.Delay(10000) // 10-секундный таймаут
+                Task.Delay(10000)
             );
 
-            // Проверяем, загрузились ли словари
             bool anyDictionaryLoaded = languagePracticeWords["english"].Count > 0 ||
                                       languagePracticeWords["russian"].Count > 0 ||
                                       languagePracticeWords["ukrainian"].Count > 0;
@@ -762,18 +743,15 @@
             if (!anyDictionaryLoaded)
             {
                 Console.WriteLine("No dictionaries loaded, using basic dictionaries");
-                // Если ни один словарь не загрузился, используем базовые словари
                 InitializeBasicDictionaries();
             }
             else
             {
-                // Выводим статистику загрузки
                 Console.WriteLine($"English dictionary: {languagePracticeWords["english"].Count} keys");
                 Console.WriteLine($"Russian dictionary: {languagePracticeWords["russian"].Count} keys");
                 Console.WriteLine($"Ukrainian dictionary: {languagePracticeWords["ukrainian"].Count} keys");
             }
 
-            // Даже если не все словари загрузились, мы продолжаем работу
             isLoading = false;
             StateHasChanged();
         }
@@ -781,7 +759,6 @@
         {
             Console.WriteLine($"Error in InitializeLanguagePracticeWords: {ex.Message}");
 
-            // В случае ошибки используем базовые словари
             InitializeBasicDictionaries();
 
             isLoading = false;
@@ -789,7 +766,6 @@
         }
     }
 
-    // Инициализация базовых словарей, которые будут использоваться в случае ошибки загрузки
     private void InitializeBasicDictionaries()
     {
         var fallbackEnglishWords = new Dictionary<char, List<string>>
@@ -819,7 +795,6 @@
         { 'і', new List<string> { "і", "ці", "інші", "місто", "світ", "дійсно" } }
     };
 
-        // Добавляем базовые слова в словари только если они пусты
         if (languagePracticeWords["english"].Count == 0)
         {
             languagePracticeWords["english"] = new Dictionary<char, List<string>>(fallbackEnglishWords);
@@ -842,12 +817,10 @@
         {
             Console.WriteLine($"Loading dictionary for {language} from {filePath}");
 
-            // Попытка 1: Загрузка через HttpClient
             string jsonContent = await LoadDictionaryWithHttpClient(filePath);
 
             if (string.IsNullOrEmpty(jsonContent))
             {
-                // Попытка 2: Загрузка через JavaScript Fetch API
                 jsonContent = await LoadDictionaryWithJSFetch(filePath);
             }
 
@@ -857,10 +830,8 @@
                 return;
             }
 
-            // Логируем первые 100 символов для отладки
             Console.WriteLine($"Dictionary content (first 100 chars): {jsonContent.Substring(0, Math.Min(100, jsonContent.Length))}");
 
-            // Десериализация JSON
             var dictionaryData = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(jsonContent);
 
             if (dictionaryData == null || dictionaryData.Count == 0)
@@ -869,7 +840,6 @@
                 return;
             }
 
-            // Преобразуем словарь в нужный формат (ключ - первая буква слова)
             foreach (var entry in dictionaryData)
             {
                 foreach (var word in entry.Value)
@@ -884,7 +854,6 @@
                         languagePracticeWords[language][firstChar] = new List<string>();
                     }
 
-                    // Добавляем слово, если его еще нет в списке
                     if (!languagePracticeWords[language][firstChar].Contains(word))
                     {
                         languagePracticeWords[language][firstChar].Add(word);
@@ -894,7 +863,6 @@
 
             Console.WriteLine($"Successfully loaded dictionary for {language} with {languagePracticeWords[language].Count} keys");
 
-            // Выводим первые несколько ключей для отладки
             string keys = string.Join(", ", languagePracticeWords[language].Keys.Take(10));
             Console.WriteLine($"First keys: {keys}");
         }
@@ -905,15 +873,13 @@
         }
     }
 
-    // Метод для загрузки словаря через HttpClient
     private async Task<string> LoadDictionaryWithHttpClient(string filePath)
     {
         try
         {
             using var httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(3); // Устанавливаем таймаут
+            httpClient.Timeout = TimeSpan.FromSeconds(3);
 
-            // Получаем базовый URL приложения
             var baseUrl = await JSRuntime.InvokeAsync<string>("eval", "window.location.origin");
             var fullUrl = $"{baseUrl}{filePath}";
 
@@ -937,12 +903,10 @@
         }
     }
 
-    // Метод для загрузки словаря через JavaScript Fetch API
     private async Task<string> LoadDictionaryWithJSFetch(string filePath)
     {
         try
         {
-            // Используем JavaScript Fetch API для загрузки файла
             string jsCode = @"
         async function fetchFile(url) {
             try {
@@ -969,7 +933,6 @@
         }
     }
 
-    // Отдельный метод для загрузки через HttpClient
     private async Task LoadDictionaryWithHttpClient(string language, string path)
     {
         try
@@ -978,9 +941,8 @@
 
             using (var httpClient = new System.Net.Http.HttpClient())
             {
-                // Устанавливаем базовый URL и таймаут
                 httpClient.BaseAddress = new Uri(NavigationManager.BaseUri);
-                httpClient.Timeout = TimeSpan.FromSeconds(10); // 10-секундный таймаут
+                httpClient.Timeout = TimeSpan.FromSeconds(10);
 
                 var response = await httpClient.GetAsync(path);
                 Console.WriteLine($"HttpClient response for {language}: {response.StatusCode}");
@@ -1001,10 +963,8 @@
                         var dictionary = System.Text.Json.JsonSerializer.Deserialize<Dictionary<char, List<string>>>(jsonContent, options);
                         if (dictionary != null && dictionary.Count > 0)
                         {
-                            // Обновляем словарь
                             languagePracticeWords[language] = dictionary;
 
-                            // Кэшируем словарь в localStorage
                             await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"dictionary_{language}", jsonContent);
 
                             Console.WriteLine($"{language} dictionary loaded from server via HttpClient and cached, keys: {dictionary.Keys.Count}");
@@ -1035,29 +995,23 @@
         }
     }
 
-    // Метод для проверки кодировки файла
     private async Task<string> DetectAndConvertEncoding(string content)
     {
         try
         {
-            // Проверяем наличие BOM (Byte Order Mark)
             if (content.StartsWith("\uFEFF"))
             {
-                // Удаляем BOM
                 content = content.Substring(1);
             }
 
-            // Проверяем, есть ли в тексте некорректные символы
             bool hasInvalidChars = content.Contains("�");
 
             if (hasInvalidChars)
             {
                 Console.WriteLine("Detected invalid characters, trying different encodings");
 
-                // Пробуем разные кодировки
                 byte[] bytes = Encoding.UTF8.GetBytes(content);
 
-                // Пробуем Windows-1251 (для русского)
                 string windows1251 = Encoding.GetEncoding(1251).GetString(bytes);
                 if (!windows1251.Contains("�"))
                 {
@@ -1065,7 +1019,6 @@
                     return windows1251;
                 }
 
-                // Пробуем ISO-8859-5 (для кириллицы)
                 string iso88595 = Encoding.GetEncoding(28595).GetString(bytes);
                 if (!iso88595.Contains("�"))
                 {
@@ -1073,7 +1026,6 @@
                     return iso88595;
                 }
 
-                // Пробуем KOI8-R (для русского)
                 string koi8r = Encoding.GetEncoding(20866).GetString(bytes);
                 if (!koi8r.Contains("�"))
                 {
@@ -1082,7 +1034,6 @@
                 }
             }
 
-            // Возвращаем исходный контент, если не удалось определить кодировку
             return content;
         }
         catch (Exception ex)
@@ -1092,7 +1043,6 @@
         }
     }
 
-    // Изменим метод LoadSettingsFromLocalStorage для лучшей обработки ошибок
     private async Task LoadSettingsFromLocalStorage()
     {
         try
@@ -1111,14 +1061,12 @@
                 language = savedLanguage;
                 tempLanguage = savedLanguage;
 
-                // Обновляем тепловую карту для нового языка
                 keyHeatMap.Clear();
                 foreach (var key in GetCurrentLanguageKeys())
                 {
                     keyHeatMap[key] = 0;
                 }
 
-                // Обновляем текущую клавишу
                 currentKey = GetCurrentLanguageKeys()[0];
                 highlightedKey = currentKey;
             }
@@ -1129,7 +1077,6 @@
         }
     }
 
-    // Добавим метод GetCurrentLanguageKeys после метода LoadSettingsFromLocalStorage
 
     private char[] GetCurrentLanguageKeys()
     {
@@ -1140,41 +1087,33 @@
     {
         try
         {
-            // Проверяем, инициализирован ли словарь для текущего языка
             if (!languagePracticeWords.ContainsKey(language))
             {
                 languagePracticeWords[language] = new Dictionary<char, List<string>>();
             }
 
-            // Получаем словарь для текущего языка
             if (languagePracticeWords[language].ContainsKey(currentKey) &&
                 languagePracticeWords[language][currentKey].Count > 0)
             {
                 var wordsList = new List<string>(languagePracticeWords[language][currentKey]);
 
-                // Увеличиваем количество слов до 5-10
                 int wordsCount = Math.Min(random.Next(5, 11), wordsList.Count);
                 practiceWords = new List<string>();
 
-                // Перемешиваем список слов
                 wordsList = ShuffleList(wordsList);
 
-                // Добавляем слова, не повторяя их, если возможно
                 for (int i = 0; i < wordsCount; i++)
                 {
                     practiceWords.Add(wordsList[i % wordsList.Count]);
                 }
 
-                // Перемешиваем еще раз для разнообразия
                 practiceWords = ShuffleList(practiceWords);
             }
             else
             {
-                // Если нет слов для текущей буквы, переходим к следующей букве
                 var keys = GetCurrentLanguageKeys();
                 int currentIndex = Array.IndexOf(keys, currentKey);
 
-                // Ищем следующую букву, для которой есть слова
                 for (int i = 1; i < keys.Length; i++)
                 {
                     int nextIndex = (currentIndex + i) % keys.Length;
@@ -1186,13 +1125,11 @@
                         currentKey = nextKey;
                         highlightedKey = currentKey;
 
-                        // Рекурсивно вызываем метод для новой буквы
                         GeneratePracticeWords();
                         return;
                     }
                 }
 
-                // Если не нашли ни одной буквы с словами, используем базовые слова
                 practiceWords = new List<string> { "no", "words", "found", "for", "this", "key" };
             }
 
@@ -1225,7 +1162,6 @@
 
     private void UpdateKeyStatus()
     {
-        // Статусы для разных языков
         if (language == "english")
         {
             switch (currentKey)
@@ -1331,7 +1267,6 @@
         }
     }
 
-    // Добавим CSS стиль для завершенных клавиш
     private string GetKeyClass(char key)
     {
         List<string> classes = new List<string>();
@@ -1354,7 +1289,6 @@
             classes.Add("highlighted");
         }
 
-        // Добавляем класс для завершенных клавиш
         if (keyStatistics.ContainsKey(key) && keyStatistics[key].IsCompleted)
         {
             classes.Add("completed");
@@ -1399,7 +1333,6 @@
 
     private void OpenSettings()
     {
-        // Сохраняем текущие настройки во временные переменные
         tempKeyboardLayout = keyboardLayout;
         tempLanguage = language;
 
@@ -1408,7 +1341,6 @@
 
     private void CloseSettings()
     {
-        // Восстанавливаем настройки из временных переменных (отмена изменений)
         keyboardLayout = tempKeyboardLayout;
         language = tempLanguage;
 
@@ -1417,27 +1349,21 @@
 
     private async Task SaveSettings()
     {
-        // Если язык изменился, нужно обновить тепловую карту и текущую клавишу
         if (tempLanguage != language)
         {
-            // Очищаем тепловую карту
             keyHeatMap.Clear();
 
-            // Инициализируем тепловую карту для нового языка
             foreach (var key in GetCurrentLanguageKeys())
             {
                 keyHeatMap[key] = 0;
             }
 
-            // Устанавливаем первую клавишу из набора для нового языка
             currentKey = GetCurrentLanguageKeys()[0];
             highlightedKey = currentKey;
         }
 
-        // Сохраняем настройки в localStorage
         await SaveSettingsToLocalStorage();
 
-        // Перезапускаем практику с новыми настройками
         RestartPractice();
 
         showSettings = false;
@@ -1517,10 +1443,8 @@
     {
         if (isCompleted) return;
 
-        // Add key to pressed keys set
         pressedKeys.Add(e.Key);
 
-        // Handle special keys
         if (e.Key == "Escape")
         {
             RestartPractice();
@@ -1543,38 +1467,31 @@
             StartPractice();
         }
 
-        // Only handle printable characters
         if (e.Key.Length == 1)
         {
             char key = e.Key[0];
 
-            // Update typed text
             typedText += key;
 
-            // Update metrics
             totalKeysPressed++;
 
             if (currentPosition < practiceText.Length && key == practiceText[currentPosition])
             {
                 correctKeysPressed++;
 
-                // Update heat map for the key
                 if (keyHeatMap.ContainsKey(key))
                 {
                     keyHeatMap[key]++;
                 }
             }
 
-            // Update position
             currentPosition++;
 
-            // Check if practice is completed
             if (currentPosition >= practiceText.Length)
             {
                 CompletePractice();
             }
 
-            // Update metrics
             UpdateMetrics();
 
             StateHasChanged();
@@ -1583,24 +1500,20 @@
 
     private void HandleKeyUp(KeyboardEventArgs e)
     {
-        // Remove key from pressed keys set
         pressedKeys.Remove(e.Key);
         StateHasChanged();
     }
 
     private void NextPractice()
     {
-        // Move to the next key in the current language
         var keys = GetCurrentLanguageKeys();
         int currentIndex = Array.IndexOf(keys, currentKey);
         int nextIndex = (currentIndex + 1) % keys.Length;
         currentKey = keys[nextIndex];
         highlightedKey = currentKey;
 
-        // Generate new practice words
         GeneratePracticeWords();
 
-        // Reset practice state
         ResetPracticeState();
 
         StateHasChanged();
@@ -1616,17 +1529,14 @@
 
     private void PreviousPractice()
     {
-        // Move to the previous key in the current language
         var keys = GetCurrentLanguageKeys();
         int currentIndex = Array.IndexOf(keys, currentKey);
         int prevIndex = (currentIndex - 1 + keys.Length) % keys.Length;
         currentKey = keys[prevIndex];
         highlightedKey = currentKey;
 
-        // Generate new practice words
         GeneratePracticeWords();
 
-        // Reset practice state
         ResetPracticeState();
 
         StateHasChanged();
@@ -1634,10 +1544,8 @@
 
     private void RestartPractice()
     {
-        // Generate new practice words with the same key
         GeneratePracticeWords();
 
-        // Reset practice state
         ResetPracticeState();
 
         StateHasChanged();
@@ -1649,7 +1557,6 @@
         startTime = DateTime.Now;
         practiceTime = 0;
 
-        // Start the timer
         practiceTimer.Start();
     }
 
@@ -1658,13 +1565,10 @@
         isCompleted = true;
         isPracticeActive = false;
 
-        // Stop the timer
         practiceTimer.Stop();
 
-        // Calculate final metrics
         UpdateMetrics();
 
-        // Save statistics for current key
         if (!keyStatistics.ContainsKey(currentKey))
         {
             keyStatistics[currentKey] = new KeyStatistics();
@@ -1675,13 +1579,10 @@
         keyStatistics[currentKey].Score = score;
         keyStatistics[currentKey].IsCompleted = true;
 
-        // Update completed keys count
         completedKeysCount = keyStatistics.Count(k => k.Value.IsCompleted);
 
-        // Check if all keys are completed
         CheckAllKeysCompleted();
 
-        // Show feedback only if all keys are completed
         if (isAllKeysCompleted)
         {
             CalculateOverallStatistics();
@@ -1689,12 +1590,10 @@
         }
         else
         {
-            // Automatically move to next key without showing feedback
             NextPractice();
         }
     }
 
-    // Добавить метод для обработки таймера обратного отсчета
     private void OnFeedbackTimerElapsed(object sender, ElapsedEventArgs e)
     {
         nextKeyCountdown--;
@@ -1705,10 +1604,8 @@
 
             InvokeAsync(() =>
             {
-                // Close feedback
                 showAccuracyFeedback = false;
 
-                // If all keys are completed, show statistics
                 if (isAllKeysCompleted)
                 {
                     CalculateOverallStatistics();
@@ -1716,7 +1613,6 @@
                 }
                 else
                 {
-                    // Move to next key
                     NextPractice();
                 }
 
@@ -1727,7 +1623,6 @@
         InvokeAsync(StateHasChanged);
     }
 
-    // Метод для отображения общей статистики после завершения всех букв
     private void ShowFinalStatistics()
     {
         CalculateOverallStatistics();
@@ -1735,7 +1630,6 @@
         StateHasChanged();
     }
 
-    // Добавить метод для генерации сообщения обратной связи
     private void GenerateAccuracyFeedbackMessage()
     {
         if (language == "english")
@@ -1797,14 +1691,12 @@
         }
     }
 
-    // Добавить метод для проверки завершения всех клавиш
     private void CheckAllKeysCompleted()
     {
         var keys = GetCurrentLanguageKeys();
         isAllKeysCompleted = keys.All(k => keyStatistics.ContainsKey(k) && keyStatistics[k].IsCompleted);
     }
 
-    // Добавить метод для расчета общей статистики
     private void CalculateOverallStatistics()
     {
         if (keyStatistics.Count == 0) return;
@@ -1820,7 +1712,6 @@
             totalWpm += stat.Value.Wpm;
             totalScore += stat.Value.Score;
 
-            // Добавляем клавиши с низкой точностью в список для улучшения
             if (stat.Value.Accuracy < 85)
             {
                 keysToImprove.Add(stat.Key);
@@ -1830,7 +1721,6 @@
         averageAccuracy = totalAccuracy / keyStatistics.Count;
         averageWpm = totalWpm / keyStatistics.Count;
 
-        // Если нет клавиш для улучшения, добавляем самые медленные
         if (keysToImprove.Count == 0)
         {
             var slowestKeys = keyStatistics
@@ -1842,20 +1732,17 @@
         }
     }
 
-    // Добавить метод для закрытия окна статистики
     private void CloseStatistics()
     {
         showStatistics = false;
         StateHasChanged();
     }
 
-    // Добавить метод для закрытия окна обратной связи
     private void CloseFeedback()
     {
         showAccuracyFeedback = false;
         feedbackTimer?.Stop();
 
-        // If all keys are completed, show statistics
         if (isAllKeysCompleted)
         {
             CalculateOverallStatistics();
@@ -1863,38 +1750,30 @@
         }
         else
         {
-            // Move to next key
             NextPractice();
         }
 
         StateHasChanged();
     }
 
-    // Добавить метод для перезапуска практики со всеми клавишами
     private void RestartAllPractice()
     {
-        // Reset statistics
         keyStatistics.Clear();
         completedKeysCount = 0;
         isAllKeysCompleted = false;
 
-        // Close statistics window
         showStatistics = false;
 
-        // Reset to first key
         currentKey = GetCurrentLanguageKeys()[0];
         highlightedKey = currentKey;
 
-        // Generate new practice words
         GeneratePracticeWords();
 
-        // Reset practice state
         ResetPracticeState();
 
         StateHasChanged();
     }
 
-    // Добавить метод для получения локализованного текста
     private string GetLocalizedText(string key)
     {
         var translations = new Dictionary<string, Dictionary<string, string>>
@@ -1966,7 +1845,6 @@
         return key;
     }
 
-    // Заменить метод Dispose для очистки таймеров
     public void Dispose()
     {
         practiceTimer?.Dispose();
@@ -1985,14 +1863,11 @@
         accuracy = 0;
         score = 0;
 
-        // Stop the timer if it's running
         practiceTimer.Stop();
     }
 
     private void UpdateMetrics()
     {
-        // Calculate WPM (Words Per Minute)
-        // Standard: 5 characters = 1 word
         if (practiceTime > 0)
         {
             double minutes = practiceTime / 60.0;
@@ -2000,16 +1875,13 @@
             wpm = correctKeysPressed / 5.0 / minutes;
         }
 
-        // Calculate accuracy
         if (totalKeysPressed > 0)
         {
             accuracy = (int)Math.Round((double)correctKeysPressed / totalKeysPressed * 100);
         }
 
-        // Calculate score
         score = (int)(wpm * (accuracy / 100.0) * 10);
 
-        // Update accuracy status
         if (accuracy >= 98)
         {
             accuracyStatus = "Excellent! Keep up the good work.";

@@ -2,6 +2,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager NavigationManager
 @inject IRoleService RoleService
+@implements IDisposable
 
 <div class="navbar-wrapper">
     <nav class="navbar">
@@ -13,7 +14,6 @@
             </div>
 
             <div class="navbar-links">
-                <a href="/train" class="nav-link">Train</a>
                 <a href="/practice" class="nav-link">Practice</a>
                 <a href="/competitions" class="nav-link">Competitions</a>
                 <a href="/leaderboard" class="nav-link">Leaderboard</a>
@@ -23,7 +23,7 @@
             <div class="navbar-user">
                 <ThemeToggle />
 
-                @if (!string.IsNullOrEmpty(username))
+                @if (isAuthenticated && !string.IsNullOrEmpty(username))
                 {
                     <div class="user-profile">
                         <span class="user-info">
@@ -232,12 +232,9 @@
     }
 
     @@media (max-width: 768px) {
-        .navbar-links
-
-    {
-        display: none;
-    }
-
+        .navbar-links {
+            display: none;
+        }
     }
 </style>
 
@@ -246,6 +243,8 @@
     private string userId;
     private bool isFirstRender = true;
     private bool isAdmin = false;
+    private bool isAuthenticated = false;
+    private System.Threading.Timer authCheckTimer;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -253,6 +252,15 @@
         {
             isFirstRender = false;
             await LoadUserInfoAsync();
+
+            // Устанавливаем таймер для периодической проверки токена
+            authCheckTimer = new System.Threading.Timer(
+                async _ => await CheckAuthStatusAsync(),
+                null,
+                TimeSpan.FromMinutes(1), // Первая проверка через 1 минуту
+                TimeSpan.FromMinutes(5)  // Затем каждые 5 минут
+            );
+
             StateHasChanged();
         }
     }
@@ -264,6 +272,16 @@
             if (JS is null)
             {
                 Console.WriteLine("JS runtime is not available");
+                return;
+            }
+
+            // Проверяем валидность токена перед загрузкой данных пользователя
+            bool isTokenValid = await CheckAuthStatusAsync();
+
+            if (!isTokenValid)
+            {
+                // Если токен невалиден, очищаем данные пользователя
+                ClearUserData();
                 return;
             }
 
@@ -293,13 +311,24 @@
                             {
                                 userId = authData["userId"].ToString();
                             }
+
+                            isAuthenticated = true;
+                        }
+                        else
+                        {
+                            isAuthenticated = false;
                         }
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error checking auth status: {ex.Message}");
+                    isAuthenticated = false;
                 }
+            }
+            else
+            {
+                isAuthenticated = true;
             }
 
             if (!string.IsNullOrEmpty(userId))
@@ -316,7 +345,50 @@
         {
             Console.WriteLine($"Error loading user info: {ex.Message}");
             username = null;
+            isAuthenticated = false;
         }
+    }
+
+    private async Task<bool> CheckAuthStatusAsync()
+    {
+        try
+        {
+            // Проверяем, истек ли токен
+            bool isTokenExpired = await JS.InvokeAsync<bool>("authInterop.isTokenExpired");
+
+            if (isTokenExpired)
+            {
+                Console.WriteLine("Token is expired, clearing user data");
+                ClearUserData();
+                return false;
+            }
+
+            // Дополнительная проверка через authInterop.checkAuthentication
+            bool isAuthenticated = await JS.InvokeAsync<bool>("authInterop.checkAuthentication");
+
+            if (!isAuthenticated)
+            {
+                Console.WriteLine("User is not authenticated, clearing user data");
+                ClearUserData();
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking auth status: {ex.Message}");
+            return false;
+        }
+    }
+
+    private void ClearUserData()
+    {
+        username = null;
+        userId = null;
+        isAdmin = false;
+        isAuthenticated = false;
+        StateHasChanged();
     }
 
     private bool IsAdminUser(string email)
@@ -337,5 +409,11 @@
         {
             Console.WriteLine($"Error during logout: {ex.Message}");
         }
+    }
+
+    public void Dispose()
+    {
+        // Освобождаем ресурсы таймера при уничтожении компонента
+        authCheckTimer?.Dispose();
     }
 }

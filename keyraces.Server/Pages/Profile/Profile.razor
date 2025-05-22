@@ -194,12 +194,18 @@
     {
         try
         {
-            // Получаем ID пользователя из localStorage
+            bool isAuthenticated = await CheckAuthenticationAsync();
+
+            if (!isAuthenticated)
+            {
+                var returnUrl = Uri.EscapeDataString("/profile");
+                NavigationManager.NavigateTo($"/login?returnUrl={returnUrl}", forceLoad: true);
+                return;
+            }
             userId = await JS.InvokeAsync<string>("localStorage.getItem", "user_id");
 
             if (string.IsNullOrEmpty(userId))
             {
-                // Если ID нет в localStorage, пробуем получить через authInterop
                 var authStatus = await JS.InvokeAsync<object>("authInterop.checkAuthStatus");
                 if (authStatus != null)
                 {
@@ -216,13 +222,11 @@
 
             if (!string.IsNullOrEmpty(userId))
             {
-                // Получаем профиль пользователя из базы данных
                 userProfile = await UserProfileService.GetByIdentityIdAsync(userId);
 
                 if (userProfile != null)
                 {
                     username = userProfile.Name;
-                    // Email получаем из localStorage, так как в модели UserProfile его нет
                     userEmail = await JS.InvokeAsync<string>("localStorage.getItem", "user_email") ?? "Email не указан";
                 }
             }
@@ -241,7 +245,6 @@
             isLoading = false;
         }
 
-        // Populate with sample data for now
         activities.Add(new ActivityItem
         {
             Icon = "oi-timer",
@@ -267,6 +270,46 @@
         await LoadUserInfoAsync();
     }
 
+    private async Task<bool> CheckAuthenticationAsync()
+    {
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
+
+            if (string.IsNullOrEmpty(token))
+            {
+                Console.WriteLine("No token found in localStorage");
+                return false;
+            }
+
+            bool isTokenExpired = await JS.InvokeAsync<bool>("authInterop.isTokenExpired");
+
+            if (isTokenExpired)
+            {
+                Console.WriteLine("Token is expired");
+                await JS.InvokeVoidAsync("authInterop.clearTokens");
+                return false;
+            }
+
+            bool authCheck = await JS.InvokeAsync<bool>("authInterop.checkAuthentication");
+
+            if (!authCheck)
+            {
+                Console.WriteLine("Authentication check failed");
+                await JS.InvokeVoidAsync("authInterop.clearTokens");
+                return false;
+            }
+
+            Console.WriteLine("User is authenticated");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking authentication: {ex.Message}");
+            return false;
+        }
+    }
+
     private async Task LoadUserInfoAsync()
     {
         try
@@ -283,7 +326,6 @@
                     userEmail = storedEmail;
                 }
 
-                // Generate initials from username
                 userInitials = GetInitials(username);
             }
         }
@@ -300,7 +342,6 @@
 
     private void ContactSupport()
     {
-        // Implement contact support functionality
         JS.InvokeVoidAsync("alert", "Support feature coming soon!");
     }
 

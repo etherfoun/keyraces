@@ -195,35 +195,32 @@
         opacity: 0;
     }
 
-/* Заменяем стандартную точку на более явный символ */
 .space-dot::before {
-    content: "•"; /* Используем символ маркера списка вместо точки */
-    font-size: 1.2em; /* Увеличиваем размер */
+    content: "•";
+    font-size: 1.2em;
     position: absolute;
     left: 50%;
     top: 50%;
-    transform: translate(-50%, -50%); /* Центрируем точку */
-    opacity: 0.8; /* Делаем достаточно заметной */
+    transform: translate(-50%, -50%);
+    opacity: 0.8;
 }
 
-/* Базовый контейнер для точки */
 .space-dot {
     position: relative;
     display: inline-block;
     width: 0.7em;
     height: 1em;
-    vertical-align: middle; /* Выравниваем по центру строки */
+    vertical-align: middle;
 }
 
-/* Специфические стили для кириллицы */
 [data-language="russian"] .space-dot::before,
 [data-language="ukrainian"] .space-dot::before {
-    font-size: 1.3em; /* Немного увеличиваем для кириллицы */
+    font-size: 1.3em;
 }
 
 .space-dot.current::before {
-    opacity: 1; /* Полная непрозрачность для текущей точки */
-    color: var(--accent-primary); /* Используем акцентный цвет для текущей точки */
+    opacity: 1;
+    color: var(--accent-primary);
 }
 
 .target-text {
@@ -601,14 +598,12 @@ input:checked + .toggle-slider {
     }
 }
 
-/* Стили для разных языков */
 .practice-container[data-language="english"] .key-badge,
 .practice-container[data-language="russian"] .key-badge,
 .practice-container[data-language="ukrainian"] .key-badge {
     transition: all 0.3s ease;
 }
 
-/* Анимация при смене языка */
 @keyframes language-change {
     0% {
         transform: scale(0.95);
@@ -625,13 +620,11 @@ input:checked + .toggle-slider {
     animation: language-change 0.5s ease;
 }
 
-/* Стили для разных языков */
 .practice-container[data-language="russian"] .target-text,
 .practice-container[data-language="ukrainian"] .target-text {
     font-family: "Arial", sans-serif;
 }
 
-/* Стили для заметки в настройках */
 .settings-note {
     font-size: 0.8rem;
     color: var(--text-tertiary);
@@ -639,13 +632,11 @@ input:checked + .toggle-slider {
     font-style: italic;
 }
 
-/* Стили для клавиатуры на разных языках */
 .keyboard.dvorak .key,
 .keyboard.colemak .key {
     transition: all 0.3s ease;
 }
 
-/* Базовые стили из Practice.razor.css */
 .practice-container {
     display: flex;
     flex-direction: column;
@@ -1220,7 +1211,6 @@ input:checked + .toggle-slider {
     }
 }
 
-/* Стили для модального окна статистики */
 .statistics-modal {
     position: fixed;
     top: 0;
@@ -1315,7 +1305,6 @@ input:checked + .toggle-slider {
         color: var(--text-on-accent);
     }
 
-/* Добавим стили для индикатора загрузки в конец файла */
 .loading-overlay {
     position: fixed;
     top: 0;
