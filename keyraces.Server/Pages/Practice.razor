@@ -1,15 +1,26 @@
 ﻿@page "/practice"
 @using System.Timers
+@using System.Text
+@using System.Text.Json
 @using keyraces.Core.Entities
 @using keyraces.Core.Interfaces
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.JSInterop
+@using System.Collections.Generic
+@using System.Text.Json.Serialization
 @inject ITextSnippetService TextSnippetService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
-<div class="practice-container">
+<div class="practice-container" data-language="@language">
+    @if (isLoading)
+    {
+        <div class="loading-overlay">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading dictionaries...</div>
+        </div>
+    }
     <div class="metrics-bar">
         <div class="metrics-group">
             <span class="metrics-label">Metrics:</span>
@@ -43,7 +54,7 @@
         <div class="info-row">
             <span class="info-label">All keys:</span>
             <div class="keys-list">
-                @foreach (var key in allKeys)
+                @foreach (var key in GetCurrentLanguageKeys())
                 {
                     <span class="key-badge @(key == currentKey ? "current" : "")">@key</span>
                 }
@@ -79,7 +90,7 @@
 
                     if (c == ' ')
                     {
-                        <span class="@charClass space-dot">·</span>
+                        <span class="@charClass space-dot"></span>
                     }
                     else
                     {
@@ -97,78 +108,303 @@
     </div>
 
     <div class="keyboard-container">
-        <div class="keyboard">
-            <div class="keyboard-row">
-                <div class="key @GetKeyClass('`')" data-key="`"><span class="key-char">`</span></div>
-                <div class="key @GetKeyClass('1')" data-key="1"><span class="key-char">1</span></div>
-                <div class="key @GetKeyClass('2')" data-key="2"><span class="key-char">2</span></div>
-                <div class="key @GetKeyClass('3')" data-key="3"><span class="key-char">3</span></div>
-                <div class="key @GetKeyClass('4')" data-key="4"><span class="key-char">4</span></div>
-                <div class="key @GetKeyClass('5')" data-key="5"><span class="key-char">5</span></div>
-                <div class="key @GetKeyClass('6')" data-key="6"><span class="key-char">6</span></div>
-                <div class="key @GetKeyClass('7')" data-key="7"><span class="key-char">7</span></div>
-                <div class="key @GetKeyClass('8')" data-key="8"><span class="key-char">8</span></div>
-                <div class="key @GetKeyClass('9')" data-key="9"><span class="key-char">9</span></div>
-                <div class="key @GetKeyClass('0')" data-key="0"><span class="key-char">0</span></div>
-                <div class="key @GetKeyClass('-')" data-key="-"><span class="key-char">-</span></div>
-                <div class="key @GetKeyClass('=')" data-key="="><span class="key-char">=</span></div>
-                <div class="key backspace" data-key="Backspace"><span class="key-char">Backspace</span></div>
-            </div>
-            <div class="keyboard-row">
-                <div class="key tab" data-key="Tab"><span class="key-char">Tab</span></div>
-                <div class="key @GetKeyClass('q')" data-key="q"><span class="key-char">Q</span></div>
-                <div class="key @GetKeyClass('w')" data-key="w"><span class="key-char">W</span></div>
-                <div class="key @GetKeyClass('e')" data-key="e"><span class="key-char">E</span></div>
-                <div class="key @GetKeyClass('r')" data-key="r"><span class="key-char">R</span></div>
-                <div class="key @GetKeyClass('t')" data-key="t"><span class="key-char">T</span></div>
-                <div class="key @GetKeyClass('y')" data-key="y"><span class="key-char">Y</span></div>
-                <div class="key @GetKeyClass('u')" data-key="u"><span class="key-char">U</span></div>
-                <div class="key @GetKeyClass('i')" data-key="i"><span class="key-char">I</span></div>
-                <div class="key @GetKeyClass('o')" data-key="o"><span class="key-char">O</span></div>
-                <div class="key @GetKeyClass('p')" data-key="p"><span class="key-char">P</span></div>
-                <div class="key @GetKeyClass('[')" data-key="["><span class="key-char">[</span></div>
-                <div class="key @GetKeyClass(']')" data-key="]"><span class="key-char">]</span></div>
-                <div class="key backslash" data-key="\"><span class="key-char">\</span></div>
-            </div>
-            <div class="keyboard-row">
-                <div class="key caps" data-key="CapsLock"><span class="key-char">Caps</span></div>
-                <div class="key @GetKeyClass('a')" data-key="a"><span class="key-char">A</span></div>
-                <div class="key @GetKeyClass('s')" data-key="s"><span class="key-char">S</span></div>
-                <div class="key @GetKeyClass('d')" data-key="d"><span class="key-char">D</span></div>
-                <div class="key @GetKeyClass('f')" data-key="f"><span class="key-char">F</span></div>
-                <div class="key @GetKeyClass('g')" data-key="g"><span class="key-char">G</span></div>
-                <div class="key @GetKeyClass('h')" data-key="h"><span class="key-char">H</span></div>
-                <div class="key @GetKeyClass('j')" data-key="j"><span class="key-char">J</span></div>
-                <div class="key @GetKeyClass('k')" data-key="k"><span class="key-char">K</span></div>
-                <div class="key @GetKeyClass('l')" data-key="l"><span class="key-char">L</span></div>
-                <div class="key @GetKeyClass(';')" data-key=";"><span class="key-char">;</span></div>
-                <div class="key @GetKeyClass('\'')" data-key="'"><span class="key-char">'</span></div>
-                <div class="key enter" data-key="Enter"><span class="key-char">Enter</span></div>
-            </div>
-            <div class="keyboard-row">
-                <div class="key shift left-shift" data-key="ShiftLeft"><span class="key-char">Shift</span></div>
-                <div class="key @GetKeyClass('z')" data-key="z"><span class="key-char">Z</span></div>
-                <div class="key @GetKeyClass('x')" data-key="x"><span class="key-char">X</span></div>
-                <div class="key @GetKeyClass('c')" data-key="c"><span class="key-char">C</span></div>
-                <div class="key @GetKeyClass('v')" data-key="v"><span class="key-char">V</span></div>
-                <div class="key @GetKeyClass('b')" data-key="b"><span class="key-char">B</span></div>
-                <div class="key @GetKeyClass('n')" data-key="n"><span class="key-char">N</span></div>
-                <div class="key @GetKeyClass('m')" data-key="m"><span class="key-char">M</span></div>
-                <div class="key @GetKeyClass(',')" data-key=","><span class="key-char">,</span></div>
-                <div class="key @GetKeyClass('.')" data-key="."><span class="key-char">.</span></div>
-                <div class="key @GetKeyClass('/')" data-key="/"><span class="key-char">/</span></div>
-                <div class="key shift right-shift" data-key="ShiftRight"><span class="key-char">Shift</span></div>
-            </div>
-            <div class="keyboard-row">
-                <div class="key ctrl left-ctrl" data-key="ControlLeft"><span class="key-char">Ctrl</span></div>
-                <div class="key win" data-key="MetaLeft"><span class="key-char">Win</span></div>
-                <div class="key alt" data-key="AltLeft"><span class="key-char">Alt</span></div>
-                <div class="key space @GetKeyClass(' ')" data-key=" "><span class="key-char"></span></div>
-                <div class="key alt" data-key="AltRight"><span class="key-char">Alt</span></div>
-                <div class="key win" data-key="MetaRight"><span class="key-char">Win</span></div>
-                <div class="key menu" data-key="ContextMenu"><span class="key-char">Menu</span></div>
-                <div class="key ctrl right-ctrl" data-key="ControlRight"><span class="key-char">Ctrl</span></div>
-            </div>
+        <div class="keyboard @keyboardLayout">
+            @if (language == "english" && keyboardLayout == "qwerty")
+            {
+                <div class="keyboard-row">
+                    <div class="key @GetKeyClass('`')" data-key="`"><span class="key-char">`</span></div>
+                    <div class="key @GetKeyClass('1')" data-key="1"><span class="key-char">1</span></div>
+                    <div class="key @GetKeyClass('2')" data-key="2"><span class="key-char">2</span></div>
+                    <div class="key @GetKeyClass('3')" data-key="3"><span class="key-char">3</span></div>
+                    <div class="key @GetKeyClass('4')" data-key="4"><span class="key-char">4</span></div>
+                    <div class="key @GetKeyClass('5')" data-key="5"><span class="key-char">5</span></div>
+                    <div class="key @GetKeyClass('6')" data-key="6"><span class="key-char">6</span></div>
+                    <div class="key @GetKeyClass('7')" data-key="7"><span class="key-char">7</span></div>
+                    <div class="key @GetKeyClass('8')" data-key="8"><span class="key-char">8</span></div>
+                    <div class="key @GetKeyClass('9')" data-key="9"><span class="key-char">9</span></div>
+                    <div class="key @GetKeyClass('0')" data-key="0"><span class="key-char">0</span></div>
+                    <div class="key @GetKeyClass('-')" data-key="-"><span class="key-char">-</span></div>
+                    <div class="key @GetKeyClass('=')" data-key="="><span class="key-char">=</span></div>
+                    <div class="key backspace" data-key="Backspace"><span class="key-char">Backspace</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key tab" data-key="Tab"><span class="key-char">Tab</span></div>
+                    <div class="key @GetKeyClass('q')" data-key="q"><span class="key-char">Q</span></div>
+                    <div class="key @GetKeyClass('w')" data-key="w"><span class="key-char">W</span></div>
+                    <div class="key @GetKeyClass('e')" data-key="e"><span class="key-char">E</span></div>
+                    <div class="key @GetKeyClass('r')" data-key="r"><span class="key-char">R</span></div>
+                    <div class="key @GetKeyClass('t')" data-key="t"><span class="key-char">T</span></div>
+                    <div class="key @GetKeyClass('y')" data-key="y"><span class="key-char">Y</span></div>
+                    <div class="key @GetKeyClass('u')" data-key="u"><span class="key-char">U</span></div>
+                    <div class="key @GetKeyClass('i')" data-key="i"><span class="key-char">I</span></div>
+                    <div class="key @GetKeyClass('o')" data-key="o"><span class="key-char">O</span></div>
+                    <div class="key @GetKeyClass('p')" data-key="p"><span class="key-char">P</span></div>
+                    <div class="key @GetKeyClass('[')" data-key="["><span class="key-char">[</span></div>
+                    <div class="key @GetKeyClass(']')" data-key="]"><span class="key-char">]</span></div>
+                    <div class="key backslash" data-key="\"><span class="key-char">\</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key caps" data-key="CapsLock"><span class="key-char">Caps</span></div>
+                    <div class="key @GetKeyClass('a')" data-key="a"><span class="key-char">A</span></div>
+                    <div class="key @GetKeyClass('s')" data-key="s"><span class="key-char">S</span></div>
+                    <div class="key @GetKeyClass('d')" data-key="d"><span class="key-char">D</span></div>
+                    <div class="key @GetKeyClass('f')" data-key="f"><span class="key-char">F</span></div>
+                    <div class="key @GetKeyClass('g')" data-key="g"><span class="key-char">G</span></div>
+                    <div class="key @GetKeyClass('h')" data-key="h"><span class="key-char">H</span></div>
+                    <div class="key @GetKeyClass('j')" data-key="j"><span class="key-char">J</span></div>
+                    <div class="key @GetKeyClass('k')" data-key="k"><span class="key-char">K</span></div>
+                    <div class="key @GetKeyClass('l')" data-key="l"><span class="key-char">L</span></div>
+                    <div class="key @GetKeyClass(';')" data-key=";"><span class="key-char">;</span></div>
+                    <div class="key @GetKeyClass('\'')" data-key="'"><span class="key-char">'</span></div>
+                    <div class="key enter" data-key="Enter"><span class="key-char">Enter</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key shift left-shift" data-key="ShiftLeft"><span class="key-char">Shift</span></div>
+                    <div class="key @GetKeyClass('z')" data-key="z"><span class="key-char">Z</span></div>
+                    <div class="key @GetKeyClass('x')" data-key="x"><span class="key-char">X</span></div>
+                    <div class="key @GetKeyClass('c')" data-key="c"><span class="key-char">C</span></div>
+                    <div class="key @GetKeyClass('v')" data-key="v"><span class="key-char">V</span></div>
+                    <div class="key @GetKeyClass('b')" data-key="b"><span class="key-char">B</span></div>
+                    <div class="key @GetKeyClass('n')" data-key="n"><span class="key-char">N</span></div>
+                    <div class="key @GetKeyClass('m')" data-key="m"><span class="key-char">M</span></div>
+                    <div class="key @GetKeyClass(',')" data-key=","><span class="key-char">,</span></div>
+                    <div class="key @GetKeyClass('.')" data-key="."><span class="key-char">.</span></div>
+                    <div class="key @GetKeyClass('/')" data-key="/"><span class="key-char">/</span></div>
+                    <div class="key shift right-shift" data-key="ShiftRight"><span class="key-char">Shift</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key ctrl left-ctrl" data-key="ControlLeft"><span class="key-char">Ctrl</span></div>
+                    <div class="key win" data-key="MetaLeft"><span class="key-char">Win</span></div>
+                    <div class="key alt" data-key="AltLeft"><span class="key-char">Alt</span></div>
+                    <div class="key space @GetKeyClass(' ')" data-key=" "><span class="key-char"></span></div>
+                    <div class="key alt" data-key="AltRight"><span class="key-char">Alt</span></div>
+                    <div class="key win" data-key="MetaRight"><span class="key-char">Win</span></div>
+                    <div class="key menu" data-key="ContextMenu"><span class="key-char">Menu</span></div>
+                    <div class="key ctrl right-ctrl" data-key="ControlRight"><span class="key-char">Ctrl</span></div>
+                </div>
+            }
+            else if (language == "english" && keyboardLayout == "dvorak")
+            {
+                <div class="keyboard-row">
+                    <div class="key @GetKeyClass('`')" data-key="`"><span class="key-char">`</span></div>
+                    <div class="key @GetKeyClass('1')" data-key="1"><span class="key-char">1</span></div>
+                    <div class="key @GetKeyClass('2')" data-key="2"><span class="key-char">2</span></div>
+                    <div class="key @GetKeyClass('3')" data-key="3"><span class="key-char">3</span></div>
+                    <div class="key @GetKeyClass('4')" data-key="4"><span class="key-char">4</span></div>
+                    <div class="key @GetKeyClass('5')" data-key="5"><span class="key-char">5</span></div>
+                    <div class="key @GetKeyClass('6')" data-key="6"><span class="key-char">6</span></div>
+                    <div class="key @GetKeyClass('7')" data-key="7"><span class="key-char">7</span></div>
+                    <div class="key @GetKeyClass('8')" data-key="8"><span class="key-char">8</span></div>
+                    <div class="key @GetKeyClass('9')" data-key="9"><span class="key-char">9</span></div>
+                    <div class="key @GetKeyClass('0')" data-key="0"><span class="key-char">0</span></div>
+                    <div class="key @GetKeyClass('[')" data-key="["><span class="key-char">[</span></div>
+                    <div class="key @GetKeyClass(']')" data-key="]"><span class="key-char">]</span></div>
+                    <div class="key backspace" data-key="Backspace"><span class="key-char">Backspace</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key tab" data-key="Tab"><span class="key-char">Tab</span></div>
+                    <div class="key @GetKeyClass('\'')" data-key="'"><span class="key-char">'</span></div>
+                    <div class="key @GetKeyClass(',')" data-key=","><span class="key-char">,</span></div>
+                    <div class="key @GetKeyClass('.')" data-key="."><span class="key-char">.</span></div>
+                    <div class="key @GetKeyClass('p')" data-key="p"><span class="key-char">P</span></div>
+                    <div class="key @GetKeyClass('y')" data-key="y"><span class="key-char">Y</span></div>
+                    <div class="key @GetKeyClass('f')" data-key="f"><span class="key-char">F</span></div>
+                    <div class="key @GetKeyClass('g')" data-key="g"><span class="key-char">G</span></div>
+                    <div class="key @GetKeyClass('c')" data-key="c"><span class="key-char">C</span></div>
+                    <div class="key @GetKeyClass('r')" data-key="r"><span class="key-char">R</span></div>
+                    <div class="key @GetKeyClass('l')" data-key="\"><span class="key-char">\</span></div>
+                    <div class="key @GetKeyClass('/')" data-key="/"><span class="key-char">\</span></div>
+                    <div class="key @GetKeyClass('=')" data-key="="><span class="key-char">=</span></div>
+                    <div class="key backslash" data-key="\"><span class="key-char">\</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key caps" data-key="CapsLock"><span class="key-char">Caps</span></div>
+                    <div class="key @GetKeyClass('a')" data-key="a"><span class="key-char">A</span></div>
+                    <div class="key @GetKeyClass('o')" data-key="o"><span class="key-char">O</span></div>
+                    <div class="key @GetKeyClass('e')" data-key="e"><span class="key-char">E</span></div>
+                    <div class="key @GetKeyClass('u')" data-key="u"><span class="key-char">U</span></div>
+                    <div class="key @GetKeyClass('i')" data-key="i"><span class="key-char">I</span></div>
+                    <div class="key @GetKeyClass('d')" data-key="d"><span class="key-char">D</span></div>
+                    <div class="key @GetKeyClass('h')" data-key="h"><span class="key-char">H</span></div>
+                    <div class="key @GetKeyClass('t')" data-key="t"><span class="key-char">T</span></div>
+                    <div class="key @GetKeyClass('n')" data-key="n"><span class="key-char">N</span></div>
+                    <div class="key @GetKeyClass('s')" data-key="s"><span class="key-char">S</span></div>
+                    <div class="key @GetKeyClass('-')" data-key="-"><span class="key-char">-</span></div>
+                    <div class="key enter" data-key="Enter"><span class="key-char">Enter</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key shift left-shift" data-key="ShiftLeft"><span class="key-char">Shift</span></div>
+                    <div class="key @GetKeyClass(';')" data-key=";"><span class="key-char">;</span></div>
+                    <div class="key @GetKeyClass('q')" data-key="q"><span class="key-char">Q</span></div>
+                    <div class="key @GetKeyClass('j')" data-key="j"><span class="key-char">J</span></div>
+                    <div class="key @GetKeyClass('k')" data-key="k"><span class="key-char">K</span></div>
+                    <div class="key @GetKeyClass('x')" data-key="x"><span class="key-char">X</span></div>
+                    <div class="key @GetKeyClass('b')" data-key="b"><span class="key-char">B</span></div>
+                    <div class="key @GetKeyClass('m')" data-key="m"><span class="key-char">M</span></div>
+                    <div class="key @GetKeyClass('w')" data-key="w"><span class="key-char">W</span></div>
+                    <div class="key @GetKeyClass('v')" data-key="v"><span class="key-char">V</span></div>
+                    <div class="key @GetKeyClass('z')" data-key="z"><span class="key-char">Z</span></div>
+                    <div class="key shift right-shift" data-key="ShiftRight"><span class="key-char">Shift</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key ctrl left-ctrl" data-key="ControlLeft"><span class="key-char">Ctrl</span></div>
+                    <div class="key win" data-key="MetaLeft"><span class="key-char">Win</span></div>
+                    <div class="key alt" data-key="AltLeft"><span class="key-char">Alt</span></div>
+                    <div class="key space @GetKeyClass(' ')" data-key=" "><span class="key-char"></span></div>
+                    <div class="key alt" data-key="AltRight"><span class="key-char">Alt</span></div>
+                    <div class="key win" data-key="MetaRight"><span class="key-char">Win</span></div>
+                    <div class="key menu" data-key="ContextMenu"><span class="key-char">Menu</span></div>
+                    <div class="key ctrl right-ctrl" data-key="ControlRight"><span class="key-char">Ctrl</span></div>
+                </div>
+            }
+            else if (language == "russian")
+            {
+                <div class="keyboard-row">
+                    <div class="key @GetKeyClass('ё')" data-key="ё"><span class="key-char">Ё</span></div>
+                    <div class="key @GetKeyClass('1')" data-key="1"><span class="key-char">1</span></div>
+                    <div class="key @GetKeyClass('2')" data-key="2"><span class="key-char">2</span></div>
+                    <div class="key @GetKeyClass('3')" data-key="3"><span class="key-char">3</span></div>
+                    <div class="key @GetKeyClass('4')" data-key="4"><span class="key-char">4</span></div>
+                    <div class="key @GetKeyClass('5')" data-key="5"><span class="key-char">5</span></div>
+                    <div class="key @GetKeyClass('6')" data-key="6"><span class="key-char">6</span></div>
+                    <div class="key @GetKeyClass('7')" data-key="7"><span class="key-char">7</span></div>
+                    <div class="key @GetKeyClass('8')" data-key="8"><span class="key-char">8</span></div>
+                    <div class="key @GetKeyClass('9')" data-key="9"><span class="key-char">9</span></div>
+                    <div class="key @GetKeyClass('0')" data-key="0"><span class="key-char">0</span></div>
+                    <div class="key @GetKeyClass('-')" data-key="-"><span class="key-char">-</span></div>
+                    <div class="key @GetKeyClass('=')" data-key="="><span class="key-char">=</span></div>
+                    <div class="key backspace" data-key="Backspace"><span class="key-char">Backspace</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key tab" data-key="Tab"><span class="key-char">Tab</span></div>
+                    <div class="key @GetKeyClass('й')" data-key="й"><span class="key-char">Й</span></div>
+                    <div class="key @GetKeyClass('ц')" data-key="ц"><span class="key-char">Ц</span></div>
+                    <div class="key @GetKeyClass('у')" data-key="у"><span class="key-char">У</span></div>
+                    <div class="key @GetKeyClass('к')" data-key="к"><span class="key-char">К</span></div>
+                    <div class="key @GetKeyClass('е')" data-key="е"><span class="key-char">Е</span></div>
+                    <div class="key @GetKeyClass('н')" data-key="н"><span class="key-char">Н</span></div>
+                    <div class="key @GetKeyClass('г')" data-key="г"><span class="key-char">Г</span></div>
+                    <div class="key @GetKeyClass('ш')" data-key="ш"><span class="key-char">Ш</span></div>
+                    <div class="key @GetKeyClass('щ')" data-key="щ"><span class="key-char">Щ</span></div>
+                    <div class="key @GetKeyClass('з')" data-key="з"><span class="key-char">З</span></div>
+                    <div class="key @GetKeyClass('х')" data-key="х"><span class="key-char">Х</span></div>
+                    <div class="key @GetKeyClass('ъ')" data-key="ъ"><span class="key-char">Ъ</span></div>
+                    <div class="key backslash" data-key="\"><span class="key-char">\</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key caps" data-key="CapsLock"><span class="key-char">Caps</span></div>
+                    <div class="key @GetKeyClass('ф')" data-key="ф"><span class="key-char">Ф</span></div>
+                    <div class="key @GetKeyClass('ы')" data-key="ы"><span class="key-char">Ы</span></div>
+                    <div class="key @GetKeyClass('в')" data-key="в"><span class="key-char">В</span></div>
+                    <div class="key @GetKeyClass('а')" data-key="а"><span class="key-char">А</span></div>
+                    <div class="key @GetKeyClass('п')" data-key="п"><span class="key-char">П</span></div>
+                    <div class="key @GetKeyClass('р')" data-key="р"><span class="key-char">Р</span></div>
+                    <div class="key @GetKeyClass('о')" data-key="о"><span class="key-char">О</span></div>
+                    <div class="key @GetKeyClass('л')" data-key="л"><span class="key-char">Л</span></div>
+                    <div class="key @GetKeyClass('д')" data-key="д"><span class="key-char">Д</span></div>
+                    <div class="key @GetKeyClass('ж')" data-key="ж"><span class="key-char">Ж</span></div>
+                    <div class="key @GetKeyClass('э')" data-key="э"><span class="key-char">Э</span></div>
+                    <div class="key enter" data-key="Enter"><span class="key-char">Enter</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key shift left-shift" data-key="ShiftLeft"><span class="key-char">Shift</span></div>
+                    <div class="key @GetKeyClass('я')" data-key="я"><span class="key-char">Я</span></div>
+                    <div class="key @GetKeyClass('ч')" data-key="ч"><span class="key-char">Ч</span></div>
+                    <div class="key @GetKeyClass('с')" data-key="с"><span class="key-char">С</span></div>
+                    <div class="key @GetKeyClass('м')" data-key="м"><span class="key-char">М</span></div>
+                    <div class="key @GetKeyClass('и')" data-key="и"><span class="key-char">И</span></div>
+                    <div class="key @GetKeyClass('т')" data-key="т"><span class="key-char">Т</span></div>
+                    <div class="key @GetKeyClass('ь')" data-key="ь"><span class="key-char">Ь</span></div>
+                    <div class="key @GetKeyClass('б')" data-key="б"><span class="key-char">Б</span></div>
+                    <div class="key @GetKeyClass('ю')" data-key="ю"><span class="key-char">Ю</span></div>
+                    <div class="key @GetKeyClass('.')" data-key="."><span class="key-char">.</span></div>
+                    <div class="key shift right-shift" data-key="ShiftRight"><span class="key-char">Shift</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key ctrl left-ctrl" data-key="ControlLeft"><span class="key-char">Ctrl</span></div>
+                    <div class="key win" data-key="MetaLeft"><span class="key-char">Win</span></div>
+                    <div class="key alt" data-key="AltLeft"><span class="key-char">Alt</span></div>
+                    <div class="key space @GetKeyClass(' ')" data-key=" "><span class="key-char"></span></div>
+                    <div class="key alt" data-key="AltRight"><span class="key-char">Alt</span></div>
+                    <div class="key win" data-key="MetaRight"><span class="key-char">Win</span></div>
+                    <div class="key menu" data-key="ContextMenu"><span class="key-char">Menu</span></div>
+                    <div class="key ctrl right-ctrl" data-key="ControlRight"><span class="key-char">Ctrl</span></div>
+                </div>
+            }
+            else if (language == "ukrainian")
+            {
+                <div class="keyboard-row">
+                    <div class="key @GetKeyClass('`')" data-key="`"><span class="key-char">`</span></div>
+                    <div class="key @GetKeyClass('1')" data-key="1"><span class="key-char">1</span></div>
+                    <div class="key @GetKeyClass('2')" data-key="2"><span class="key-char">2</span></div>
+                    <div class="key @GetKeyClass('3')" data-key="3"><span class="key-char">3</span></div>
+                    <div class="key @GetKeyClass('4')" data-key="4"><span class="key-char">4</span></div>
+                    <div class="key @GetKeyClass('5')" data-key="5"><span class="key-char">5</span></div>
+                    <div class="key @GetKeyClass('6')" data-key="6"><span class="key-char">6</span></div>
+                    <div class="key @GetKeyClass('7')" data-key="7"><span class="key-char">7</span></div>
+                    <div class="key @GetKeyClass('8')" data-key="8"><span class="key-char">8</span></div>
+                    <div class="key @GetKeyClass('9')" data-key="9"><span class="key-char">9</span></div>
+                    <div class="key @GetKeyClass('0')" data-key="0"><span class="key-char">0</span></div>
+                    <div class="key @GetKeyClass('-')" data-key="-"><span class="key-char">-</span></div>
+                    <div class="key @GetKeyClass('=')" data-key="="><span class="key-char">=</span></div>
+                    <div class="key backspace" data-key="Backspace"><span class="key-char">Backspace</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key tab" data-key="Tab"><span class="key-char">Tab</span></div>
+                    <div class="key @GetKeyClass('й')" data-key="й"><span class="key-char">Й</span></div>
+                    <div class="key @GetKeyClass('ц')" data-key="ц"><span class="key-char">Ц</span></div>
+                    <div class="key @GetKeyClass('у')" data-key="у"><span class="key-char">У</span></div>
+                    <div class="key @GetKeyClass('к')" data-key="к"><span class="key-char">К</span></div>
+                    <div class="key @GetKeyClass('е')" data-key="е"><span class="key-char">Е</span></div>
+                    <div class="key @GetKeyClass('н')" data-key="н"><span class="key-char">Н</span></div>
+                    <div class="key @GetKeyClass('г')" data-key="г"><span class="key-char">Г</span></div>
+                    <div class="key @GetKeyClass('ш')" data-key="ш"><span class="key-char">Ш</span></div>
+                    <div class="key @GetKeyClass('щ')" data-key="щ"><span class="key-char">Щ</span></div>
+                    <div class="key @GetKeyClass('з')" data-key="з"><span class="key-char">З</span></div>
+                    <div class="key @GetKeyClass('х')" data-key="х"><span class="key-char">Х</span></div>
+                    <div class="key @GetKeyClass('ї')" data-key="ї"><span class="key-char">Ї</span></div>
+                    <div class="key backslash" data-key="\"><span class="key-char">\</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key caps" data-key="CapsLock"><span class="key-char">Caps</span></div>
+                    <div class="key @GetKeyClass('ф')" data-key="ф"><span class="key-char">Ф</span></div>
+                    <div class="key @GetKeyClass('и')" data-key="и"><span class="key-char">И</span></div>
+                    <div class="key @GetKeyClass('в')" data-key="в"><span class="key-char">В</span></div>
+                    <div class="key @GetKeyClass('а')" data-key="а"><span class="key-char">А</span></div>
+                    <div class="key @GetKeyClass('п')" data-key="п"><span class="key-char">П</span></div>
+                    <div class="key @GetKeyClass('р')" data-key="р"><span class="key-char">Р</span></div>
+                    <div class="key @GetKeyClass('о')" data-key="о"><span class="key-char">О</span></div>
+                    <div class="key @GetKeyClass('л')" data-key="л"><span class="key-char">Л</span></div>
+                    <div class="key @GetKeyClass('д')" data-key="д"><span class="key-char">Д</span></div>
+                    <div class="key @GetKeyClass('ж')" data-key="ж"><span class="key-char">Ж</span></div>
+                    <div class="key @GetKeyClass('є')" data-key="є"><span class="key-char">Є</span></div>
+                    <div class="key enter" data-key="Enter"><span class="key-char">Enter</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key shift left-shift" data-key="ShiftLeft"><span class="key-char">Shift</span></div>
+                    <div class="key @GetKeyClass('я')" data-key="я"><span class="key-char">Я</span></div>
+                    <div class="key @GetKeyClass('ч')" data-key="ч"><span class="key-char">Ч</span></div>
+                    <div class="key @GetKeyClass('с')" data-key="с"><span class="key-char">С</span></div>
+                    <div class="key @GetKeyClass('м')" data-key="м"><span class="key-char">М</span></div>
+                    <div class="key @GetKeyClass('і')" data-key="і"><span class="key-char">І</span></div>
+                    <div class="key @GetKeyClass('т')" data-key="т"><span class="key-char">Т</span></div>
+                    <div class="key @GetKeyClass('ь')" data-key="ь"><span class="key-char">Ь</span></div>
+                    <div class="key @GetKeyClass('б')" data-key="б"><span class="key-char">Б</span></div>
+                    <div class="key @GetKeyClass('ю')" data-key="ю"><span class="key-char">Ю</span></div>
+                    <div class="key @GetKeyClass('.')" data-key="."><span class="key-char">.</span></div>
+                    <div class="key shift right-shift" data-key="ShiftRight"><span class="key-char">Shift</span></div>
+                </div>
+                <div class="keyboard-row">
+                    <div class="key ctrl left-ctrl" data-key="ControlLeft"><span class="key-char">Ctrl</span></div>
+                    <div class="key win" data-key="MetaLeft"><span class="key-char">Win</span></div>
+                    <div class="key alt" data-key="AltLeft"><span class="key-char">Alt</span></div>
+                    <div class="key space @GetKeyClass(' ')" data-key=" "><span class="key-char"></span></div>
+                    <div class="key alt" data-key="AltRight"><span class="key-char">Alt</span></div>
+                    <div class="key win" data-key="MetaLeft"><span class="key-char">Win</span></div>
+                    <div class="key menu" data-key="ContextMenu"><span class="key-char">Menu</span></div>
+                    <div class="key ctrl right-ctrl" data-key="ControlRight"><span class="key-char">Ctrl</span></div>
+                </div>
+            }
         </div>
     </div>
 
@@ -182,32 +418,33 @@
                 </div>
                 <div class="settings-body">
                     <div class="settings-section">
+                        <h3>Language</h3>
+                        <div class="settings-option">
+                            <select @bind="language">
+                                <option value="english">English</option>
+                                <option value="russian">Русский</option>
+                                <option value="ukrainian">Українська</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-section">
                         <h3>Keyboard Layout</h3>
                         <div class="settings-option">
-                            <select @bind="keyboardLayout">
-                                <option value="qwerty">QWERTY</option>
-                                <option value="dvorak">Dvorak</option>
-                                <option value="colemak">Colemak</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="settings-section">
-                        <h3>Practice Mode</h3>
-                        <div class="settings-option">
-                            <select @bind="practiceMode">
-                                <option value="letters">Letters</option>
-                                <option value="words">Words</option>
-                                <option value="sentences">Sentences</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="settings-section">
-                        <h3>Difficulty</h3>
-                        <div class="settings-option">
-                            <select @bind="difficulty">
-                                <option value="easy">Easy</option>
-                                <option value="medium">Medium</option>
-                            </select>
+                            @if (language == "english")
+                            {
+                                <select @bind="keyboardLayout">
+                                    <option value="qwerty">QWERTY</option>
+                                    <option value="dvorak">Dvorak</option>
+                                    <option value="colemak">Colemak</option>
+                                </select>
+                            }
+                            else
+                            {
+                                <select disabled>
+                                    <option value="standard">Standard</option>
+                                </select>
+                                <div class="settings-note">Keyboard layout is fixed for selected language</div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -246,6 +483,86 @@
             </div>
         </div>
     }
+
+    @if (showStatistics)
+    {
+        <div class="statistics-modal">
+            <div class="statistics-content">
+                <div class="statistics-header">
+                    <h2>@GetLocalizedText("Statistics")</h2>
+                    <button class="close-button" @onclick="CloseStatistics">×</button>
+                </div>
+                <div class="statistics-body">
+                    <h3>@GetLocalizedText("Overall Results")</h3>
+                    <div class="statistics-row">
+                        <span class="statistics-label">@GetLocalizedText("Average Accuracy"):</span>
+                        <span class="statistics-value">@averageAccuracy.ToString("0")</span>
+                    </div>
+                    <div class="statistics-row">
+                        <span class="statistics-label">@GetLocalizedText("Average Speed"):</span>
+                        <span class="statistics-value">@averageWpm.ToString("0.0")</span>
+                    </div>
+                    <div class="statistics-row">
+                        <span class="statistics-label">@GetLocalizedText("Total Score"):</span>
+                        <span class="statistics-value">@totalScore</span>
+                    </div>
+
+                    <h3>@GetLocalizedText("Keys to Practice")</h3>
+                    <div class="keys-to-practice">
+                        @foreach (var key in keysToImprove)
+                        {
+                            <span class="key-badge">@key</span>
+                        }
+                    </div>
+
+                    <div class="statistics-message">
+                        @GetLocalizedText("Practice Recommendation")
+                    </div>
+
+                    <div class="statistics-actions">
+                        <button class="settings-button" @onclick="RestartAllPractice">
+                            @GetLocalizedText("Practice Again")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showAccuracyFeedback)
+    {
+        <div class="feedback-modal">
+            <div class="feedback-content">
+                <div class="feedback-header">
+                    <h2>@GetLocalizedText("Practice Complete")</h2>
+                    <button class="close-button" @onclick="CloseFeedback">×</button>
+                </div>
+                <div class="feedback-body">
+                    <h3>@GetLocalizedText("Results for key") @currentKey</h3>
+                    <div class="feedback-row">
+                        <span class="feedback-label">@GetLocalizedText("Accuracy"):</span>
+                        <span class="feedback-value">@accuracy.ToString("0")%</span>
+                    </div>
+                    <div class="feedback-row">
+                        <span class="feedback-label">@GetLocalizedText("Speed"):</span>
+                        <span class="feedback-value">@wpm.ToString("0.0") WPM</span>
+                    </div>
+                    <div class="feedback-row">
+                        <span class="feedback-label">@GetLocalizedText("Score"):</span>
+                        <span class="feedback-value">@score</span>
+                    </div>
+
+                    <div class="feedback-message">
+                        @accuracyFeedbackMessage
+                    </div>
+
+                    <div class="feedback-timer">
+                        @GetLocalizedText("Next key in") @nextKeyCountdown @GetLocalizedText("seconds")...
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -256,9 +573,13 @@
     private bool isFocused = false;
     private bool showSettings = false;
     private bool showHelp = false;
+    private bool isLoading = true;
     private string keyboardLayout = "qwerty";
-    private string practiceMode = "letters";
-    private string difficulty = "medium";
+    private string language = "english";
+
+    // Для сохранения настроек
+    private string tempKeyboardLayout;
+    private string tempLanguage;
 
     private double wpm = 0;
     private double rawWpm = 0;
@@ -281,158 +602,65 @@
 
     private Random random = new Random();
 
-    private char[] allKeys = new char[] { 'e', 'n', 'i', 'a', 'r', 'l', 't', 'o', 's', 'u', 'd', 'y', 'c', 'g', 'h', 'p', 'k', 'b', 'm', 'f', 'z', 'v', 'x', 'q', 'j' };
+    // Ключи для разных языков
+    private Dictionary<string, char[]> languageKeys = new Dictionary<string, char[]>
+    {
+        { "english", new char[] { 'e', 'n', 'i', 'a', 'r', 'l', 't', 'o', 's', 'u', 'd', 'y', 'c', 'g', 'h', 'p', 'k', 'b', 'm', 'f', 'z', 'v', 'x', 'q', 'j' } },
+        { "russian", new char[] { 'о', 'а', 'е', 'и', 'н', 'т', 'р', 'с', 'л', 'в', 'к', 'м', 'д', 'п', 'у', 'я', 'ы', 'ь', 'г', 'з', 'б', 'ч', 'й', 'х', 'ж', 'ш', 'ю', 'ц', 'щ', 'э', 'ф', 'ъ', 'ё' } },
+        { "ukrainian", new char[] { 'о', 'а', 'е', 'и', 'і', 'н', 'т', 'р', 'с', 'л', 'в', 'к', 'м', 'д', 'п', 'у', 'я', 'ь', 'г', 'з', 'б', 'ч', 'й', 'х', 'ж', 'ш', 'ю', 'ц', 'щ', 'є', 'ф', 'ї' } }
+    };
 
-    private Dictionary<char, List<string>> keyPracticeWords = new Dictionary<char, List<string>>();
+    private Dictionary<string, Dictionary<char, List<string>>> languagePracticeWords = new Dictionary<string, Dictionary<char, List<string>>>();
 
     private HashSet<string> pressedKeys = new HashSet<string>();
     private Dictionary<char, int> keyHeatMap = new Dictionary<char, int>();
     private char? highlightedKey = null;
 
-    protected override void OnInitialized()
+    private bool showStatistics = false;
+    private bool showAccuracyFeedback = false;
+    private int nextKeyCountdown = 5;
+    private Timer feedbackTimer;
+    private string accuracyFeedbackMessage = "";
+    private double averageAccuracy = 0;
+    private double averageWpm = 0;
+    private int totalScore = 0;
+    private List<char> keysToImprove = new List<char>();
+    private Dictionary<char, KeyStatistics> keyStatistics = new Dictionary<char, KeyStatistics>();
+    private int completedKeysCount = 0;
+    private bool isAllKeysCompleted = false;
+
+    // Добавить класс для статистики по клавишам
+    private class KeyStatistics
+    {
+        public double Accuracy { get; set; }
+        public double Wpm { get; set; }
+        public int Score { get; set; }
+        public bool IsCompleted { get; set; } = false;
+    }
+
+    // Изменим метод OnInitializedAsync, чтобы он не вызывал JavaScript interop
+    protected override async Task OnInitializedAsync()
     {
         practiceTimer = new Timer(1000);
         practiceTimer.Elapsed += OnPracticeTimerElapsed;
 
-        foreach (var key in allKeys)
+        // Инициализация тепловой карты клавиш для текущего языка
+        foreach (var key in GetCurrentLanguageKeys())
         {
             keyHeatMap[key] = 0;
         }
 
+        // Установка текущей клавиши из набора для текущего языка
+        currentKey = GetCurrentLanguageKeys()[0];
         highlightedKey = currentKey;
 
-        InitializeKeyPracticeWords();
+        // Создаем пустые словари, которые будут заполнены позже
+        languagePracticeWords["english"] = new Dictionary<char, List<string>>();
+        languagePracticeWords["russian"] = new Dictionary<char, List<string>>();
+        languagePracticeWords["ukrainian"] = new Dictionary<char, List<string>>();
 
+        // Генерируем начальные слова (они будут обновлены после загрузки словарей)
         GeneratePracticeWords();
-    }
-
-    private void InitializeKeyPracticeWords()
-    {
-        keyPracticeWords['e'] = new List<string> {
-            "line", "area", "rear", "arena", "era", "ear", "era", "nearer", "inner", "real",
-            "eerie", "era", "rear", "lean", "alien", "era", "alien", "lean", "inner", "lean",
-            "eerie", "arena", "real", "linen"
-        };
-
-        keyPracticeWords['n'] = new List<string> {
-            "nine", "next", "new", "never", "now", "name", "need", "nice", "night", "nature",
-            "nation", "number", "north", "note", "notice", "nothing", "near", "nearly", "necessary", "neither"
-        };
-
-        keyPracticeWords['i'] = new List<string> {
-            "in", "is", "it", "if", "into", "its", "idea", "item", "issue", "inside",
-            "indeed", "instead", "include", "increase", "indicate", "individual", "industry", "information", "interest", "interview"
-        };
-
-        keyPracticeWords['a'] = new List<string> {
-            "at", "an", "as", "all", "are", "and", "any", "about", "after", "again",
-            "against", "air", "along", "also", "always", "among", "amount", "another", "answer", "appear"
-        };
-
-        keyPracticeWords['r'] = new List<string> {
-            "run", "red", "rate", "role", "rule", "risk", "road", "room", "right", "rather",
-            "reach", "read", "ready", "real", "really", "reason", "receive", "recent", "record", "remain"
-        };
-
-        keyPracticeWords['l'] = new List<string> {
-            "like", "look", "long", "last", "late", "less", "life", "line", "list", "little",
-            "live", "local", "large", "later", "laugh", "learn", "leave", "legal", "level", "light"
-        };
-
-        keyPracticeWords['t'] = new List<string> {
-            "to", "the", "that", "this", "than", "they", "them", "then", "there", "these",
-            "time", "take", "talk", "tell", "tend", "term", "test", "than", "thank", "their"
-        };
-
-        keyPracticeWords['o'] = new List<string> {
-            "of", "on", "or", "one", "out", "our", "over", "only", "open", "other",
-            "offer", "often", "order", "once", "own", "owner", "occur", "office", "option", "origin"
-        };
-
-        keyPracticeWords['s'] = new List<string> {
-            "so", "see", "say", "she", "set", "six", "son", "sun", "sea", "sit",
-            "such", "same", "send", "side", "sign", "site", "size", "some", "soon", "sort"
-        };
-
-        keyPracticeWords['u'] = new List<string> {
-            "up", "us", "use", "unit", "upon", "user", "used", "under", "until", "usual",
-            "unique", "unless", "update", "useful", "usually", "ultimate", "universe", "university", "understand", "unfortunately"
-        };
-
-        keyPracticeWords['d'] = new List<string> {
-            "do", "day", "did", "due", "down", "deep", "door", "data", "dark", "dead",
-            "deal", "dear", "debt", "deck", "deed", "deem", "deep", "deer", "deny", "desk"
-        };
-
-        keyPracticeWords['y'] = new List<string> {
-            "you", "yes", "yet", "year", "your", "yard", "yarn", "yawn", "yeah", "yelp",
-            "yield", "young", "youth", "yearly", "yellow", "yesterday", "yogurt", "yonder", "yourself", "youthful"
-        };
-
-        keyPracticeWords['c'] = new List<string> {
-            "can", "car", "cat", "city", "come", "cost", "cold", "call", "case", "cash",
-            "cell", "cent", "chair", "chart", "check", "child", "claim", "class", "clean", "clear"
-        };
-
-        keyPracticeWords['g'] = new List<string> {
-            "go", "get", "good", "give", "game", "goal", "gold", "gone", "grow", "gain",
-            "gate", "gear", "gift", "girl", "give", "glad", "glass", "glory", "glove", "grade"
-        };
-
-        keyPracticeWords['h'] = new List<string> {
-            "he", "has", "had", "have", "here", "high", "home", "hand", "hard", "hate",
-            "head", "hear", "heat", "help", "hero", "hide", "hill", "hint", "hire", "hold"
-        };
-
-        keyPracticeWords['p'] = new List<string> {
-            "put", "pay", "per", "part", "past", "path", "pick", "plan", "play", "plus",
-            "poem", "poet", "poll", "pool", "poor", "port", "pose", "post", "pull", "pure"
-        };
-
-        keyPracticeWords['k'] = new List<string> {
-            "key", "kind", "know", "keep", "kick", "kill", "king", "kiss", "kite", "knee",
-            "knife", "knock", "knot", "known", "kneel", "kettle", "kernel", "keyboard", "keyhole", "keynote"
-        };
-
-        keyPracticeWords['b'] = new List<string> {
-            "be", "by", "but", "big", "boy", "buy", "bad", "bag", "ban", "bar",
-            "base", "bath", "bear", "beat", "beer", "bell", "belt", "bend", "best", "bike"
-        };
-
-        keyPracticeWords['m'] = new List<string> {
-            "me", "my", "man", "may", "map", "mad", "make", "many", "mark", "mask",
-            "mass", "math", "meal", "mean", "meat", "meet", "menu", "mere", "mess", "milk"
-        };
-
-        keyPracticeWords['f'] = new List<string> {
-            "for", "from", "find", "fact", "fair", "fall", "farm", "fast", "fate", "fear",
-            "feed", "feel", "feet", "fell", "felt", "file", "fill", "film", "find", "fine"
-        };
-
-        keyPracticeWords['z'] = new List<string> {
-            "zero", "zone", "zoom", "zeal", "zinc", "zest", "zing", "zany", "zeta", "zips",
-            "zombie", "zodiac", "zenith", "zealot", "zigzag", "zephyr", "zipper", "zoology", "zillion", "zucchini"
-        };
-
-        keyPracticeWords['v'] = new List<string> {
-            "very", "view", "vote", "value", "video", "visit", "vital", "voice", "valid", "vapor",
-            "vault", "vegan", "venom", "venue", "verse", "verve", "vessel", "vexed", "viable", "vibrant"
-        };
-
-        keyPracticeWords['x'] = new List<string> {
-            "box", "fix", "mix", "tax", "wax", "axe", "fox", "hex", "lax", "max",
-            "six", "vex", "exit", "exam", "next", "taxi", "text", "xray", "apex", "excel"
-        };
-
-        keyPracticeWords['q'] = new List<string> {
-            "quit", "quiz", "quick", "quiet", "quite", "quote", "quack", "quail", "quake", "qualm",
-            "queen", "queer", "quell", "query", "quest", "queue", "quick", "quiet", "quill", "quilt"
-        };
-
-        keyPracticeWords['j'] = new List<string> {
-            "job", "jam", "jar", "jaw", "jet", "jog", "join", "joke", "joy", "jump",
-            "just", "junk", "jury", "jazz", "jeans", "jelly", "jewel", "joint", "judge", "juice"
-        };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -442,256 +670,543 @@
             try
             {
                 await JSRuntime.InvokeVoidAsync("eval", @"
-                document.querySelector('.typing-area').id = 'typing-area';
-                ");
+            document.querySelector('.typing-area').id = 'typing-area';
+            ");
 
                 bool functionExists = await JSRuntime.InvokeAsync<bool>("eval", @"
-                    typeof window.keyboardInterop !== 'undefined' &&
-                    typeof window.keyboardInterop.disableScroll === 'function'
-                ");
+            typeof window.keyboardInterop !== 'undefined' &&
+            typeof window.keyboardInterop.disableScroll === 'function'
+            ");
 
                 if (functionExists)
                 {
                     await JSRuntime.InvokeVoidAsync("keyboardInterop.disableScroll");
                 }
 
+                // Проверка доступности файлов словарей
+                await JSRuntime.InvokeVoidAsync("eval", @"
+            async function checkFileExists(url) {
+                try {
+                    const response = await fetch(url, { method: 'HEAD' });
+                    console.log(`File ${url} exists: ${response.ok}, status: ${response.status}`);
+                    return response.ok;
+                } catch (error) {
+                    console.error(`Error checking file ${url}:`, error);
+                    return false;
+                }
+            }
+
+            checkFileExists('/data/english-words.json');
+            checkFileExists('/data/russian-words.json');
+            checkFileExists('/data/ukrainian-words.json');
+            ");
+
+                // Загрузка настроек из localStorage
+                await LoadSettingsFromLocalStorage();
+
+                // Загрузка словарей
+                await InitializeLanguagePracticeWords();
+
+                // Скрываем индикатор загрузки
+                isLoading = false;
+
+                // Обновляем слова после загрузки словарей
+                GeneratePracticeWords();
+
+                // Обновляем UI
+                StateHasChanged();
+
                 await FocusTypingArea();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"JavaScript interop error: {ex.Message}");
-            }
-        }
-    }
-
-    private void OnPracticeTimerElapsed(object sender, ElapsedEventArgs e)
-    {
-        if (isPracticeActive)
-        {
-            var elapsed = DateTime.Now - startTime;
-            var totalSeconds = elapsed.TotalSeconds;
-
-            if (totalSeconds > 0)
-            {
-                wpm = (keyHeatMap.Values.Sum() / 5.0) / (totalSeconds / 60.0);
-                rawWpm = wpm;
-            }
-
-            practiceTime = Math.Min(30, (int)(elapsed.TotalMinutes));
-
-            InvokeAsync(StateHasChanged);
-        }
-    }
-
-    private void HandleKeyDown(KeyboardEventArgs e)
-    {
-        if (!isPracticeActive)
-        {
-            StartPractice();
-        }
-
-        pressedKeys.Add(e.Key);
-
-        if (e.Key == "Escape")
-        {
-            RestartPractice();
-        }
-        else if (e.Key == "Enter" && (e.CtrlKey || e.MetaKey))
-        {
-            NextPractice();
-        }
-
-        StateHasChanged();
-    }
-
-    private void HandleKeyPress(KeyboardEventArgs e)
-    {
-        if (isCompleted || !isPracticeActive)
-            return;
-
-        if (e.Key.Length == 1)
-        {
-            char key = e.Key.ToLower()[0];
-
-            if (keyHeatMap.ContainsKey(key))
-            {
-                keyHeatMap[key]++;
-            }
-
-            if (currentPosition < practiceText.Length)
-            {
-                bool isCorrect = key == practiceText[currentPosition];
-
-                totalKeysPressed++;
-
-                if (isCorrect)
-                {
-                    correctKeysPressed++;
-                }
-
-                CalculateAccuracy();
-
-                score = correctKeysPressed;
-
-                typedText += key;
-                currentPosition++;
-
-                if (currentPosition >= practiceText.Length)
-                {
-                    isCompleted = true;
-
-                    UpdateAccuracyStatus();
-                }
-
+                // Скрываем индикатор загрузки даже при ошибке
+                isLoading = false;
                 StateHasChanged();
             }
         }
     }
 
-    private void CalculateAccuracy()
+    private async Task InitializeLanguagePracticeWords()
     {
-        if (totalKeysPressed > 0)
+        try
         {
-            accuracy = (int)Math.Round((double)correctKeysPressed / totalKeysPressed * 100);
+            isLoading = true;
+            StateHasChanged();
+
+            // Создаем пустые словари, которые будут заполнены позже
+            languagePracticeWords["english"] = new Dictionary<char, List<string>>();
+            languagePracticeWords["russian"] = new Dictionary<char, List<string>>();
+            languagePracticeWords["ukrainian"] = new Dictionary<char, List<string>>();
+
+            // Запускаем загрузку полных словарей параллельно
+            var loadTasks = new List<Task>
+        {
+            LoadDictionary("english", "/data/english-words.json"),
+            LoadDictionary("russian", "/data/russian-words.json"),
+            LoadDictionary("ukrainian", "/data/ukrainian-words.json")
+        };
+
+            // Ждем завершения загрузки всех словарей, но не более 10 секунд
+            var completedTask = await Task.WhenAny(
+                Task.WhenAll(loadTasks),
+                Task.Delay(10000) // 10-секундный таймаут
+            );
+
+            // Проверяем, загрузились ли словари
+            bool anyDictionaryLoaded = languagePracticeWords["english"].Count > 0 ||
+                                      languagePracticeWords["russian"].Count > 0 ||
+                                      languagePracticeWords["ukrainian"].Count > 0;
+
+            if (!anyDictionaryLoaded)
+            {
+                Console.WriteLine("No dictionaries loaded, using basic dictionaries");
+                // Если ни один словарь не загрузился, используем базовые словари
+                InitializeBasicDictionaries();
+            }
+            else
+            {
+                // Выводим статистику загрузки
+                Console.WriteLine($"English dictionary: {languagePracticeWords["english"].Count} keys");
+                Console.WriteLine($"Russian dictionary: {languagePracticeWords["russian"].Count} keys");
+                Console.WriteLine($"Ukrainian dictionary: {languagePracticeWords["ukrainian"].Count} keys");
+            }
+
+            // Даже если не все словари загрузились, мы продолжаем работу
+            isLoading = false;
+            StateHasChanged();
         }
-        else
+        catch (Exception ex)
         {
-            accuracy = 0;
+            Console.WriteLine($"Error in InitializeLanguagePracticeWords: {ex.Message}");
+
+            // В случае ошибки используем базовые словари
+            InitializeBasicDictionaries();
+
+            isLoading = false;
+            StateHasChanged();
         }
     }
 
-    private void UpdateAccuracyStatus()
+    // Инициализация базовых словарей, которые будут использоваться в случае ошибки загрузки
+    private void InitializeBasicDictionaries()
     {
-        if (accuracy >= 98)
+        var fallbackEnglishWords = new Dictionary<char, List<string>>
+    {
+        { 'e', new List<string> { "the", "when", "here", "there", "where", "these", "theme", "every", "enter" } },
+        { 'a', new List<string> { "and", "that", "have", "what", "about", "after", "again", "always" } },
+        { 'i', new List<string> { "this", "with", "will", "time", "like", "think", "which" } },
+        { 'o', new List<string> { "you", "your", "not", "for", "from", "more", "other", "only" } },
+        { 'n', new List<string> { "and", "not", "can", "now", "new", "next", "need", "never" } }
+    };
+
+        var fallbackRussianWords = new Dictionary<char, List<string>>
+    {
+        { 'о', new List<string> { "что", "это", "его", "того", "много", "слово", "город" } },
+        { 'а', new List<string> { "так", "как", "она", "сказал", "глаза", "стал", "надо" } },
+        { 'е', new List<string> { "все", "уже", "тебе", "себе", "время", "дело", "место" } },
+        { 'и', new List<string> { "или", "они", "если", "жизни", "жить", "сильно" } },
+        { 'н', new List<string> { "он", "но", "она", "они", "один", "нужно", "ничего" } }
+    };
+
+        var fallbackUkrainianWords = new Dictionary<char, List<string>>
+    {
+        { 'о', new List<string> { "що", "його", "того", "слово", "добре", "особа" } },
+        { 'а', new List<string> { "так", "як", "вона", "сказав", "справа", "гарно" } },
+        { 'е', new List<string> { "все", "уже", "тебе", "себе", "серце", "небо" } },
+        { 'и', new List<string> { "ти", "вони", "якщо", "життя", "жити", "сильно" } },
+        { 'і', new List<string> { "і", "ці", "інші", "місто", "світ", "дійсно" } }
+    };
+
+        // Добавляем базовые слова в словари только если они пусты
+        if (languagePracticeWords["english"].Count == 0)
         {
-            accuracyStatus = "Perfect! Amazing accuracy.";
+            languagePracticeWords["english"] = new Dictionary<char, List<string>>(fallbackEnglishWords);
         }
-        else if (accuracy >= 95)
+
+        if (languagePracticeWords["russian"].Count == 0)
         {
-            accuracyStatus = "Excellent accuracy streak!";
+            languagePracticeWords["russian"] = new Dictionary<char, List<string>>(fallbackRussianWords);
         }
-        else if (accuracy >= 90)
+
+        if (languagePracticeWords["ukrainian"].Count == 0)
         {
-            accuracyStatus = "Great accuracy, keep it up!";
-        }
-        else if (accuracy >= 80)
-        {
-            accuracyStatus = "Good accuracy, try to improve.";
-        }
-        else if (accuracy >= 70)
-        {
-            accuracyStatus = "Decent accuracy, focus on precision.";
-        }
-        else
-        {
-            accuracyStatus = "Try to type more carefully.";
+            languagePracticeWords["ukrainian"] = new Dictionary<char, List<string>>(fallbackUkrainianWords);
         }
     }
 
-    private void HandleKeyUp(KeyboardEventArgs e)
+    private async Task LoadDictionary(string language, string filePath)
     {
-        pressedKeys.Remove(e.Key);
-        StateHasChanged();
-    }
-
-    private void HandleFocus()
-    {
-        isFocused = true;
-    }
-
-    private void HandleBlur()
-    {
-        isFocused = false;
-    }
-
-    private void StartPractice()
-    {
-        isPracticeActive = true;
-        startTime = DateTime.Now;
-        practiceTimer.Start();
-    }
-
-    private void RestartPractice()
-    {
-        isPracticeActive = false;
-        practiceTimer.Stop();
-
-        wpm = 0;
-        rawWpm = 0;
-        accuracy = 0;
-        score = 0;
-        totalKeysPressed = 0;
-        correctKeysPressed = 0;
-
-        foreach (var key in allKeys)
+        try
         {
-            keyHeatMap[key] = 0;
+            Console.WriteLine($"Loading dictionary for {language} from {filePath}");
+
+            // Попытка 1: Загрузка через HttpClient
+            string jsonContent = await LoadDictionaryWithHttpClient(filePath);
+
+            if (string.IsNullOrEmpty(jsonContent))
+            {
+                // Попытка 2: Загрузка через JavaScript Fetch API
+                jsonContent = await LoadDictionaryWithJSFetch(filePath);
+            }
+
+            if (string.IsNullOrEmpty(jsonContent))
+            {
+                Console.WriteLine($"Failed to load dictionary for {language}");
+                return;
+            }
+
+            // Логируем первые 100 символов для отладки
+            Console.WriteLine($"Dictionary content (first 100 chars): {jsonContent.Substring(0, Math.Min(100, jsonContent.Length))}");
+
+            // Десериализация JSON
+            var dictionaryData = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(jsonContent);
+
+            if (dictionaryData == null || dictionaryData.Count == 0)
+            {
+                Console.WriteLine($"Dictionary for {language} is empty or invalid");
+                return;
+            }
+
+            // Преобразуем словарь в нужный формат (ключ - первая буква слова)
+            foreach (var entry in dictionaryData)
+            {
+                foreach (var word in entry.Value)
+                {
+                    if (string.IsNullOrEmpty(word) || word.Length == 0)
+                        continue;
+
+                    char firstChar = word[0];
+
+                    if (!languagePracticeWords[language].ContainsKey(firstChar))
+                    {
+                        languagePracticeWords[language][firstChar] = new List<string>();
+                    }
+
+                    // Добавляем слово, если его еще нет в списке
+                    if (!languagePracticeWords[language][firstChar].Contains(word))
+                    {
+                        languagePracticeWords[language][firstChar].Add(word);
+                    }
+                }
+            }
+
+            Console.WriteLine($"Successfully loaded dictionary for {language} with {languagePracticeWords[language].Count} keys");
+
+            // Выводим первые несколько ключей для отладки
+            string keys = string.Join(", ", languagePracticeWords[language].Keys.Take(10));
+            Console.WriteLine($"First keys: {keys}");
         }
-
-        typedText = "";
-        currentPosition = 0;
-        isCompleted = false;
-
-        accuracyStatus = "No accuracy streaks.";
-
-        GeneratePracticeWords();
-
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dictionary for {language}: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
     }
 
-    private void NextPractice()
+    // Метод для загрузки словаря через HttpClient
+    private async Task<string> LoadDictionaryWithHttpClient(string filePath)
     {
-        int currentIndex = Array.IndexOf(allKeys, currentKey);
-        currentIndex = (currentIndex + 1) % allKeys.Length;
-        currentKey = allKeys[currentIndex];
-        highlightedKey = currentKey;
+        try
+        {
+            using var httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(3); // Устанавливаем таймаут
 
-        GeneratePracticeWords();
+            // Получаем базовый URL приложения
+            var baseUrl = await JSRuntime.InvokeAsync<string>("eval", "window.location.origin");
+            var fullUrl = $"{baseUrl}{filePath}";
 
-        RestartPractice();
+            Console.WriteLine($"Loading from URL: {fullUrl}");
+
+            var response = await httpClient.GetAsync(fullUrl);
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadAsStringAsync();
+            }
+            else
+            {
+                Console.WriteLine($"HTTP error: {response.StatusCode}");
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"HttpClient error: {ex.Message}");
+            return null;
+        }
     }
 
-    private void PreviousPractice()
+    // Метод для загрузки словаря через JavaScript Fetch API
+    private async Task<string> LoadDictionaryWithJSFetch(string filePath)
     {
-        int currentIndex = Array.IndexOf(allKeys, currentKey);
-        currentIndex = (currentIndex - 1 + allKeys.Length) % allKeys.Length;
-        currentKey = allKeys[currentIndex];
-        highlightedKey = currentKey;
+        try
+        {
+            // Используем JavaScript Fetch API для загрузки файла
+            string jsCode = @"
+        async function fetchFile(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                const text = await response.text();
+                return text;
+            } catch (error) {
+                console.error('Fetch error:', error);
+                return null;
+            }
+        }
+        fetchFile('" + filePath + @"')";
 
-        GeneratePracticeWords();
+            var result = await JSRuntime.InvokeAsync<string>("eval", jsCode);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"JS Fetch error: {ex.Message}");
+            return null;
+        }
+    }
 
-        RestartPractice();
+    // Отдельный метод для загрузки через HttpClient
+    private async Task LoadDictionaryWithHttpClient(string language, string path)
+    {
+        try
+        {
+            Console.WriteLine($"Trying to load {language} dictionary via HttpClient from {path}");
+
+            using (var httpClient = new System.Net.Http.HttpClient())
+            {
+                // Устанавливаем базовый URL и таймаут
+                httpClient.BaseAddress = new Uri(NavigationManager.BaseUri);
+                httpClient.Timeout = TimeSpan.FromSeconds(10); // 10-секундный таймаут
+
+                var response = await httpClient.GetAsync(path);
+                Console.WriteLine($"HttpClient response for {language}: {response.StatusCode}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Received {language} JSON content via HttpClient, length: {jsonContent.Length}");
+
+                    if (!string.IsNullOrEmpty(jsonContent) && jsonContent.StartsWith("{") && jsonContent.EndsWith("}"))
+                    {
+                        var options = new System.Text.Json.JsonSerializerOptions
+                        {
+                            AllowTrailingCommas = true,
+                            ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip
+                        };
+
+                        var dictionary = System.Text.Json.JsonSerializer.Deserialize<Dictionary<char, List<string>>>(jsonContent, options);
+                        if (dictionary != null && dictionary.Count > 0)
+                        {
+                            // Обновляем словарь
+                            languagePracticeWords[language] = dictionary;
+
+                            // Кэшируем словарь в localStorage
+                            await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"dictionary_{language}", jsonContent);
+
+                            Console.WriteLine($"{language} dictionary loaded from server via HttpClient and cached, keys: {dictionary.Keys.Count}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Failed to deserialize {language} dictionary via HttpClient or dictionary is empty");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Invalid JSON format for {language} dictionary via HttpClient");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Failed to load {language} dictionary via HttpClient, status code: {response.StatusCode}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"HttpClient error for {language} dictionary: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+            }
+        }
+    }
+
+    // Метод для проверки кодировки файла
+    private async Task<string> DetectAndConvertEncoding(string content)
+    {
+        try
+        {
+            // Проверяем наличие BOM (Byte Order Mark)
+            if (content.StartsWith("\uFEFF"))
+            {
+                // Удаляем BOM
+                content = content.Substring(1);
+            }
+
+            // Проверяем, есть ли в тексте некорректные символы
+            bool hasInvalidChars = content.Contains("�");
+
+            if (hasInvalidChars)
+            {
+                Console.WriteLine("Detected invalid characters, trying different encodings");
+
+                // Пробуем разные кодировки
+                byte[] bytes = Encoding.UTF8.GetBytes(content);
+
+                // Пробуем Windows-1251 (для русского)
+                string windows1251 = Encoding.GetEncoding(1251).GetString(bytes);
+                if (!windows1251.Contains("�"))
+                {
+                    Console.WriteLine("Windows-1251 encoding detected");
+                    return windows1251;
+                }
+
+                // Пробуем ISO-8859-5 (для кириллицы)
+                string iso88595 = Encoding.GetEncoding(28595).GetString(bytes);
+                if (!iso88595.Contains("�"))
+                {
+                    Console.WriteLine("ISO-8859-5 encoding detected");
+                    return iso88595;
+                }
+
+                // Пробуем KOI8-R (для русского)
+                string koi8r = Encoding.GetEncoding(20866).GetString(bytes);
+                if (!koi8r.Contains("�"))
+                {
+                    Console.WriteLine("KOI8-R encoding detected");
+                    return koi8r;
+                }
+            }
+
+            // Возвращаем исходный контент, если не удалось определить кодировку
+            return content;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Encoding detection error: {ex.Message}");
+            return content;
+        }
+    }
+
+    // Изменим метод LoadSettingsFromLocalStorage для лучшей обработки ошибок
+    private async Task LoadSettingsFromLocalStorage()
+    {
+        try
+        {
+            var savedKeyboardLayout = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "keyboardLayout");
+            var savedLanguage = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "language");
+
+            if (!string.IsNullOrEmpty(savedKeyboardLayout))
+            {
+                keyboardLayout = savedKeyboardLayout;
+                tempKeyboardLayout = savedKeyboardLayout;
+            }
+
+            if (!string.IsNullOrEmpty(savedLanguage))
+            {
+                language = savedLanguage;
+                tempLanguage = savedLanguage;
+
+                // Обновляем тепловую карту для нового языка
+                keyHeatMap.Clear();
+                foreach (var key in GetCurrentLanguageKeys())
+                {
+                    keyHeatMap[key] = 0;
+                }
+
+                // Обновляем текущую клавишу
+                currentKey = GetCurrentLanguageKeys()[0];
+                highlightedKey = currentKey;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading settings from localStorage: {ex.Message}");
+        }
+    }
+
+    // Добавим метод GetCurrentLanguageKeys после метода LoadSettingsFromLocalStorage
+
+    private char[] GetCurrentLanguageKeys()
+    {
+        return languageKeys.ContainsKey(language) ? languageKeys[language] : languageKeys["english"];
     }
 
     private void GeneratePracticeWords()
     {
-        if (keyPracticeWords.ContainsKey(currentKey))
+        try
         {
-            var wordsList = new List<string>(keyPracticeWords[currentKey]);
+            // Проверяем, инициализирован ли словарь для текущего языка
+            if (!languagePracticeWords.ContainsKey(language))
+            {
+                languagePracticeWords[language] = new Dictionary<char, List<string>>();
+            }
 
-            practiceWords = ShuffleList(wordsList);
+            // Получаем словарь для текущего языка
+            if (languagePracticeWords[language].ContainsKey(currentKey) &&
+                languagePracticeWords[language][currentKey].Count > 0)
+            {
+                var wordsList = new List<string>(languagePracticeWords[language][currentKey]);
+
+                // Увеличиваем количество слов до 5-10
+                int wordsCount = Math.Min(random.Next(5, 11), wordsList.Count);
+                practiceWords = new List<string>();
+
+                // Перемешиваем список слов
+                wordsList = ShuffleList(wordsList);
+
+                // Добавляем слова, не повторяя их, если возможно
+                for (int i = 0; i < wordsCount; i++)
+                {
+                    practiceWords.Add(wordsList[i % wordsList.Count]);
+                }
+
+                // Перемешиваем еще раз для разнообразия
+                practiceWords = ShuffleList(practiceWords);
+            }
+            else
+            {
+                // Если нет слов для текущей буквы, переходим к следующей букве
+                var keys = GetCurrentLanguageKeys();
+                int currentIndex = Array.IndexOf(keys, currentKey);
+
+                // Ищем следующую букву, для которой есть слова
+                for (int i = 1; i < keys.Length; i++)
+                {
+                    int nextIndex = (currentIndex + i) % keys.Length;
+                    char nextKey = keys[nextIndex];
+
+                    if (languagePracticeWords[language].ContainsKey(nextKey) &&
+                        languagePracticeWords[language][nextKey].Count > 0)
+                    {
+                        currentKey = nextKey;
+                        highlightedKey = currentKey;
+
+                        // Рекурсивно вызываем метод для новой буквы
+                        GeneratePracticeWords();
+                        return;
+                    }
+                }
+
+                // Если не нашли ни одной буквы с словами, используем базовые слова
+                practiceWords = new List<string> { "no", "words", "found", "for", "this", "key" };
+            }
 
             UpdateKeyStatus();
-        }
-        else
-        {
-            practiceWords = new List<string>();
-            for (int i = 0; i < 10; i++)
-            {
-                string word = "";
-                for (int j = 0; j < 4; j++)
-                {
-                    word += allKeys[random.Next(allKeys.Length)];
-                }
-                word = word.Insert(random.Next(word.Length), currentKey.ToString());
-                practiceWords.Add(word);
-            }
-        }
 
-        practiceText = string.Join(" ", practiceWords);
-        typedText = "";
-        currentPosition = 0;
-        isCompleted = false;
+            practiceText = string.Join(" ", practiceWords);
+            typedText = "";
+            currentPosition = 0;
+            isCompleted = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GeneratePracticeWords: {ex.Message}");
+        }
     }
 
     private List<T> ShuffleList<T>(List<T> list)
@@ -710,89 +1225,113 @@
 
     private void UpdateKeyStatus()
     {
-        switch (currentKey)
+        // Статусы для разных языков
+        if (language == "english")
         {
-            case 'e':
-                currentKeyStatus = "Most common letter in English.";
-                break;
-            case 'n':
-                currentKeyStatus = "Common consonant, focus on rhythm.";
-                break;
-            case 'i':
-                currentKeyStatus = "Common vowel, keep fingers light.";
-                break;
-            case 'a':
-                currentKeyStatus = "Basic vowel, practice accuracy.";
-                break;
-            case 'r':
-                currentKeyStatus = "Common consonant, maintain posture.";
-                break;
-            case 'l':
-                currentKeyStatus = "Practice with right pinky finger.";
-                break;
-            case 't':
-                currentKeyStatus = "Index finger practice, stay relaxed.";
-                break;
-            case 'o':
-                currentKeyStatus = "Round vowel, maintain rhythm.";
-                break;
-            case 's':
-                currentKeyStatus = "Common initial consonant.";
-                break;
-            case 'u':
-                currentKeyStatus = "Vowel for right hand practice.";
-                break;
-            case 'd':
-                currentKeyStatus = "Middle finger exercise.";
-                break;
-            case 'y':
-                currentKeyStatus = "Both vowel and consonant uses.";
-                break;
-            case 'c':
-                currentKeyStatus = "Left hand middle finger practice.";
-                break;
-            case 'g':
-                currentKeyStatus = "Left hand index finger stretch.";
-                break;
-            case 'h':
-                currentKeyStatus = "Right hand index finger practice.";
-                break;
-            case 'p':
-                currentKeyStatus = "Right hand pinky stretch.";
-                break;
-            case 'k':
-                currentKeyStatus = "Middle finger right hand practice.";
-                break;
-            case 'b':
-                currentKeyStatus = "Left hand index finger practice.";
-                break;
-            case 'm':
-                currentKeyStatus = "Right hand index finger practice.";
-                break;
-            case 'f':
-                currentKeyStatus = "Left hand index finger practice.";
-                break;
-            case 'z':
-                currentKeyStatus = "Least common English letter.";
-                break;
-            case 'v':
-                currentKeyStatus = "Left hand index finger stretch.";
-                break;
-            case 'x':
-                currentKeyStatus = "Rare letter, left ring finger.";
-                break;
-            case 'q':
-                currentKeyStatus = "Always followed by 'u' in English.";
-                break;
-            case 'j':
-                currentKeyStatus = "Right hand index finger stretch.";
-                break;
-            default:
-                currentKeyStatus = "Practice this key carefully.";
-                break;
+            switch (currentKey)
+            {
+                case 'e':
+                    currentKeyStatus = "Most common letter in English.";
+                    break;
+                case 'n':
+                    currentKeyStatus = "Common consonant, focus on rhythm.";
+                    break;
+                case 'i':
+                    currentKeyStatus = "Common vowel, keep fingers light.";
+                    break;
+                case 'a':
+                    currentKeyStatus = "Basic vowel, practice accuracy.";
+                    break;
+                case 'r':
+                    currentKeyStatus = "Common consonant, maintain posture.";
+                    break;
+                case 'l':
+                    currentKeyStatus = "Practice with right pinky finger.";
+                    break;
+                case 't':
+                    currentKeyStatus = "Index finger practice, stay relaxed.";
+                    break;
+                case 'o':
+                    currentKeyStatus = "Round vowel, maintain rhythm.";
+                    break;
+                case 's':
+                    currentKeyStatus = "Common initial consonant.";
+                    break;
+                case 'u':
+                    currentKeyStatus = "Vowel for right hand practice.";
+                    break;
+                default:
+                    currentKeyStatus = "Practice this key carefully.";
+                    break;
+            }
+        }
+        else if (language == "russian")
+        {
+            switch (currentKey)
+            {
+                case 'о':
+                    currentKeyStatus = "Самая частая буква в русском языке.";
+                    break;
+                case 'а':
+                    currentKeyStatus = "Основная гласная, тренируйте точность.";
+                    break;
+                case 'е':
+                    currentKeyStatus = "Частая гласная, сохраняйте ритм.";
+                    break;
+                case 'и':
+                    currentKeyStatus = "Распространенная гласная, легкие пальцы.";
+                    break;
+                case 'н':
+                    currentKeyStatus = "Частая согласная, сохраняйте осанку.";
+                    break;
+                case 'т':
+                    currentKeyStatus = "Тренировка указательного пальца.";
+                    break;
+                case 'р':
+                    currentKeyStatus = "Тренировка указательного пальца.";
+                    break;
+                default:
+                    currentKeyStatus = "Тренируйте эту клавишу внимательно.";
+                    break;
+            }
+        }
+        else if (language == "ukrainian")
+        {
+            switch (currentKey)
+            {
+                case 'о':
+                    currentKeyStatus = "Найчастіша літера в українській мові.";
+                    break;
+                case 'а':
+                    currentKeyStatus = "Основна голосна, тренуйте точність.";
+                    break;
+                case 'е':
+                    currentKeyStatus = "Часта голосна, зберігайте ритм.";
+                    break;
+                case 'и':
+                    currentKeyStatus = "Поширена голосна, легкі пальці.";
+                    break;
+                case 'і':
+                    currentKeyStatus = "Унікальна українська літера.";
+                    break;
+                case 'н':
+                    currentKeyStatus = "Часта приголосна, зберігайте поставу.";
+                    break;
+                case 'т':
+                    currentKeyStatus = "Тренування вказівного пальця.";
+                    break;
+                default:
+                    currentKeyStatus = "Тренуйте цю клавішу уважно.";
+                    break;
+            }
+        }
+        else
+        {
+            currentKeyStatus = "Practice this key carefully.";
         }
     }
 
+    // Добавим CSS стиль для завершенных клавиш
     private string GetKeyClass(char key)
     {
         List<string> classes = new List<string>();
@@ -813,6 +1352,12 @@
         if (key == highlightedKey)
         {
             classes.Add("highlighted");
+        }
+
+        // Добавляем класс для завершенных клавиш
+        if (keyStatistics.ContainsKey(key) && keyStatistics[key].IsCompleted)
+        {
+            classes.Add("completed");
         }
 
         return string.Join(" ", classes);
@@ -854,17 +1399,61 @@
 
     private void OpenSettings()
     {
+        // Сохраняем текущие настройки во временные переменные
+        tempKeyboardLayout = keyboardLayout;
+        tempLanguage = language;
+
         showSettings = true;
     }
 
     private void CloseSettings()
     {
+        // Восстанавливаем настройки из временных переменных (отмена изменений)
+        keyboardLayout = tempKeyboardLayout;
+        language = tempLanguage;
+
         showSettings = false;
     }
 
-    private void SaveSettings()
+    private async Task SaveSettings()
     {
+        // Если язык изменился, нужно обновить тепловую карту и текущую клавишу
+        if (tempLanguage != language)
+        {
+            // Очищаем тепловую карту
+            keyHeatMap.Clear();
+
+            // Инициализируем тепловую карту для нового языка
+            foreach (var key in GetCurrentLanguageKeys())
+            {
+                keyHeatMap[key] = 0;
+            }
+
+            // Устанавливаем первую клавишу из набора для нового языка
+            currentKey = GetCurrentLanguageKeys()[0];
+            highlightedKey = currentKey;
+        }
+
+        // Сохраняем настройки в localStorage
+        await SaveSettingsToLocalStorage();
+
+        // Перезапускаем практику с новыми настройками
+        RestartPractice();
+
         showSettings = false;
+    }
+
+    private async Task SaveSettingsToLocalStorage()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "keyboardLayout", keyboardLayout);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "language", language);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving settings to localStorage: {ex.Message}");
+        }
     }
 
     private void ShowHelp()
@@ -906,8 +1495,540 @@
         }
     }
 
+    private void HandleBlur()
+    {
+        isFocused = false;
+        StateHasChanged();
+    }
+
+    private void HandleFocus()
+    {
+        isFocused = true;
+
+        if (!isPracticeActive && !isCompleted)
+        {
+            StartPractice();
+        }
+
+        StateHasChanged();
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (isCompleted) return;
+
+        // Add key to pressed keys set
+        pressedKeys.Add(e.Key);
+
+        // Handle special keys
+        if (e.Key == "Escape")
+        {
+            RestartPractice();
+            return;
+        }
+
+        if (e.CtrlKey && e.Key == "Enter")
+        {
+            NextPractice();
+            return;
+        }
+    }
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (isCompleted) return;
+
+        if (!isPracticeActive)
+        {
+            StartPractice();
+        }
+
+        // Only handle printable characters
+        if (e.Key.Length == 1)
+        {
+            char key = e.Key[0];
+
+            // Update typed text
+            typedText += key;
+
+            // Update metrics
+            totalKeysPressed++;
+
+            if (currentPosition < practiceText.Length && key == practiceText[currentPosition])
+            {
+                correctKeysPressed++;
+
+                // Update heat map for the key
+                if (keyHeatMap.ContainsKey(key))
+                {
+                    keyHeatMap[key]++;
+                }
+            }
+
+            // Update position
+            currentPosition++;
+
+            // Check if practice is completed
+            if (currentPosition >= practiceText.Length)
+            {
+                CompletePractice();
+            }
+
+            // Update metrics
+            UpdateMetrics();
+
+            StateHasChanged();
+        }
+    }
+
+    private void HandleKeyUp(KeyboardEventArgs e)
+    {
+        // Remove key from pressed keys set
+        pressedKeys.Remove(e.Key);
+        StateHasChanged();
+    }
+
+    private void NextPractice()
+    {
+        // Move to the next key in the current language
+        var keys = GetCurrentLanguageKeys();
+        int currentIndex = Array.IndexOf(keys, currentKey);
+        int nextIndex = (currentIndex + 1) % keys.Length;
+        currentKey = keys[nextIndex];
+        highlightedKey = currentKey;
+
+        // Generate new practice words
+        GeneratePracticeWords();
+
+        // Reset practice state
+        ResetPracticeState();
+
+        StateHasChanged();
+    }
+
+    private void OnPracticeTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        practiceTime++;
+        UpdateMetrics();
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void PreviousPractice()
+    {
+        // Move to the previous key in the current language
+        var keys = GetCurrentLanguageKeys();
+        int currentIndex = Array.IndexOf(keys, currentKey);
+        int prevIndex = (currentIndex - 1 + keys.Length) % keys.Length;
+        currentKey = keys[prevIndex];
+        highlightedKey = currentKey;
+
+        // Generate new practice words
+        GeneratePracticeWords();
+
+        // Reset practice state
+        ResetPracticeState();
+
+        StateHasChanged();
+    }
+
+    private void RestartPractice()
+    {
+        // Generate new practice words with the same key
+        GeneratePracticeWords();
+
+        // Reset practice state
+        ResetPracticeState();
+
+        StateHasChanged();
+    }
+
+    private void StartPractice()
+    {
+        isPracticeActive = true;
+        startTime = DateTime.Now;
+        practiceTime = 0;
+
+        // Start the timer
+        practiceTimer.Start();
+    }
+
+    private void CompletePractice()
+    {
+        isCompleted = true;
+        isPracticeActive = false;
+
+        // Stop the timer
+        practiceTimer.Stop();
+
+        // Calculate final metrics
+        UpdateMetrics();
+
+        // Save statistics for current key
+        if (!keyStatistics.ContainsKey(currentKey))
+        {
+            keyStatistics[currentKey] = new KeyStatistics();
+        }
+
+        keyStatistics[currentKey].Accuracy = accuracy;
+        keyStatistics[currentKey].Wpm = wpm;
+        keyStatistics[currentKey].Score = score;
+        keyStatistics[currentKey].IsCompleted = true;
+
+        // Update completed keys count
+        completedKeysCount = keyStatistics.Count(k => k.Value.IsCompleted);
+
+        // Check if all keys are completed
+        CheckAllKeysCompleted();
+
+        // Show feedback only if all keys are completed
+        if (isAllKeysCompleted)
+        {
+            CalculateOverallStatistics();
+            showStatistics = true;
+        }
+        else
+        {
+            // Automatically move to next key without showing feedback
+            NextPractice();
+        }
+    }
+
+    // Добавить метод для обработки таймера обратного отсчета
+    private void OnFeedbackTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        nextKeyCountdown--;
+
+        if (nextKeyCountdown <= 0)
+        {
+            feedbackTimer.Stop();
+
+            InvokeAsync(() =>
+            {
+                // Close feedback
+                showAccuracyFeedback = false;
+
+                // If all keys are completed, show statistics
+                if (isAllKeysCompleted)
+                {
+                    CalculateOverallStatistics();
+                    showStatistics = true;
+                }
+                else
+                {
+                    // Move to next key
+                    NextPractice();
+                }
+
+                StateHasChanged();
+            });
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    // Метод для отображения общей статистики после завершения всех букв
+    private void ShowFinalStatistics()
+    {
+        CalculateOverallStatistics();
+        showStatistics = true;
+        StateHasChanged();
+    }
+
+    // Добавить метод для генерации сообщения обратной связи
+    private void GenerateAccuracyFeedbackMessage()
+    {
+        if (language == "english")
+        {
+            if (accuracy >= 98)
+            {
+                accuracyFeedbackMessage = "Excellent! Your accuracy with this key is outstanding.";
+            }
+            else if (accuracy >= 90)
+            {
+                accuracyFeedbackMessage = "Good job! You have solid accuracy with this key.";
+            }
+            else if (accuracy >= 80)
+            {
+                accuracyFeedbackMessage = "Not bad, but try to focus more on accuracy than speed.";
+            }
+            else
+            {
+                accuracyFeedbackMessage = "You need more practice with this key. Focus on accuracy first.";
+            }
+        }
+        else if (language == "russian")
+        {
+            if (accuracy >= 98)
+            {
+                accuracyFeedbackMessage = "Отлично! У вас превосходная точность с этой клавишей.";
+            }
+            else if (accuracy >= 90)
+            {
+                accuracyFeedbackMessage = "Хорошая работа! У вас хорошая точность с этой клавишей.";
+            }
+            else if (accuracy >= 80)
+            {
+                accuracyFeedbackMessage = "Неплохо, но старайтесь больше сосредоточиться на точности, чем на скорости.";
+            }
+            else
+            {
+                accuracyFeedbackMessage = "Вам нужно больше практики с этой клавишей. Сначала сосредоточьтесь на точности.";
+            }
+        }
+        else if (language == "ukrainian")
+        {
+            if (accuracy >= 98)
+            {
+                accuracyFeedbackMessage = "Відмінно! У вас чудова точність з цією клавішею.";
+            }
+            else if (accuracy >= 90)
+            {
+                accuracyFeedbackMessage = "Гарна робота! У вас хороша точність з цією клавішею.";
+            }
+            else if (accuracy >= 80)
+            {
+                accuracyFeedbackMessage = "Непогано, але намагайтеся більше зосередитися на точності, ніж на швидкості.";
+            }
+            else
+            {
+                accuracyFeedbackMessage = "Вам потрібно більше практики з цією клавішею. Спочатку зосередьтеся на точності.";
+            }
+        }
+    }
+
+    // Добавить метод для проверки завершения всех клавиш
+    private void CheckAllKeysCompleted()
+    {
+        var keys = GetCurrentLanguageKeys();
+        isAllKeysCompleted = keys.All(k => keyStatistics.ContainsKey(k) && keyStatistics[k].IsCompleted);
+    }
+
+    // Добавить метод для расчета общей статистики
+    private void CalculateOverallStatistics()
+    {
+        if (keyStatistics.Count == 0) return;
+
+        double totalAccuracy = 0;
+        double totalWpm = 0;
+        totalScore = 0;
+        keysToImprove.Clear();
+
+        foreach (var stat in keyStatistics)
+        {
+            totalAccuracy += stat.Value.Accuracy;
+            totalWpm += stat.Value.Wpm;
+            totalScore += stat.Value.Score;
+
+            // Добавляем клавиши с низкой точностью в список для улучшения
+            if (stat.Value.Accuracy < 85)
+            {
+                keysToImprove.Add(stat.Key);
+            }
+        }
+
+        averageAccuracy = totalAccuracy / keyStatistics.Count;
+        averageWpm = totalWpm / keyStatistics.Count;
+
+        // Если нет клавиш для улучшения, добавляем самые медленные
+        if (keysToImprove.Count == 0)
+        {
+            var slowestKeys = keyStatistics
+                .OrderBy(k => k.Value.Wpm)
+                .Take(3)
+                .Select(k => k.Key);
+
+            keysToImprove.AddRange(slowestKeys);
+        }
+    }
+
+    // Добавить метод для закрытия окна статистики
+    private void CloseStatistics()
+    {
+        showStatistics = false;
+        StateHasChanged();
+    }
+
+    // Добавить метод для закрытия окна обратной связи
+    private void CloseFeedback()
+    {
+        showAccuracyFeedback = false;
+        feedbackTimer?.Stop();
+
+        // If all keys are completed, show statistics
+        if (isAllKeysCompleted)
+        {
+            CalculateOverallStatistics();
+            showStatistics = true;
+        }
+        else
+        {
+            // Move to next key
+            NextPractice();
+        }
+
+        StateHasChanged();
+    }
+
+    // Добавить метод для перезапуска практики со всеми клавишами
+    private void RestartAllPractice()
+    {
+        // Reset statistics
+        keyStatistics.Clear();
+        completedKeysCount = 0;
+        isAllKeysCompleted = false;
+
+        // Close statistics window
+        showStatistics = false;
+
+        // Reset to first key
+        currentKey = GetCurrentLanguageKeys()[0];
+        highlightedKey = currentKey;
+
+        // Generate new practice words
+        GeneratePracticeWords();
+
+        // Reset practice state
+        ResetPracticeState();
+
+        StateHasChanged();
+    }
+
+    // Добавить метод для получения локализованного текста
+    private string GetLocalizedText(string key)
+    {
+        var translations = new Dictionary<string, Dictionary<string, string>>
+    {
+        { "english", new Dictionary<string, string>
+            {
+                { "Statistics", "Statistics" },
+                { "Overall Results", "Overall Results" },
+                { "Average Accuracy", "Average Accuracy" },
+                { "Average Speed", "Average Speed" },
+                { "Total Score", "Total Score" },
+                { "Keys to Practice", "Keys to Practice" },
+                { "Practice Recommendation", "Focus on practicing these keys to improve your typing skills." },
+                { "Practice Again", "Practice Again" },
+                { "Practice Complete", "Practice Complete" },
+                { "Results for key", "Results for key" },
+                { "Accuracy", "Accuracy" },
+                { "Speed", "Speed" },
+                { "Score", "Score" },
+                { "Next key in", "Next key in" },
+                { "seconds", "seconds" }
+            }
+        },
+        { "russian", new Dictionary<string, string>
+            {
+                { "Statistics", "Статистика" },
+                { "Overall Results", "Общие результаты" },
+                { "Average Accuracy", "Средняя точность" },
+                { "Average Speed", "Средняя скорость" },
+                { "Total Score", "Общий счет" },
+                { "Keys to Practice", "Клавиши для тренировки" },
+                { "Practice Recommendation", "Сосредоточьтесь на тренировке этих клавиш, чтобы улучшить навыки печати." },
+                { "Practice Again", "Тренироваться снова" },
+                { "Practice Complete", "Тренировка завершена" },
+                { "Results for key", "Результаты для клавиши" },
+                { "Accuracy", "Точность" },
+                { "Speed", "Скорость" },
+                { "Score", "Счет" },
+                { "Next key in", "Следующая клавиша через" },
+                { "seconds", "секунд" }
+            }
+        },
+        { "ukrainian", new Dictionary<string, string>
+            {
+                { "Statistics", "Статистика" },
+                { "Overall Results", "Загальні результати" },
+                { "Average Accuracy", "Середня точність" },
+                { "Average Speed", "Середня швидкість" },
+                { "Total Score", "Загальний рахунок" },
+                { "Keys to Practice", "Клавіші для тренування" },
+                { "Practice Recommendation", "Зосередьтеся на тренуванні цих клавіш, щоб покращити навички друку." },
+                { "Practice Again", "Тренуватися знову" },
+                { "Practice Complete", "Тренування завершено" },
+                { "Results for key", "Результати для клавіші" },
+                { "Accuracy", "Точність" },
+                { "Speed", "Швидкість" },
+                { "Score", "Рахунок" },
+                { "Next key in", "Наступна клавіша через" },
+                { "seconds", "секунд" }
+            }
+        }
+    };
+
+        if (translations.ContainsKey(language) && translations[language].ContainsKey(key))
+        {
+            return translations[language][key];
+        }
+
+        return key;
+    }
+
+    // Заменить метод Dispose для очистки таймеров
     public void Dispose()
     {
         practiceTimer?.Dispose();
+        feedbackTimer?.Dispose();
+    }
+
+    private void ResetPracticeState()
+    {
+        isPracticeActive = false;
+        isCompleted = false;
+        practiceTime = 0;
+        totalKeysPressed = 0;
+        correctKeysPressed = 0;
+        wpm = 0;
+        rawWpm = 0;
+        accuracy = 0;
+        score = 0;
+
+        // Stop the timer if it's running
+        practiceTimer.Stop();
+    }
+
+    private void UpdateMetrics()
+    {
+        // Calculate WPM (Words Per Minute)
+        // Standard: 5 characters = 1 word
+        if (practiceTime > 0)
+        {
+            double minutes = practiceTime / 60.0;
+            rawWpm = totalKeysPressed / 5.0 / minutes;
+            wpm = correctKeysPressed / 5.0 / minutes;
+        }
+
+        // Calculate accuracy
+        if (totalKeysPressed > 0)
+        {
+            accuracy = (int)Math.Round((double)correctKeysPressed / totalKeysPressed * 100);
+        }
+
+        // Calculate score
+        score = (int)(wpm * (accuracy / 100.0) * 10);
+
+        // Update accuracy status
+        if (accuracy >= 98)
+        {
+            accuracyStatus = "Excellent! Keep up the good work.";
+        }
+        else if (accuracy >= 95)
+        {
+            accuracyStatus = "Very good accuracy. Focus on consistency.";
+        }
+        else if (accuracy >= 90)
+        {
+            accuracyStatus = "Good accuracy. Try to be more precise.";
+        }
+        else if (accuracy >= 80)
+        {
+            accuracyStatus = "Decent accuracy. Slow down to improve.";
+        }
+        else
+        {
+            accuracyStatus = "Focus on accuracy rather than speed.";
+        }
     }
 }
