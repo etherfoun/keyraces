@@ -78,6 +78,12 @@
                                 <button class="join-btn" @onclick="() => JoinLobby(lobby)" disabled="@(!CanJoinLobby(lobby))">
                                     Присоединиться
                                 </button>
+                                @if (isAdmin)
+                                {
+                                    <button class="delete-lobby-btn" @onclick="() => DeleteLobby(lobby.Id)" title="Удалить лобби">
+                                        <i class="oi oi-trash"></i>
+                                    </button>
+                                }
                             </div>
                         </div>
                     </div>
@@ -342,6 +348,44 @@
             </div>
         </div>
     }
+
+    @if (showDeleteConfirmModal)
+    {
+        <div class="modal-overlay @(showDeleteConfirmModal ? "show" : "")" @onclick="CloseDeleteConfirmModal">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>Удаление лобби</h2>
+                    <button class="close-modal-btn" @onclick="CloseDeleteConfirmModal">
+                        <i class="oi oi-x"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Вы уверены, что хотите удалить лобби?</p>
+                    <p>ID лобби: @lobbyIdToDelete</p>
+                    
+                    @if (!string.IsNullOrEmpty(deleteError))
+                    {
+                        <div class="alert alert-danger">
+                            @deleteError
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseDeleteConfirmModal">Отмена</button>
+                    <button class="btn btn-danger" @onclick="ConfirmDeleteLobby" disabled="@isDeletingLobby">
+                        @if (isDeletingLobby)
+                        {
+                            <span>Удаление...</span>
+                        }
+                        else
+                        {
+                            <span>Удалить</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -349,18 +393,23 @@
     private bool isFilterOpen = false;
     private bool showCreateLobbyModal = false;
     private bool showJoinLobbyModal = false;
+    private bool showDeleteConfirmModal = false;
     private bool isAuthenticated = false;
     private bool isCreatingLobby = false;
     private bool isJoiningLobby = false;
+    private bool isDeletingLobby = false;
     private List<keyraces.Core.Models.CompetitionLobby> lobbies = new List<keyraces.Core.Models.CompetitionLobby>();
     private List<keyraces.Core.Models.CompetitionLobby> filteredLobbies = new List<keyraces.Core.Models.CompetitionLobby>();
     private keyraces.Core.Models.CompetitionLobby selectedLobby = new keyraces.Core.Models.CompetitionLobby();
     private string joinPassword = "";
+    private string lobbyIdToDelete = "";
+    private string deleteError = "";
     private int currentPage = 1;
     private int pageSize = 5;
     private int totalPages = 1;
     private string createLobbyError = string.Empty;
     private string joinLobbyError = string.Empty;
+    private bool isAdmin = false;
 
     private string searchQuery = "";
     private bool filterWaiting = true;
@@ -380,8 +429,17 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await CheckAuthenticationAsync();
-        await LoadLobbiesAsync();
+        // Не вызываем CheckAuthenticationAsync здесь, так как JS еще недоступен
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await CheckAuthenticationAsync();
+            await LoadLobbiesAsync();
+            StateHasChanged();
+        }
     }
 
     private async Task CheckAuthenticationAsync()
@@ -393,6 +451,7 @@
             if (string.IsNullOrEmpty(token))
             {
                 isAuthenticated = false;
+                isAdmin = false;
                 return;
             }
 
@@ -401,6 +460,7 @@
             if (isTokenExpired)
             {
                 isAuthenticated = false;
+                isAdmin = false;
                 return;
             }
 
@@ -409,17 +469,55 @@
             if (!authCheck)
             {
                 isAuthenticated = false;
+                isAdmin = false;
                 return;
             }
 
             isAuthenticated = true;
+            
+            // Проверяем роль администратора через токен
+            try 
+            {
+                var userInfo = await JS.InvokeAsync<Dictionary<string, object>>("authInterop.getUserInfo");
+                if (userInfo != null && userInfo.ContainsKey("role"))
+                {
+                    var role = userInfo["role"]?.ToString();
+                    isAdmin = !string.IsNullOrEmpty(role) && role.Contains("Admin");
+                    Console.WriteLine($"User role from token: {role}, isAdmin: {isAdmin}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error checking admin role from token: {ex.Message}");
+            }
+            
+            Console.WriteLine($"User is admin: {isAdmin}");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error checking authentication: {ex.Message}");
             isAuthenticated = false;
+            isAdmin = false;
         }
     }
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+    //         // Подписываемся на событие изменения авторизации
+    //         await JS.InvokeVoidAsync("authInterop.subscribeToAuthChanges", 
+    //             DotNetObjectReference.Create(this));
+    //     }
+    // }
+
+    // [JSInvokable]
+    // public async Task OnAuthChanged()
+    // {
+    //     await CheckAuthenticationAsync();
+    //     await LoadLobbiesAsync();
+    //     StateHasChanged();
+    // }
 
     private async Task LoadLobbiesAsync()
     {
@@ -487,6 +585,78 @@
         selectedLobby = null!;
         joinPassword = "";
         joinLobbyError = "";
+    }
+
+    private void DeleteLobby(string lobbyId)
+    {
+        lobbyIdToDelete = lobbyId;
+        deleteError = "";
+        showDeleteConfirmModal = true;
+    }
+
+    private void CloseDeleteConfirmModal()
+    {
+        showDeleteConfirmModal = false;
+        lobbyIdToDelete = "";
+        deleteError = "";
+    }
+
+    private async Task ConfirmDeleteLobby()
+    {
+        if (string.IsNullOrEmpty(lobbyIdToDelete) || !isAdmin)
+            return;
+
+        isDeletingLobby = true;
+        deleteError = "";
+        StateHasChanged();
+
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
+
+            if (string.IsNullOrEmpty(token))
+            {
+                deleteError = "Токен авторизации не найден";
+                return;
+            }
+
+            var request = new HttpRequestMessage(HttpMethod.Delete, $"api/lobby/{lobbyIdToDelete}");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Successfully deleted lobby: {lobbyIdToDelete}");
+                CloseDeleteConfirmModal();
+                await LoadLobbiesAsync();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Failed to delete lobby: {error}");
+            
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || 
+                    response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    deleteError = "У вас нет прав для удаления лобби";
+                }
+                else
+                {
+                    deleteError = $"Ошибка удаления лобби: {response.StatusCode}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting lobby: {ex.Message}");
+            deleteError = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            isDeletingLobby = false;
+            StateHasChanged();
+        }
     }
 
     private async Task ConfirmJoinLobby()

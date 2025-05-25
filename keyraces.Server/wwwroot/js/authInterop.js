@@ -306,6 +306,50 @@
             return null
         }
     },
+
+    dotNetReference: null,
+
+    subscribeToAuthChanges: function (dotNetRef) {
+        this.dotNetReference = dotNetRef
+
+        // Проверяем изменения в localStorage
+        window.addEventListener("storage", (e) => {
+            if (e.key === "auth_token" || e.key === "user_roles") {
+                if (window.authInterop.dotNetReference) {
+                    window.authInterop.dotNetReference.invokeMethodAsync("OnAuthChanged")
+                }
+            }
+        })
+
+        // Также вызываем проверку сразу
+        if (this.dotNetReference) {
+            setTimeout(() => {
+                this.dotNetReference.invokeMethodAsync("OnAuthChanged")
+            }, 500)
+        }
+    },
+
+    checkAdminRole: async () => {
+        const token = localStorage.getItem("auth_token")
+        if (!token) return false
+
+        try {
+            const response = await fetch("/api/Role/check-admin-role", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                return data.isAdmin
+            }
+            return false
+        } catch (error) {
+            console.error("Error checking admin role:", error)
+            return false
+        }
+    },
 }
 
 document.addEventListener("DOMContentLoaded", () => {

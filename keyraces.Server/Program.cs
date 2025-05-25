@@ -10,19 +10,13 @@ using keyraces.Server.Data;
 using keyraces.Server.Hubs;
 using keyraces.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
-using System;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -52,7 +46,13 @@ builder.Services.AddHttpClient();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
-builder.Services.AddDistributedMemoryCache();
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    var redisConnection = builder.Configuration.GetSection("Redis")["Connection"] ?? "redis:6379";
+    options.Configuration = redisConnection;
+    options.InstanceName = "keyraces:";
+});
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromDays(30);
@@ -66,8 +66,6 @@ builder.Services.AddScoped<ThemeService>();
 
 builder.Services.AddDbContextFactory<AppDbContext>(opts =>
   opts.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
-
-builder.Services.AddDistributedMemoryCache();
 
 builder.Services
     .AddIdentity<IdentityUser, IdentityRole>(options => {
@@ -168,8 +166,6 @@ builder.Services.AddScoped<IUserAchievementService, UserAchievementService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
-
-// Регистрация сервиса для работы с лобби соревнований
 builder.Services.AddScoped<ICompetitionLobbyService, RedisCompetitionLobbyService>();
 
 // Регистрация Redis
@@ -178,10 +174,15 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     var redisConfig = builder.Configuration.GetSection("Redis");
     var connectionString = redisConfig["Connection"] ?? "redis:6379";
 
+    Console.WriteLine($"Connecting to Redis at: {connectionString}");
+
     var configuration = ConfigurationOptions.Parse(connectionString);
     configuration.AbortOnConnectFail = false;
 
-    return ConnectionMultiplexer.Connect(configuration);
+    var connection = ConnectionMultiplexer.Connect(configuration);
+    Console.WriteLine($"Redis connection status: {connection.IsConnected}");
+
+    return connection;
 });
 
 // Text Generation Service
@@ -219,7 +220,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSignalR(options =>
 {
     options.EnableDetailedErrors = true;
-    options.MaximumReceiveMessageSize = 102400; // 100 KB
+    options.MaximumReceiveMessageSize = 102400;
 });
 
 builder.Services.AddSwaggerGen(c =>
@@ -299,12 +300,10 @@ using (var scope = app.Services.CreateScope())
             throw new Exception("Database connection failed");
         }
 
-        // Применяем миграции
         logger.LogInformation("Applying database migrations...");
         await ctx.Database.MigrateAsync();
         logger.LogInformation("Database migrations applied successfully.");
 
-        // Создание ролей и админа
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
@@ -345,7 +344,41 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
-        // Добавление тестовых текстов
+        if (app.Environment.IsDevelopment())
+        {
+            var testUsers = new[]
+            {
+                new { Email = "user1@test.com", Name = "TestUser1", Password = "Test123!" },
+                new { Email = "user2@test.com", Name = "TestUser2", Password = "Test123!" },
+                new { Email = "user3@test.com", Name = "TestUser3", Password = "Test123!" }
+            };
+
+            foreach (var testUserData in testUsers)
+            {
+                var existingUser = await userManager.FindByEmailAsync(testUserData.Email);
+                if (existingUser == null)
+                {
+                    var testUser = new IdentityUser
+                    {
+                        UserName = testUserData.Email,
+                        Email = testUserData.Email,
+                        EmailConfirmed = true
+                    };
+
+                    var result = await userManager.CreateAsync(testUser, testUserData.Password);
+                    if (result.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(testUser, "User");
+
+                        var profileService = scope.ServiceProvider.GetRequiredService<IUserProfileService>();
+                        await profileService.CreateProfileAsync(testUser.Id, testUserData.Name);
+
+                        logger.LogInformation($"Test user created: {testUserData.Email} / {testUserData.Password}");
+                    }
+                }
+            }
+        }
+
         if (!ctx.TextSnippets.Any())
         {
             logger.LogInformation("Adding default text snippets...");

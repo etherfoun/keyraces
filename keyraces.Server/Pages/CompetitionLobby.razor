@@ -15,6 +15,7 @@
 @implements IAsyncDisposable
 
 <div class="competition-container">
+    <div data-current-user-id="@currentUserId" style="display: none;"></div>
     @if (isLoading)
     {
         <div class="loading-state">
@@ -167,38 +168,55 @@
                     {
                         <div class="typing-game">
                             <div class="typing-header">
-                                <h3 class="section-title">
-                                    <i class="oi oi-text"></i> Набор текста
-                                </h3>
-                                <div class="typing-stats">
-                                    <div class="stat">
-                                        <i class="oi oi-speedometer"></i> <span id="wpm-display">0</span> WPM
-                                    </div>
-                                    <div class="stat">
-                                        <i class="oi oi-target"></i> <span id="accuracy-display">100.0</span>%
-                                    </div>
-                                    <div class="stat">
-                                        <i class="oi oi-timer"></i> <span id="time-display">00:00</span>
-                                    </div>
+                                <div class="user-info">
+                                    <span class="user-name">@currentUserName</span>
+                                    <span class="game-status">ИГРА ИДЕТ</span>
                                 </div>
                             </div>
 
                             @if (textSnippet != null)
                             {
                                 <div class="typing-area">
-                                    <div id="text-display" class="text-display">
-                                        @foreach (var character in textSnippet.Content)
-                                        {
-                                            <span class="character">@character</span>
-                                        }
+                                    <div class="typing-section">
+                                        <div class="typing-title">
+                                            <i class="oi oi-text"></i> Набор текста
+                                            <div class="typing-stats">
+                                                <span id="wpm-display">0</span> WPM
+                                                <span id="accuracy-display">100.0</span> %
+                                                <span id="time-display">00:00</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div id="text-display" class="text-display">
+                                            @{
+                                                var words = textSnippet.Content.Split(' ');
+                                                for (int i = 0; i < words.Length; i++)
+                                                {
+                                                    <span class="word" data-word="@words[i]">
+                                                        @foreach (var character in words[i])
+                                                        {
+                                                            <span class="character">@character</span>
+                                                        }
+                                                    </span>
+                                                    if (i < words.Length - 1)
+                                                    {
+                                                        <span class="character"> </span>
+                                                    }
+                                                }
+                                            }
+                                        </div>
+                                        
+                                        <input id="typing-input" class="typing-input" 
+                                               @bind="typingInput" 
+                                               @bind:event="oninput" 
+                                               @onkeydown="HandleKeyDown"
+                                               @ref="typingInputRef"
+                                               autocomplete="off"
+                                               autocorrect="off"
+                                               autocapitalize="off"
+                                               spellcheck="false"
+                                               autofocus />
                                     </div>
-                                    <textarea id="typing-input" class="typing-input" 
-                                              @bind="typingInput" 
-                                              @bind:event="oninput" 
-                                              @onkeydown="HandleKeyDown"
-                                              @onkeyup="HandleKeyUp"
-                                              @ref="typingInputRef"
-                                              autofocus></textarea>
                                 </div>
                             }
                             else
@@ -215,22 +233,12 @@
                         <div class="progress-list">
                             @foreach (var player in lobby.Players.OrderByDescending(p => p.Progress))
                             {
-                                <div class="progress-item @(player.HasFinished ? "finished" : "")">
+                                <div class="progress-item" data-user-id="@player.UserId">
                                     <div class="progress-info">
                                         <span class="player-name">@player.UserName</span>
                                         <div class="player-stats">
-                                            <span class="stat">
-                                                <i class="oi oi-speedometer"></i> @player.WPM WPM
-                                            </span>
-                                            <span class="stat">
-                                                <i class="oi oi-target"></i> @player.Accuracy.ToString("F1")%
-                                            </span>
-                                            @if (player.HasFinished && player.Position.HasValue)
-                                            {
-                                                <span class="position-badge position-@player.Position">
-                                                    #@player.Position
-                                                </span>
-                                            }
+                                            <span class="wpm-stat">@player.WPM WPM</span>
+                                            <span class="accuracy-stat">@player.Accuracy.ToString("F1")%</span>
                                         </div>
                                     </div>
                                     <div class="progress-bar-container">
@@ -244,62 +252,216 @@
                 else if (lobby.Status == LobbyStatus.Finished)
                 {
                     <div class="results-area">
-                        <h3 class="section-title">
-                            <i class="oi oi-trophy"></i> Результаты соревнования
-                        </h3>
+                        <div class="results-header">
+                            <h3 class="section-title">
+                                <i class="oi oi-trophy"></i> Результаты соревнования
+                            </h3>
+                            <div class="results-actions">
+                                <button class="btn btn-primary" @onclick="CreateNewCompetition">
+                                    <i class="oi oi-plus"></i> Новое соревнование
+                                </button>
+                                <button class="btn btn-secondary" @onclick="ShareResults">
+                                    <i class="oi oi-share"></i> Поделиться
+                                </button>
+                            </div>
+                        </div>
+
+                        @{
+                            var finishedPlayers = lobby.Players.Where(p => p.HasFinished).OrderBy(p => p.Position).ToList();
+                            var notFinishedPlayers = lobby.Players.Where(p => !p.HasFinished).ToList();
+                            var hasWinner = finishedPlayers.Any();
+                            var winner = hasWinner ? finishedPlayers.First() : null;
+                        }
+
+                        @if (hasWinner)
+                        {
+                            <div class="winner-announcement">
+                                <div class="winner-crown"><i class="oi oi-badge"></i></div>
+                                <div class="winner-avatar">@GetInitials(winner.UserName)</div>
+                                <div class="winner-info">
+                                    <h2 class="winner-name">@winner.UserName</h2>
+                                    <div class="winner-title">Победитель</div>
+                                </div>
+                                <div class="winner-stats">
+                                    <div class="stat-item">
+                                        <div class="stat-value">@winner.FinalWPM</div>
+                                        <div class="stat-label">WPM</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-value">@winner.FinalAccuracy?.ToString("F1")%</div>
+                                        <div class="stat-label">Точность</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-value">@FormatCompletionTime(winner.FinishedAt, lobby.StartedAt)</div>
+                                        <div class="stat-label">Время</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
                         <div class="results-podium">
                             @{
-                                var sortedPlayers = lobby.Players
-                                    .Where(p => p.HasFinished)
-                                    .OrderBy(p => p.Position)
-                                    .Take(3)
-                                    .ToList();
+                                var podiumPlayers = finishedPlayers.Take(3).ToList();
+                                while (podiumPlayers.Count < 3)
+                                {
+                                    podiumPlayers.Add(null);
+                                }
+                                
+                                var displayOrder = new List<LobbyPlayer> { 
+                                    podiumPlayers.Count > 1 ? podiumPlayers[1] : null!, 
+                                    podiumPlayers.Count > 0 ? podiumPlayers[0] : null!, 
+                                    podiumPlayers.Count > 2 ? podiumPlayers[2] : null! 
+                                };
                             }
-                            @for (int i = 0; i < sortedPlayers.Count; i++)
+                            
+                            @for (int i = 0; i < 3; i++)
                             {
-                                var player = sortedPlayers[i];
-                                <div class="podium-place place-@(i + 1)">
-                                    <div class="place-number">@(i + 1)</div>
-                                    <div class="place-avatar">
-                                        @GetInitials(player.UserName)
-                                    </div>
-                                    <div class="place-name">@player.UserName</div>
-                                    <div class="place-stats">
-                                        <div>@player.FinalWPM WPM</div>
-                                        <div>@player.FinalAccuracy?.ToString("F1")% точность</div>
-                                    </div>
+                                var player = displayOrder[i];
+                                var place = i == 0 ? 2 : (i == 1 ? 1 : 3);
+                                var height = i == 1 ? 180 : (i == 0 ? 140 : 100);
+                                
+                                <div class="podium-block @(player == null ? "empty" : "")" style="height: @(height)px">
+                                    @if (player != null)
+                                    {
+                                        <div class="podium-player">
+                                            <div class="podium-avatar">@GetInitials(player.UserName)</div>
+                                            <div class="podium-name">@player.UserName</div>
+                                            <div class="podium-stats">@player.FinalWPM WPM</div>
+                                            <div class="podium-place-number">@place</div>
+                                        </div>
+                                    }
                                 </div>
                             }
                         </div>
 
-                        <div class="full-results">
-                            <table class="results-table">
-                                <thead>
-                                    <tr>
-                                        <th>Место</th>
-                                        <th>Участник</th>
-                                        <th>WPM</th>
-                                        <th>Точность</th>
-                                        <th>Время</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var player in lobby.Players.Where(p => p.HasFinished).OrderBy(p => p.Position))
-                                    {
-                                        <tr>
-                                            <td>
-                                                <span class="position-badge position-@player.Position">
-                                                    #@player.Position
-                                                </span>
-                                            </td>
-                                            <td>@player.UserName</td>
-                                            <td>@player.FinalWPM</td>
-                                            <td>@player.FinalAccuracy?.ToString("F1")%</td>
-                                            <td>@FormatCompletionTime(player.FinishedAt, lobby.StartedAt)</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                        <div class="results-tabs">
+                            <button class="tab-btn @(activeResultsTab == "table" ? "active" : "")" 
+                                    @onclick='() => activeResultsTab = "table"'>
+                                <i class="oi oi-list"></i> Таблица
+                            </button>
+                            <button class="tab-btn @(activeResultsTab == "stats" ? "active" : "")" 
+                                    @onclick='() => activeResultsTab = "stats"'>
+                                <i class="oi oi-dashboard"></i> Статистика
+                            </button>
+                        </div>
+
+                        <div class="results-content">
+                            @if (activeResultsTab == "table")
+                            {
+                                <div class="results-table-container">
+                                    <table class="results-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Место</th>
+                                                <th>Участник</th>
+                                                <th>WPM</th>
+                                                <th>Точность</th>
+                                                <th>Время</th>
+                                                <th>Статус</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var player in finishedPlayers)
+                                            {
+                                                <tr class="@(player.UserId == currentUserId ? "current-user" : "")">
+                                                    <td>
+                                                        <span class="position-badge position-@player.Position">
+                                                            #@player.Position
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="player-name-cell">
+                                                            <div class="player-avatar small">@GetInitials(player.UserName)</div>
+                                                            <span>@player.UserName</span>
+                                                            @if (player.IsHost)
+                                                            {
+                                                                <span class="host-badge small">Хост</span>
+                                                            }
+                                                        </div>
+                                                    </td>
+                                                    <td>@player.FinalWPM</td>
+                                                    <td>@player.FinalAccuracy?.ToString("F1")%</td>
+                                                    <td>@FormatCompletionTime(player.FinishedAt, lobby.StartedAt)</td>
+                                                    <td><span class="status-badge completed">Завершил</span></td>
+                                                </tr>
+                                            }
+                                            
+                                            @foreach (var player in notFinishedPlayers)
+                                            {
+                                                <tr class="@(player.UserId == currentUserId ? "current-user" : "")">
+                                                    <td>-</td>
+                                                    <td>
+                                                        <div class="player-name-cell">
+                                                            <div class="player-avatar small">@GetInitials(player.UserName)</div>
+                                                            <span>@player.UserName</span>
+                                                            @if (player.IsHost)
+                                                            {
+                                                                <span class="host-badge small">Хост</span>
+                                                            }
+                                                        </div>
+                                                    </td>
+                                                    <td>@player.WPM</td>
+                                                    <td>@player.Accuracy.ToString("F1")%</td>
+                                                    <td>-</td>
+                                                    <td><span class="status-badge not-completed">Не завершил</span></td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else if (activeResultsTab == "stats")
+                            {
+                                <div class="results-statistics">
+                                    <div class="stats-cards">
+                                        <div class="stats-card">
+                                            <div class="stats-card-title">Средняя скорость</div>
+                                            <div class="stats-card-value">
+                                                @{
+                                                    var avgWpm = finishedPlayers.Any() 
+                                                        ? finishedPlayers.Average(p => p.FinalWPM ?? 0) 
+                                                        : 0;
+                                                }
+                                                @avgWpm.ToString("F1") WPM
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="stats-card">
+                                            <div class="stats-card-title">Средняя точность</div>
+                                            <div class="stats-card-value">
+                                                @{
+                                                    var avgAccuracy = finishedPlayers.Any() 
+                                                        ? finishedPlayers.Average(p => p.FinalAccuracy ?? 0) 
+                                                        : 0;
+                                                }
+                                                @avgAccuracy.ToString("F1")%
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="stats-card">
+                                            <div class="stats-card-title">Участников завершило</div>
+                                            <div class="stats-card-value">
+                                                @finishedPlayers.Count из @lobby.Players.Count
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="stats-card">
+                                            <div class="stats-card-title">Длительность соревнования</div>
+                                            <div class="stats-card-value">
+                                                @{
+                                                    var lastFinish = finishedPlayers.Any() 
+                                                        ? finishedPlayers.Max(p => p.FinishedAt) 
+                                                        : null;
+                                                    var duration = lastFinish.HasValue && lobby.StartedAt.HasValue
+                                                        ? lastFinish.Value - lobby.StartedAt.Value
+                                                        : TimeSpan.Zero;
+                                                }
+                                                @duration.Minutes:@duration.Seconds.ToString("00")
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
                         </div>
                     </div>
                 }
@@ -356,6 +518,31 @@
             </div>
         </div>
     }
+    
+    <div id="completion-notification" class="completion-modal">
+        <div class="completion-modal-content">
+            <div class="completion-icon">
+                <i class="oi oi-check"></i>
+            </div>
+            <div class="completion-message">
+                <h3>Отлично!</h3>
+                <p>Вы завершили набор текста</p>
+            </div>
+            <div class="completion-stats">
+                <div class="completion-stat">
+                    <span id="final-wpm">0</span>
+                    <span class="stat-label">WPM</span>
+                </div>
+                <div class="completion-stat">
+                    <span id="final-accuracy">0</span>
+                    <span class="stat-label">Точность</span>
+                </div>
+            </div>
+            <button class="close-completion-btn" @onclick="CloseCompletionModal">
+                <i class="oi oi-x"></i>
+            </button>
+        </div>
+    </div>
 </div>
 
 @if (showTextSelection)
@@ -371,11 +558,11 @@
             <div class="modal-body">
                 <div class="text-selection-tabs">
                     <button class="tab-btn @(activeTab == "existing" ? "active" : "")" 
-                            @onclick="@(() => SetActiveTab("existing"))">
+                            @onclick='@(() => SetActiveTab("existing"))'>
                         <i class="oi oi-document"></i> Готовые тексты
                     </button>
                     <button class="tab-btn @(activeTab == "generate" ? "active" : "")" 
-                            @onclick="@(() => SetActiveTab("generate"))">
+                            @onclick='@(() => SetActiveTab("generate"))'>
                         <i class="oi oi-cog"></i> Генерация ИИ
                     </button>
                 </div>
@@ -565,7 +752,7 @@
     
     private bool isGeneratingText = false;
     private string generationError = "";
-    private TextSnippet generatedSnippet = null;
+    private TextSnippet generatedSnippet = null!;
     private TextGenerationRequest aiGenerationRequest = new TextGenerationRequest
     {
         Topic = "",
@@ -586,6 +773,7 @@
     private int currentWPM = 0;
     private double currentAccuracy = 100.0;
     private bool isGameFinished = false;
+    private string activeResultsTab = "table";
 
     protected override async Task OnInitializedAsync()
     {
@@ -612,6 +800,15 @@
             lastUpdateTime = DateTime.Now;
             await JS.InvokeVoidAsync("lobbyInterop.startGame");
             statsTimer.Start();
+            
+            await JS.InvokeVoidAsync("eval", @"
+          const typingInput = document.getElementById('typing-input');
+          if (typingInput) {
+              typingInput.addEventListener('paste', function(e) {
+                  e.preventDefault();
+                  console.log('Paste prevented');
+              });
+          }");
         }
     }
 
@@ -689,6 +886,7 @@
                 {
                     options.AccessTokenProvider = () => Task.FromResult(token);
                 })
+                .WithAutomaticReconnect()
                 .Build();
 
             hubConnection.On<string>("UserJoined", async (userName) =>
@@ -748,6 +946,70 @@
                 InvokeAsync(ScrollChatToBottom);
             });
 
+            hubConnection.On<keyraces.Core.Models.CompetitionLobby>("PlayerJoined", async (updatedLobby) =>
+            {
+                Console.WriteLine($"SignalR: PlayerJoined event received with {updatedLobby.Players.Count} players");
+                lobby = updatedLobby;
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On<keyraces.Core.Models.CompetitionLobby>("PlayerLeft", async (updatedLobby) =>
+            {
+                Console.WriteLine($"SignalR: PlayerLeft event received");
+                lobby = updatedLobby;
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On<keyraces.Core.Models.CompetitionLobby>("ReadyStatusChanged", async (updatedLobby) =>
+            {
+                Console.WriteLine($"SignalR: ReadyStatusChanged event received");
+                lobby = updatedLobby;
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On<keyraces.Core.Models.CompetitionLobby>("GameStarted", async (updatedLobby) =>
+            {
+                Console.WriteLine($"SignalR: GameStarted event received from controller");
+                lobby = updatedLobby;
+                
+                if (lobby.Status == LobbyStatus.InGame && !string.IsNullOrEmpty(lobby.TextSnippetId))
+                {
+                    if (int.TryParse(lobby.TextSnippetId, out int snippetId))
+                    {
+                        textSnippet = await TextSnippetService.GetByIdAsync(snippetId);
+                    }
+                }
+                
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On<keyraces.Core.Models.CompetitionLobby>("PlayerFinished", async (updatedLobby) =>
+            {
+                Console.WriteLine($"SignalR: PlayerFinished event received from controller");
+                lobby = updatedLobby;
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On<keyraces.Core.Models.CompetitionLobby>("LobbyCreated", (newLobby) =>
+            {
+                Console.WriteLine($"SignalR: New lobby created: {newLobby.Id}");
+            });
+
+            hubConnection.Reconnected += async (connectionId) =>
+            {
+                Console.WriteLine($"SignalR: Reconnected with ID: {connectionId}");
+                await hubConnection.SendAsync("JoinLobby", LobbyId);
+                await LoadLobby();
+                await InvokeAsync(StateHasChanged);
+            };
+
+            hubConnection.On("AllPlayersFinished", async () =>
+            {
+                Console.WriteLine("SignalR: All players finished event received");
+                await LoadLobby();
+                await InvokeAsync(StateHasChanged);
+            });
+
             await hubConnection.StartAsync();
             await hubConnection.SendAsync("JoinLobby", LobbyId);
         }
@@ -771,14 +1033,15 @@
             var newReadyStatus = !player.IsReady;
             Console.WriteLine($"Toggling ready status for {player.UserName} from {player.IsReady} to {newReadyStatus}");
         
+            player.IsReady = newReadyStatus;
+            StateHasChanged();
+        
             var success = await LobbyService.UpdateReadyStatusAsync(LobbyId, currentUserId, newReadyStatus);
             Console.WriteLine($"UpdateReadyStatusAsync result: {success}");
         
             if (success && hubConnection != null)
             {
                 await hubConnection.SendAsync("UpdateReadyStatus", LobbyId, newReadyStatus);
-                await LoadLobby();
-                StateHasChanged();
             }
         }
         else
@@ -788,12 +1051,26 @@
         }
     }
 
+    private async Task CloseCompletionModal()
+    {
+        var completionModal = await JS.InvokeAsync<IJSObjectReference>("document.getElementById", "completion-notification");
+        if (completionModal != null)
+        {
+            await JS.InvokeVoidAsync("eval", "document.getElementById('completion-notification').classList.remove('show')");
+        }
+    
+        if (lobby != null && lobby.Players.All(p => p.HasFinished))
+        {
+            await ShowResults();
+        }
+    }
+
     private void ShowTextSelection()
     {
         showTextSelection = true;
         activeTab = "existing";
         selectedSnippetId = 0;
-        generatedSnippet = null;
+        generatedSnippet = null!;
         generationError = "";
     }
 
@@ -802,7 +1079,7 @@
         showTextSelection = false;
         selectedSnippetId = 0;
         activeTab = "existing";
-        generatedSnippet = null;
+        generatedSnippet = null!;
         generationError = "";
     }
 
@@ -810,7 +1087,7 @@
     {
         activeTab = tab;
         selectedSnippetId = 0;
-        generatedSnippet = null;
+        generatedSnippet = null!;
         generationError = "";
     }
 
@@ -836,7 +1113,7 @@
     {
         isGeneratingText = true;
         generationError = "";
-        generatedSnippet = null;
+        generatedSnippet = null!;
         StateHasChanged();
 
         try
@@ -1031,78 +1308,123 @@
         return $"{duration.Minutes:00}:{duration.Seconds:00}";
     }
 
+    private async Task CreateNewCompetition()
+    {
+        NavigationManager.NavigateTo("/competitions");
+    }
+
+    private async Task ShareResults()
+    {
+        if (lobby == null) return;
+    
+        var shareText = $"Результаты соревнования по набору текста в KeyRaces!\n\n";
+        shareText += $"Победитель: {lobby.Players.Where(p => p.HasFinished).OrderBy(p => p.Position).FirstOrDefault()?.UserName ?? "Нет победителя"}\n\n";
+    
+        foreach (var player in lobby.Players.Where(p => p.HasFinished).OrderBy(p => p.Position))
+        {
+            shareText += $"{player.Position}. {player.UserName} - {player.FinalWPM} WPM, {player.FinalAccuracy?.ToString("F1")}% точность\n";
+        }
+    
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", shareText);
+        await JS.InvokeVoidAsync("alert", "Результаты скопированы в буфер обмена!");
+    }
+
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
         if (textSnippet == null || isGameFinished) return;
+    
+        try
+        {
+            if (e.Key == "v" && (e.CtrlKey || e.MetaKey))
+            {
+                return;
+            }
         
         totalKeystrokes++;
         
-        if (currentPosition >= textSnippet.Content.Length)
+        var allowInput = await JS.InvokeAsync<bool>("lobbyInterop.handleKeyDown", e, typingInput);
+        
+        if (!allowInput)
         {
-            return;
+            var filteredInput = await JS.InvokeAsync<string>("lobbyInterop.filterInput", typingInput, await JS.InvokeAsync<int>("eval", "window.lobbyInterop.currentWordIndex"));
+            if (filteredInput != typingInput)
+            {
+                typingInput = filteredInput;
+                StateHasChanged();
+            }
         }
         
-        await JS.InvokeVoidAsync("lobbyInterop.handleKeyDown", e.Key, currentPosition);
-    }
-
-    private async Task HandleKeyUp(KeyboardEventArgs e)
-    {
-        if (textSnippet == null || isGameFinished) return;
-        
-        if (typingInput.Length > 0)
+        var player = lobby?.Players.FirstOrDefault(p => p.UserId == currentUserId);
+        if (player != null && hubConnection != null)
         {
-            int correctPositions = 0;
+            var progress = await JS.InvokeAsync<int>("lobbyInterop.calculateProgress");
             
-            for (int i = 0; i < Math.Min(typingInput.Length, textSnippet.Content.Length); i++)
+            player.Progress = progress;
+            
+            var elapsedMinutes = (DateTime.Now - gameStartTime).TotalMinutes;
+            var stats = await JS.InvokeAsync<JsonElement>("lobbyInterop.updateStats", elapsedMinutes);
+            
+            if (stats.ValueKind == JsonValueKind.Object)
             {
-                if (typingInput[i] == textSnippet.Content[i])
+                if (stats.TryGetProperty("wpm", out JsonElement wpmElement))
                 {
-                    correctPositions++;
+                    currentWPM = wpmElement.GetInt32();
+                    player.WPM = currentWPM;
+                }
+                
+                if (stats.TryGetProperty("accuracy", out JsonElement accuracyElement))
+                {
+                    currentAccuracy = accuracyElement.GetDouble();
+                    player.Accuracy = currentAccuracy;
                 }
             }
             
-            currentPosition = correctPositions;
-            correctChars = correctPositions;
-            incorrectChars = typingInput.Length - correctPositions;
-            
-            int progress = (int)((double)currentPosition / textSnippet.Content.Length * 100);
-            
-            if (hubConnection != null)
+            if ((DateTime.Now - lastUpdateTime).TotalSeconds >= 1)
             {
+                lastUpdateTime = DateTime.Now;
                 await hubConnection.SendAsync("UpdateProgress", LobbyId, progress, currentWPM, currentAccuracy);
-            }
-            
-            if (currentPosition == textSnippet.Content.Length)
-            {
-                await FinishGame();
+                StateHasChanged();
             }
         }
-        
-        await JS.InvokeVoidAsync("lobbyInterop.handleKeyUp", e.Key, currentPosition);
     }
-
-    private async Task UpdateStats()
+    catch (Exception ex)
     {
-        if (!gameActive || textSnippet == null) return;
-        
+        Console.WriteLine($"Error in HandleKeyDown: {ex.Message}");
+    }
+}
+
+private async Task UpdateStats()
+{
+    if (!gameActive || textSnippet == null) return;
+    
+    try
+    {
         var elapsedMinutes = (DateTime.Now - gameStartTime).TotalMinutes;
         
-        if (elapsedMinutes > 0)
+        var stats = await JS.InvokeAsync<JsonElement>("lobbyInterop.updateStats", elapsedMinutes);
+        
+        if (stats.ValueKind == JsonValueKind.Object)
         {
-            currentWPM = (int)(correctChars / 5 / elapsedMinutes);
-            
-            if (totalKeystrokes > 0)
+            if (stats.TryGetProperty("wpm", out JsonElement wpmElement))
             {
-                currentAccuracy = Math.Round((double)correctChars / totalKeystrokes * 100, 1);
+                currentWPM = wpmElement.GetInt32();
             }
             
-            await JS.InvokeVoidAsync("lobbyInterop.updateStats", currentWPM, currentAccuracy, elapsedMinutes);
+            if (stats.TryGetProperty("accuracy", out JsonElement accuracyElement))
+            {
+                currentAccuracy = accuracyElement.GetDouble();
+            }
             
             if ((DateTime.Now - lastUpdateTime).TotalSeconds >= 2)
             {
                 lastUpdateTime = DateTime.Now;
                 
-                int progress = (int)((double)currentPosition / textSnippet.Content.Length * 100);
+                int progress = 0;
+                var player = lobby?.Players.FirstOrDefault(p => p.UserId == currentUserId);
+                if (player != null)
+                {
+                    progress = player.Progress;
+                }
                 
                 if (hubConnection != null)
                 {
@@ -1111,38 +1433,87 @@
             }
         }
         
-        await InvokeAsync(StateHasChanged);
+        await CheckGameCompletion();
     }
-
-    private async Task FinishGame()
+    catch (Exception ex)
     {
-        if (isGameFinished) return;
-        
-        isGameFinished = true;
-        gameActive = false;
-        statsTimer.Stop();
-        
-        if (hubConnection != null)
-        {
-            await hubConnection.SendAsync("FinishGame", LobbyId, currentWPM, currentAccuracy);
-        }
-        
-        await JS.InvokeVoidAsync("lobbyInterop.finishGame");
+        Console.WriteLine($"Error updating stats: {ex.Message}");
+    }
+}
+
+private async Task CheckGameCompletion()
+{
+    if (lobby == null || !gameActive) return;
+    
+    var isComplete = await JS.InvokeAsync<bool>("lobbyInterop.isGameComplete");
+    
+    if (isComplete && !isGameFinished)
+    {
+        Console.WriteLine("Game completed detected. Finishing game...");
+        await FinishGame();
+    }
+    
+    if (lobby.Players.All(p => p.HasFinished) && lobby.Status != LobbyStatus.Finished)
+    {
+        Console.WriteLine("All players finished. Reloading lobby to update status...");
         await LoadLobby();
     }
+}
 
-    public async ValueTask DisposeAsync()
+private async Task FinishGame()
+{
+    if (isGameFinished) return;
+    
+    isGameFinished = true;
+    gameActive = false;
+    statsTimer.Stop();
+    
+    if (hubConnection != null)
     {
-        if (statsTimer != null)
-        {
-            statsTimer.Stop();
-            statsTimer.Dispose();
-        }
+        await hubConnection.SendAsync("FinishGame", LobbyId, currentWPM, currentAccuracy);
         
-        if (hubConnection != null)
+        await LobbyService.PlayerFinishedAsync(LobbyId, currentUserId, currentWPM, (int)currentAccuracy);
+    }
+    
+    await JS.InvokeVoidAsync("lobbyInterop.finishGame");
+    
+    await LoadLobby();
+    
+    if (lobby != null && lobby.Players.All(p => p.HasFinished))
+    {
+        if (lobby.Status != LobbyStatus.Finished)
         {
-            await hubConnection.SendAsync("LeaveLobby", LobbyId);
-            await hubConnection.DisposeAsync();
+            Console.WriteLine("All players finished but lobby status is not updated. Forcing UI update.");
+            await LoadLobby();
         }
     }
+}
+
+private async Task ShowResults()
+{
+    if (lobby == null || lobby.Status != LobbyStatus.Finished) return;
+    
+    await CloseCompletionModal();
+    
+    await JS.InvokeVoidAsync("scrollToElement", ".results-area");
+    
+    activeResultsTab = "table";
+    
+    StateHasChanged();
+}
+
+public async ValueTask DisposeAsync()
+{
+    if (statsTimer != null)
+    {
+        statsTimer.Stop();
+        statsTimer.Dispose();
+    }
+    
+    if (hubConnection != null)
+    {
+        await hubConnection.SendAsync("LeaveLobby", LobbyId);
+        await hubConnection.DisposeAsync();
+    }
+}
 }
