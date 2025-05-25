@@ -34,14 +34,22 @@ namespace keyraces.Infrastructure.Services
             var jwtTokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]);
 
+            var displayName = !string.IsNullOrEmpty(userName) ? userName :
+                             !string.IsNullOrEmpty(user.UserName) ? user.UserName :
+                             !string.IsNullOrEmpty(user.Email) ? user.Email :
+                             "Unknown User";
+
             var claims = new List<Claim>
-           {
-               new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-               new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-               new Claim(JwtRegisteredClaimNames.Email, user.Email),
-               new Claim("id", user.Id),
-               new Claim("name", userName)
-           };
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
+                new Claim("id", user.Id),
+                new Claim("name", displayName),
+                new Claim(ClaimTypes.Name, displayName),
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim("username", displayName) 
+            };
 
             var userRoles = await _userManager.GetRolesAsync(user);
             foreach (var role in userRoles)
@@ -68,7 +76,7 @@ namespace keyraces.Infrastructure.Services
                 JwtId = token.Id,
                 UserId = user.Id,
                 CreationDate = DateTime.UtcNow,
-                ExpiryDate = DateTime.UtcNow.AddDays(30), // Refresh token действителен 30 дней
+                ExpiryDate = DateTime.UtcNow.AddDays(30),
                 Invalidated = false,
                 Used = false,
                 Token = GenerateRefreshToken()
@@ -84,7 +92,7 @@ namespace keyraces.Infrastructure.Services
                 RefreshToken = refreshToken.Token,
                 Expiration = tokenDescriptor.Expires.Value,
                 UserId = user.Id,
-                UserName = userName
+                UserName = displayName
             };
         }
 
@@ -145,7 +153,13 @@ namespace keyraces.Infrastructure.Services
                 return new AuthResponse { Success = false, Message = "User not found" };
             }
 
-            var userName = validatedToken.Claims.Single(x => x.Type == "name").Value;
+            var userName = validatedToken.Claims.FirstOrDefault(x => x.Type == "name")?.Value ??
+                          validatedToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Name)?.Value ??
+                          validatedToken.Claims.FirstOrDefault(x => x.Type == "username")?.Value ??
+                          user.UserName ??
+                          user.Email ??
+                          "Unknown User";
+
             return await GenerateTokensAsync(user, userName);
         }
 
@@ -209,14 +223,14 @@ namespace keyraces.Infrastructure.Services
 
                 if (!IsJwtWithValidSecurityAlgorithm(validatedToken))
                 {
-                    return null;
+                    return null!;
                 }
 
                 return principal;
             }
             catch
             {
-                return null;
+                return null!;
             }
         }
 

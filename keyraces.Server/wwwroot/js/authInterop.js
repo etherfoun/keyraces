@@ -16,7 +16,7 @@
             const payload = JSON.parse(jsonPayload)
             const expiry = payload.exp
 
-            const bufferTime = 5 * 60 * 1000 
+            const bufferTime = 5 * 60 * 1000
 
             const isExpired = expiry * 1000 < Date.now() - bufferTime
 
@@ -69,25 +69,37 @@
             .then((response) => {
                 console.log("Login response status:", response.status)
 
-                return response.json().then((data) => {
-                    if (response.status === 200) {
-                        console.log("Login successful, saving tokens:", data)
-                        window.authInterop.saveTokens(data)
-                        return { success: true }
-                    } else {
-                        console.log("Login failed:", data)
+                const contentType = response.headers.get("content-type")
+
+                if (contentType && contentType.includes("application/json")) {
+                    return response.json().then((data) => {
+                        if (response.status === 200) {
+                            console.log("Login successful, saving tokens:", data)
+                            window.authInterop.saveTokens(data)
+                            return { success: true }
+                        } else {
+                            console.log("Login failed:", data)
+                            return {
+                                success: false,
+                                message: data.message || "Invalid email or password",
+                            }
+                        }
+                    })
+                } else {
+                    return response.text().then((text) => {
+                        console.error("Server returned non-JSON response:", text)
                         return {
                             success: false,
-                            message: data.message || "Invalid email or password",
+                            message: "Server error occurred. Please try again later.",
                         }
-                    }
-                })
+                    })
+                }
             })
             .catch((error) => {
                 console.error("Error during login:", error)
                 return {
                     success: false,
-                    message: error.message || "An error occurred during login",
+                    message: "An error occurred during login. Please try again.",
                 }
             })
     },
@@ -109,19 +121,31 @@
             .then((response) => {
                 console.log("Register response status:", response.status)
 
-                return response.json().then((data) => {
-                    if (response.status === 200) {
-                        console.log("Registration successful, saving tokens:", data)
-                        window.authInterop.saveTokens(data)
-                        return { success: true }
-                    } else {
-                        console.log("Registration failed:", data)
+                const contentType = response.headers.get("content-type")
+
+                if (contentType && contentType.includes("application/json")) {
+                    return response.json().then((data) => {
+                        if (response.status === 200) {
+                            console.log("Registration successful, saving tokens:", data)
+                            window.authInterop.saveTokens(data)
+                            return { success: true }
+                        } else {
+                            console.log("Registration failed:", data)
+                            return {
+                                success: false,
+                                message: data.message || "Registration failed",
+                            }
+                        }
+                    })
+                } else {
+                    return response.text().then((text) => {
+                        console.error("Server returned non-JSON response:", text)
                         return {
                             success: false,
-                            message: data.message || "Registration failed",
+                            message: "Server error occurred. Please try again later.",
                         }
-                    }
-                })
+                    })
+                }
             })
             .catch((error) => {
                 console.error("Error during registration:", error)
@@ -227,6 +251,59 @@
         } catch (e) {
             console.error("Error during authentication check:", e)
             return false
+        }
+    },
+
+    getUserInfo: () => {
+        try {
+            const token = localStorage.getItem("auth_token")
+            if (!token) {
+                console.log("No auth token found")
+                return null
+            }
+
+            const base64Url = token.split(".")[1]
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
+            const jsonPayload = decodeURIComponent(
+                atob(base64)
+                    .split("")
+                    .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+                    .join(""),
+            )
+
+            const payload = JSON.parse(jsonPayload)
+            console.log("JWT payload:", payload)
+
+            const userInfo = {
+                userId:
+                    payload.sub ||
+                    payload.nameid ||
+                    payload.id ||
+                    payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"],
+                username:
+                    payload.unique_name ||
+                    payload.name ||
+                    payload.username ||
+                    payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"],
+                name:
+                    payload.name ||
+                    payload.given_name ||
+                    payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"],
+                email: payload.email || payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"],
+                role: payload.role || payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"],
+            }
+
+            Object.keys(userInfo).forEach((key) => {
+                if (userInfo[key] === undefined) {
+                    delete userInfo[key]
+                }
+            })
+
+            console.log("Extracted user info:", userInfo)
+            return userInfo
+        } catch (error) {
+            console.error("Error getting user info:", error)
+            return null
         }
     },
 }

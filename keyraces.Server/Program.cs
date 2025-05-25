@@ -1,24 +1,44 @@
-﻿using keyraces.Infrastructure.Security;
-using keyraces.Server.Data;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using keyraces.Core.Entities;
 using keyraces.Core.Interfaces;
+using keyraces.Infrastructure;
 using keyraces.Infrastructure.Data;
 using keyraces.Infrastructure.Repositories;
+using keyraces.Infrastructure.Security;
 using keyraces.Infrastructure.Services;
-using Microsoft.OpenApi.Models;
-using keyraces.Server.Hubs;
-using Microsoft.AspNetCore.Components;
-using keyraces.Core.Entities;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using keyraces.Infrastructure;
 using keyraces.Server;
-using Microsoft.AspNetCore.Components.Authorization;
+using keyraces.Server.Data;
+using keyraces.Server.Hubs;
 using keyraces.Server.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
+using System;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(8080, listenOptions =>
+    {
+        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
+    });
+
+    options.ConfigureEndpointDefaults(listenOptions =>
+    {
+        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
+    });
+});
 
 builder.Services.AddScoped<HttpClient>(sp =>
 {
@@ -82,6 +102,27 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"])),
         ClockSkew = TimeSpan.Zero
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                accessToken = context.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            }
+
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) &&
+                (path.StartsWithSegments("/hub/typing") || path.StartsWithSegments("/typingHub")))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.ConfigureApplicationCookie(options =>
@@ -125,22 +166,62 @@ builder.Services.AddScoped<ITypingStatisticService, TypingStatisticService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<IUserAchievementService, UserAchievementService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<ITextGenerationService, LocalLLMTextGenerationService>(sp =>
-{
-    var logger = sp.GetRequiredService<ILogger<LocalLLMTextGenerationService>>();
-    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-    var apiUrl = "http://localhost:11434/api/generate";
-    var modelName = "llama2";
-
-    return new LocalLLMTextGenerationService(logger, httpClient, sp, apiUrl, modelName);
-});
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
 
+// Регистрация сервиса для работы с лобби соревнований
+builder.Services.AddScoped<ICompetitionLobbyService, RedisCompetitionLobbyService>();
+
+// Регистрация Redis
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var redisConfig = builder.Configuration.GetSection("Redis");
+    var connectionString = redisConfig["Connection"] ?? "redis:6379";
+
+    var configuration = ConfigurationOptions.Parse(connectionString);
+    configuration.AbortOnConnectFail = false;
+
+    return ConnectionMultiplexer.Connect(configuration);
+});
+
+// Text Generation Service
+builder.Services.AddHttpClient("OllamaClient", (serviceProvider, client) =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var apiUrl = configuration["Ollama:ApiUrl"] ?? "http://host.docker.internal:11434/api/generate";
+    var timeoutSeconds = configuration.GetValue<int>("Ollama:TimeoutSeconds", 120);
+
+    client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+    client.BaseAddress = new Uri(apiUrl.Replace("/api/generate", ""));
+});
+
+builder.Services.AddScoped<ITextGenerationService>(serviceProvider =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+    var logger = serviceProvider.GetRequiredService<ILogger<LocalLLMTextGenerationService>>();
+
+    var apiUrl = configuration["Ollama:ApiUrl"] ?? "http://host.docker.internal:11434/api/generate";
+    var modelName = configuration["Ollama:ModelName"] ?? "llama2";
+
+    var httpClient = httpClientFactory.CreateClient("OllamaClient");
+
+    return new LocalLLMTextGenerationService(
+        logger,
+        httpClient,
+        serviceProvider,
+        apiUrl,
+        modelName);
+});
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+    options.MaximumReceiveMessageSize = 102400; // 100 KB
+});
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
@@ -188,23 +269,17 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.UseHttpsRedirection();
-
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseSession();
-
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
-
+app.MapHub<TypingHub>("/typingHub");
 app.MapHub<TypingHub>("/hub/typing");
-
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
-
 
 using (var scope = app.Services.CreateScope())
 {
@@ -213,39 +288,67 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
+        logger.LogInformation("Checking database connection...");
+        if (await ctx.Database.CanConnectAsync())
+        {
+            logger.LogInformation("Database connection successful.");
+        }
+        else
+        {
+            logger.LogError("Cannot connect to database!");
+            throw new Exception("Database connection failed");
+        }
+
+        // Применяем миграции
+        logger.LogInformation("Applying database migrations...");
+        await ctx.Database.MigrateAsync();
+        logger.LogInformation("Database migrations applied successfully.");
+
+        // Создание ролей и админа
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+        if (!await roleManager.RoleExistsAsync("Admin"))
+        {
+            await roleManager.CreateAsync(new IdentityRole("Admin"));
+            logger.LogInformation("Admin role created.");
+        }
+
+        if (!await roleManager.RoleExistsAsync("User"))
+        {
+            await roleManager.CreateAsync(new IdentityRole("User"));
+            logger.LogInformation("User role created.");
+        }
+
+        var adminEmail = "admin@keyraces.com";
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+        if (adminUser == null)
+        {
+            adminUser = new IdentityUser
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                EmailConfirmed = true
+            };
+
+            var result = await userManager.CreateAsync(adminUser, "Admin123!");
+
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+                logger.LogInformation($"Default admin user created: {adminEmail} / Admin123!");
+            }
+            else
+            {
+                logger.LogError($"Failed to create admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+        }
+
+        // Добавление тестовых текстов
         if (!ctx.TextSnippets.Any())
         {
-            logger.LogInformation("No text snippets found in database. Adding default texts.");
-
-            ctx.TextSnippets.Add(new TextSnippet
-            {
-                Title = "������� �����",
-                Content = "������� ���������� ���� ������� ����� ������� ������. ���� ����� �������� ��� ����� ��������.",
-                Difficulty = "easy",
-                Language = "ru",
-                IsGenerated = false,
-                CreatedAt = DateTime.UtcNow
-            });
-
-            ctx.TextSnippets.Add(new TextSnippet
-            {
-                Title = "������� �����",
-                Content = "���������������� � ��� ������� �������� ������ ����������, ������� ��������� ����������, ��� ��������� ������. ���������������� ����� ����������� � �������������� ��������� ������ ����������������.",
-                Difficulty = "medium",
-                Language = "ru",
-                IsGenerated = false,
-                CreatedAt = DateTime.UtcNow
-            });
-
-            ctx.TextSnippets.Add(new TextSnippet
-            {
-                Title = "������� �����",
-                Content = "� ������������ ����� ������������� ��������� (��), ������ ���������� �������� �����������, � ��� ���������, ��������������� ��������, � ������� �� ������������� ����������, ������������ ������ � ���������.",
-                Difficulty = "hard",
-                Language = "ru",
-                IsGenerated = false,
-                CreatedAt = DateTime.UtcNow
-            });
+            logger.LogInformation("Adding default text snippets...");
 
             ctx.TextSnippets.Add(new TextSnippet
             {
@@ -257,51 +360,14 @@ using (var scope = app.Services.CreateScope())
                 CreatedAt = DateTime.UtcNow
             });
 
-            ctx.TextSnippets.Add(new TextSnippet
-            {
-                Title = "Medium Text",
-                Content = "Programming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using a variety of computer programming languages.",
-                Difficulty = "medium",
-                Language = "en",
-                IsGenerated = false,
-                CreatedAt = DateTime.UtcNow
-            });
-
-            ctx.TextSnippets.Add(new TextSnippet
-            {
-                Title = "Hard Text",
-                Content = "In computer science, artificial intelligence (AI), sometimes called machine intelligence, is intelligence demonstrated by machines, in contrast to the natural intelligence displayed by humans and animals.",
-                Difficulty = "hard",
-                Language = "en",
-                IsGenerated = false,
-                CreatedAt = DateTime.UtcNow
-            });
-
             await ctx.SaveChangesAsync();
             logger.LogInformation("Default text snippets added successfully.");
-        }
-        else
-        {
-            var textsWithoutLanguage = await ctx.TextSnippets.Where(t => t.Language == null).ToListAsync();
-            if (textsWithoutLanguage.Any())
-            {
-                logger.LogInformation($"Found {textsWithoutLanguage.Count} text snippets without language. Setting default language to 'ru'.");
-
-                foreach (var text in textsWithoutLanguage)
-                {
-                    text.Language = "ru";
-                }
-
-                await ctx.SaveChangesAsync();
-                logger.LogInformation("Updated text snippets with default language.");
-            }
-
-            logger.LogInformation($"Database already contains {await ctx.TextSnippets.CountAsync()} text snippets.");
         }
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "An error occurred while seeding the database with text snippets.");
+        logger.LogError(ex, "An error occurred while setting up the database.");
+        throw;
     }
 }
 

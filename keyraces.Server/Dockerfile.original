@@ -1,0 +1,31 @@
+# Stage 1: build and publish
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy project files for all three projects (for proper restore caching)
+COPY ["keyraces.Core/keyraces.Core.csproj", "keyraces.Core/"]
+COPY ["keyraces.Infrastructure/keyraces.Infrastructure.csproj", "keyraces.Infrastructure/"]
+COPY ["keyraces.Server/keyraces.Server.csproj", "keyraces.Server/"]
+
+# Restore only the server project (it will pull in the others by project-reference)
+RUN dotnet restore "keyraces.Server/keyraces.Server.csproj"
+
+# Copy all source code
+COPY . .
+
+# Publish the server project
+WORKDIR "/src/keyraces.Server"
+RUN dotnet publish "keyraces.Server.csproj" -c Release -o /app/publish
+
+# Stage 2: runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+
+# Copy the published output from the build stage
+COPY --from=build /app/publish .
+
+# Expose the port the app runs on
+EXPOSE 80
+
+# Start the application
+ENTRYPOINT ["dotnet", "keyraces.Server.dll"]

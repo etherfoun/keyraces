@@ -2,7 +2,7 @@
 {
     public class SetupAdminDto
     {
-        public string AdminEmail { get; set; }
-        public string SecretKey { get; set; }
+        public string AdminEmail { get; set; } = string.Empty;
+        public string SecretKey { get; set; } = string.Empty;
     }
 }

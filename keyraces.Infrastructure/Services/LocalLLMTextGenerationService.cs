@@ -28,7 +28,7 @@ namespace keyraces.Infrastructure.Services
             _modelName = modelName;
 
             _httpClient = httpClient;
-            _httpClient.Timeout = TimeSpan.FromSeconds(60); 
+            _httpClient.Timeout = TimeSpan.FromSeconds(120);
 
             _logger.LogInformation($"LocalLLMTextGenerationService initialized with API URL: {_apiUrl}, Model: {_modelName}");
         }
@@ -41,7 +41,8 @@ namespace keyraces.Infrastructure.Services
             {
                 try
                 {
-                    var healthResponse = await _httpClient.GetAsync("http://localhost:11434/");
+                    var healthUrl = _apiUrl.Replace("/api/generate", "/");
+                    var healthResponse = await _httpClient.GetAsync(healthUrl);
 
                     if (!healthResponse.IsSuccessStatusCode)
                     {
@@ -52,6 +53,7 @@ namespace keyraces.Infrastructure.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Failed to connect to Ollama server during health check");
+                    _logger.LogInformation("Ollama server is not available. Using fallback text generation.");
                     return GenerateFallbackText(topic, difficulty, length, language);
                 }
 
@@ -61,7 +63,7 @@ namespace keyraces.Infrastructure.Services
                     _logger.LogInformation($"Generated random topic: {topic}");
                 }
 
-                string generatedText = null;
+                string generatedText = null!;
 
                 for (int attempt = 1; attempt <= 3; attempt++)
                 {
@@ -152,10 +154,10 @@ namespace keyraces.Infrastructure.Services
                 max_tokens = length * 2,
                 options = new
                 {
-                    num_ctx = 0, 
-                    seed = language == "ru" ? 42 : 24, 
-                    num_predict = length * 2, 
-                    stop = new[] { "###", "END" } 
+                    num_ctx = 0,
+                    seed = language == "ru" ? 42 : 24,
+                    num_predict = length * 2,
+                    stop = new[] { "###", "END" }
                 }
             };
 
@@ -336,16 +338,16 @@ namespace keyraces.Infrastructure.Services
         private bool HasNonsensePatterns(string text)
         {
             string[] nonsensePatterns = {
-                @"\[\s*\]",              
-                @"\[\s*\d+\s*\]",        
-                @"Hinweis\]",            
-                @"How can I's\]",        
-                @"How to make a\d+",     
-                @"```",                  
-                @"\{\{.*?\}\}",          
-                @"<.*?>",               
-                @"$$\s*$$",              
-                @"\*\*.*?\*\*"           
+                @"\[\s*\]",
+                @"\[\s*\d+\s*\]",
+                @"Hinweis\]",
+                @"How can I's\]",
+                @"How to make a\d+",
+                @"```",
+                @"\{\{.*?\}\}",
+                @"<.*?>",
+                @"$$\s*$$",
+                @"\*\*.*?\*\*"
             };
 
             foreach (var pattern in nonsensePatterns)
@@ -657,7 +659,7 @@ namespace keyraces.Infrastructure.Services
                 }
             }
 
-            string selectedText = null;
+            string selectedText = null!;
 
             foreach (var text in textsArray)
             {

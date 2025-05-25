@@ -1,19 +1,16 @@
-﻿/* Основной контейнер */
-.competitions-container {
+﻿.competitions-container {
     display: flex;
     min-height: 100vh;
     background-color: var(--background-primary);
     position: relative;
 }
 
-/* Основная область контента */
 .competitions-content {
     flex: 1;
     padding: 30px;
     transition: all 0.3s ease;
 }
 
-/* Заголовок страницы */
 .competitions-header {
     display: flex;
     justify-content: space-between;
@@ -33,7 +30,6 @@
         text-fill-color: transparent;
     }
 
-/* Кнопка создания лобби */
 .create-lobby-btn {
     background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
     color: white;
@@ -64,7 +60,6 @@
         font-size: 18px;
     }
 
-/* Список лобби */
 .lobby-list {
     display: flex;
     flex-direction: column;
@@ -224,7 +219,6 @@
         transform: none;
     }
 
-/* Боковая панель фильтров */
 .filter-sidebar {
     width: 0;
     background-color: var(--background-secondary);
@@ -416,7 +410,6 @@
         color: var(--text-primary);
     }
 
-/* Кнопка фильтра */
 .filter-btn {
     background-color: var(--background-tertiary);
     color: var(--text-secondary);
@@ -441,7 +434,6 @@
         font-size: 16px;
     }
 
-/* Пагинация */
 .pagination {
     display: flex;
     justify-content: center;
@@ -479,7 +471,6 @@
         cursor: not-allowed;
     }
 
-/* Модальное окно создания лобби */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -655,7 +646,6 @@
         color: var(--text-primary);
     }
 
-/* Состояние загрузки */
 .loading-state {
     display: flex;
     flex-direction: column;
@@ -686,7 +676,6 @@
     font-size: 16px;
 }
 
-/* Пустое состояние */
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -715,7 +704,6 @@
     max-width: 400px;
 }
 
-/* Кнопка фильтра для мобильных устройств */
 .mobile-filter-btn {
     display: none;
     position: fixed;
@@ -742,7 +730,6 @@
         font-size: 24px;
     }
 
-/* Адаптивность */
 @media (max-width: 768px) {
     .competitions-content {
         padding: 20px;
@@ -793,7 +780,6 @@
     }
 }
 
-/* Анимации */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -872,7 +858,6 @@
         animation-delay: 1s;
     }
 
-/* Стили для авторизации */
 .auth-required {
     background-color: var(--background-secondary);
     border-radius: 12px;

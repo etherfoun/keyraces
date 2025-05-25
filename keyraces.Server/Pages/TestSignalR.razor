@@ -1,0 +1,163 @@
+﻿@page "/test-signalr"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<h3>Тест подключения SignalR</h3>
+
+<div class="card">
+    <div class="card-header">
+        Статус подключения
+    </div>
+    <div class="card-body">
+        <p>
+            Статус:
+            @if (isConnected)
+            {
+                <span class="badge bg-success">Подключено</span>
+            }
+            else
+            {
+                <span class="badge bg-danger">Отключено</span>
+            }
+        </p>
+
+        <div class="mb-3">
+            <button class="btn btn-primary" @onclick="Connect" disabled="@isConnected">Подключиться</button>
+            <button class="btn btn-danger" @onclick="Disconnect" disabled="@(!isConnected)">Отключиться</button>
+        </div>
+
+        @if (connectionError != null)
+        {
+            <div class="alert alert-danger">
+                <h5>Ошибка подключения:</h5>
+                <p>@connectionError</p>
+            </div>
+        }
+    </div>
+</div>
+
+@if (isConnected)
+{
+    <div class="card mt-3">
+        <div class="card-header">
+            Отправка сообщения
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label for="message" class="form-label">Сообщение</label>
+                <input type="text" class="form-control" id="message" @bind="message" />
+            </div>
+            <button class="btn btn-primary" @onclick="SendMessage">Отправить</button>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header">
+            Полученные сообщения
+        </div>
+        <div class="card-body">
+            @if (messages.Count == 0)
+            {
+                <p>Нет сообщений</p>
+            }
+            else
+            {
+                <ul class="list-group">
+                    @foreach (var msg in messages)
+                    {
+                        <li class="list-group-item">@msg</li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private HubConnection? hubConnection;
+    private List<string> messages = new List<string>();
+    private string message = "";
+    private bool isConnected = false;
+    private string? connectionError = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Connect();
+    }
+
+    private async Task Connect()
+    {
+        try
+        {
+            connectionError = null;
+
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
+            if (string.IsNullOrEmpty(token))
+            {
+                connectionError = "Токен авторизации отсутствует. Пожалуйста, войдите в систему.";
+                return;
+            }
+
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/typingHub"), options =>
+                {
+                    options.AccessTokenProvider = () => Task.FromResult(token);
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On<string>("ReceiveMessage", (receivedMessage) =>
+            {
+                messages.Add(receivedMessage);
+                StateHasChanged();
+            });
+
+            await hubConnection.StartAsync();
+            isConnected = true;
+            messages.Add("Подключение установлено");
+        }
+        catch (Exception ex)
+        {
+            connectionError = $"Ошибка подключения: {ex.Message}";
+            isConnected = false;
+        }
+    }
+
+    private async Task Disconnect()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.StopAsync();
+            await hubConnection.DisposeAsync();
+            hubConnection = null;
+            isConnected = false;
+            messages.Add("Подключение закрыто");
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (hubConnection is not null && !string.IsNullOrEmpty(message))
+        {
+            try
+            {
+                await hubConnection.SendAsync("SendMessage", message);
+                message = "";
+            }
+            catch (Exception ex)
+            {
+                messages.Add($"Ошибка отправки: {ex.Message}");
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}

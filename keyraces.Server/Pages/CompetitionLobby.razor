@@ -1,0 +1,1148 @@
+﻿@page "/competition/{LobbyId}"
+@using Microsoft.AspNetCore.SignalR.Client
+@using keyraces.Core.Models
+@using keyraces.Core.Entities
+@using keyraces.Core.Interfaces
+@using keyraces.Server.Controllers
+@using keyraces.Server.Dtos
+@using System.Net.Http.Json
+@using System.Text.Json
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@inject ICompetitionLobbyService LobbyService
+@inject ITextSnippetService TextSnippetService
+@inject HttpClient Http
+@implements IAsyncDisposable
+
+<div class="competition-container">
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p class="loading-text">Загрузка лобби...</p>
+        </div>
+    }
+    else if (lobby == null)
+    {
+        <div class="error-state">
+            <i class="oi oi-warning error-icon"></i>
+            <h3 class="error-title">Лобби не найдено</h3>
+            <p class="error-text">Возможно, лобби было удалено или истекло время его существования</p>
+            <a href="/competitions" class="btn btn-primary">Вернуться к списку</a>
+        </div>
+    }
+    else
+    {
+        <div class="competition-header">
+            <div class="header-info">
+                <h1 class="lobby-name">@lobby.Name</h1>
+                <div class="lobby-status @GetStatusClass(lobby.Status)">
+                    <i class="oi @GetStatusIcon(lobby.Status)"></i>
+                    @GetStatusText(lobby.Status)
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary leave-btn" @onclick="LeaveLobby">
+                    <i class="oi oi-account-logout"></i> Покинуть
+                </button>
+            </div>
+        </div>
+
+        <div class="competition-content">
+            <div class="main-area">
+                @if (lobby.Status == LobbyStatus.Waiting)
+                {
+                    <div class="waiting-area">
+                        <div class="lobby-controls">
+                            <h3 class="section-title">
+                                <i class="oi oi-cog"></i> Управление
+                            </h3>
+                            
+                            @if (!isHost)
+                            {
+                                <div class="player-controls">
+                                    @{
+                                        var currentPlayer = lobby.Players.FirstOrDefault(p => p.UserId == currentUserId);
+                                        var isReady = currentPlayer?.IsReady ?? false;
+                                    }
+                                    
+                                    <button class="control-btn ready-control-btn @(isReady ? "ready-active" : "")" 
+                                            @onclick="ToggleReady">
+                                        <i class="oi @(isReady ? "oi-check" : "oi-clock")"></i>
+                                        @(isReady ? "Готов! Нажмите для отмены" : "Нажмите когда будете готовы")
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="host-controls">
+                                    @{
+                                        var currentPlayer = lobby.Players.FirstOrDefault(p => p.UserId == currentUserId);
+                                        var isReady = currentPlayer?.IsReady ?? false;
+                                    }
+                                    
+                                    <button class="control-btn ready-control-btn @(isReady ? "ready-active" : "")" 
+                                            @onclick="ToggleReady">
+                                        <i class="oi @(isReady ? "oi-check" : "oi-clock")"></i>
+                                        @(isReady ? "Готов! Нажмите для отмены" : "Нажмите когда будете готовы")
+                                    </button>
+                                    
+                                    <button class="control-btn start-control-btn" 
+                                            @onclick="ShowTextSelection" 
+                                            disabled="@(!CanStartGame())">
+                                        <i class="oi oi-media-play"></i>
+                                        Начать игру
+                                    </button>
+                                    
+                                    @if (!CanStartGame())
+                                    {
+                                        <div class="start-game-hint">
+                                            <span>
+                                                @if (lobby.Players.Count < 2)
+                                                {
+                                                    @:Нужно минимум 2 игрока
+                                                }
+                                                else if (!lobby.Players.All(p => p.IsReady))
+                                                {
+                                                    @:Все игроки должны быть готовы
+                                                }
+                                            </span>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <div class="participants-section">
+                            <h3 class="section-title">
+                                <i class="oi oi-people"></i> Участники (@lobby.Players.Count/@lobby.MaxPlayers)
+                            </h3>
+                            <div class="participants-grid">
+                                @foreach (var player in lobby.Players)
+                                {
+                                    <div class="participant-card @(player.IsReady ? "ready" : "")">
+                                        <div class="participant-avatar">
+                                            @GetInitials(player.UserName)
+                                        </div>
+                                        <div class="participant-info">
+                                            <div class="participant-name">
+                                                @player.UserName
+                                                @if (player.IsHost)
+                                                {
+                                                    <span class="host-badge">Хост</span>
+                                                }
+                                            </div>
+                                            <div class="participant-status">
+                                                @if (player.IsReady)
+                                                {
+                                                    <i class="oi oi-check">Готов</i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="oi oi-clock">Не готов</i>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="instructions-section">
+                            <h3 class="section-title">
+                                <i class="oi oi-info"></i> Инструкции
+                            </h3>
+                            <div class="instructions-content">
+                                <p>1. Дождитесь, пока все участники будут готовы</p>
+                                <p>2. Хост выберет текст для набора</p>
+                                <p>3. После начала игры набирайте текст как можно быстрее и точнее</p>
+                                <p>4. Побеждает тот, кто первым закончит с лучшими показателями</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (lobby.Status == LobbyStatus.InGame)
+                {
+                    @if (currentUserId != null && !HasPlayerFinished(currentUserId))
+                    {
+                        <div class="typing-game">
+                            <div class="typing-header">
+                                <h3 class="section-title">
+                                    <i class="oi oi-text"></i> Набор текста
+                                </h3>
+                                <div class="typing-stats">
+                                    <div class="stat">
+                                        <i class="oi oi-speedometer"></i> <span id="wpm-display">0</span> WPM
+                                    </div>
+                                    <div class="stat">
+                                        <i class="oi oi-target"></i> <span id="accuracy-display">100.0</span>%
+                                    </div>
+                                    <div class="stat">
+                                        <i class="oi oi-timer"></i> <span id="time-display">00:00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (textSnippet != null)
+                            {
+                                <div class="typing-area">
+                                    <div id="text-display" class="text-display">
+                                        @foreach (var character in textSnippet.Content)
+                                        {
+                                            <span class="character">@character</span>
+                                        }
+                                    </div>
+                                    <textarea id="typing-input" class="typing-input" 
+                                              @bind="typingInput" 
+                                              @bind:event="oninput" 
+                                              @onkeydown="HandleKeyDown"
+                                              @onkeyup="HandleKeyUp"
+                                              @ref="typingInputRef"
+                                              autofocus></textarea>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="loading-text">Загрузка текста...</div>
+                            }
+                        </div>
+                    }
+
+                    <div class="game-progress">
+                        <h3 class="section-title">
+                            <i class="oi oi-dashboard"></i> Прогресс игры
+                        </h3>
+                        <div class="progress-list">
+                            @foreach (var player in lobby.Players.OrderByDescending(p => p.Progress))
+                            {
+                                <div class="progress-item @(player.HasFinished ? "finished" : "")">
+                                    <div class="progress-info">
+                                        <span class="player-name">@player.UserName</span>
+                                        <div class="player-stats">
+                                            <span class="stat">
+                                                <i class="oi oi-speedometer"></i> @player.WPM WPM
+                                            </span>
+                                            <span class="stat">
+                                                <i class="oi oi-target"></i> @player.Accuracy.ToString("F1")%
+                                            </span>
+                                            @if (player.HasFinished && player.Position.HasValue)
+                                            {
+                                                <span class="position-badge position-@player.Position">
+                                                    #@player.Position
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar" style="width: @player.Progress%"></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else if (lobby.Status == LobbyStatus.Finished)
+                {
+                    <div class="results-area">
+                        <h3 class="section-title">
+                            <i class="oi oi-trophy"></i> Результаты соревнования
+                        </h3>
+                        <div class="results-podium">
+                            @{
+                                var sortedPlayers = lobby.Players
+                                    .Where(p => p.HasFinished)
+                                    .OrderBy(p => p.Position)
+                                    .Take(3)
+                                    .ToList();
+                            }
+                            @for (int i = 0; i < sortedPlayers.Count; i++)
+                            {
+                                var player = sortedPlayers[i];
+                                <div class="podium-place place-@(i + 1)">
+                                    <div class="place-number">@(i + 1)</div>
+                                    <div class="place-avatar">
+                                        @GetInitials(player.UserName)
+                                    </div>
+                                    <div class="place-name">@player.UserName</div>
+                                    <div class="place-stats">
+                                        <div>@player.FinalWPM WPM</div>
+                                        <div>@player.FinalAccuracy?.ToString("F1")% точность</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="full-results">
+                            <table class="results-table">
+                                <thead>
+                                    <tr>
+                                        <th>Место</th>
+                                        <th>Участник</th>
+                                        <th>WPM</th>
+                                        <th>Точность</th>
+                                        <th>Время</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var player in lobby.Players.Where(p => p.HasFinished).OrderBy(p => p.Position))
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="position-badge position-@player.Position">
+                                                    #@player.Position
+                                                </span>
+                                            </td>
+                                            <td>@player.UserName</td>
+                                            <td>@player.FinalWPM</td>
+                                            <td>@player.FinalAccuracy?.ToString("F1")%</td>
+                                            <td>@FormatCompletionTime(player.FinishedAt, lobby.StartedAt)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="sidebar">
+                <div class="chat-section">
+                    <h3 class="section-title">
+                        <i class="oi oi-comment-square"></i> Чат
+                    </h3>
+                    <div class="chat-messages" @ref="chatContainer">
+                        @foreach (var message in chatMessages)
+                        {
+                            <div class="chat-message @(message.UserId == currentUserId ? "own" : "")">
+                                <div class="message-header">
+                                    <span class="message-author">@message.UserName</span>
+                                    <span class="message-time">@message.Timestamp.ToString("HH:mm")</span>
+                                </div>
+                                <div class="message-content">@message.Message</div>
+                            </div>
+                        }
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" class="message-input" placeholder="Введите сообщение..." 
+                               @bind="newMessage" @bind:event="oninput" @onkeypress="@(async (e) => { if (e.Key == "Enter") await SendMessage(); })" />
+                        <button class="send-btn" @onclick="SendMessage" disabled="@string.IsNullOrWhiteSpace(newMessage)">
+                            <i class="oi oi-location"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lobby-info-section">
+                    <h3 class="section-title">
+                        <i class="oi oi-info"></i> Информация
+                    </h3>
+                    <div class="info-content">
+                        <div class="info-item">
+                            <span class="info-label">Код лобби:</span>
+                            <span class="info-value">@LobbyId</span>
+                            <button class="copy-btn" @onclick="CopyLobbyId">
+                                <i class="oi oi-clipboard"></i>
+                            </button>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Хост:</span>
+                            <span class="info-value">@lobby.HostName</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Создано:</span>
+                            <span class="info-value">@lobby.CreatedAt.ToString("HH:mm dd.MM")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (showTextSelection)
+{
+    <div class="modal-overlay show" @onclick="CloseTextSelection">
+        <div class="modal-content text-selection-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Выберите текст для соревнования</h2>
+                <button class="close-modal-btn" @onclick="CloseTextSelection">
+                    <i class="oi oi-x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="text-selection-tabs">
+                    <button class="tab-btn @(activeTab == "existing" ? "active" : "")" 
+                            @onclick="@(() => SetActiveTab("existing"))">
+                        <i class="oi oi-document"></i> Готовые тексты
+                    </button>
+                    <button class="tab-btn @(activeTab == "generate" ? "active" : "")" 
+                            @onclick="@(() => SetActiveTab("generate"))">
+                        <i class="oi oi-cog"></i> Генерация ИИ
+                    </button>
+                </div>
+
+                <div class="tab-content">
+                    @if (activeTab == "existing")
+                    {
+                        <div class="existing-texts-tab">
+                            <div class="text-selection-filters">
+                                <select class="form-control" @bind="selectedLanguage">
+                                    <option value="">Все языки</option>
+                                    <option value="English">English</option>
+                                    <option value="Russian">Русский</option>
+                                    <option value="Ukrainian">Українська</option>
+                                </select>
+                                <select class="form-control" @bind="selectedDifficulty">
+                                    <option value="">Все уровни сложности</option>
+                                    <option value="easy">Легкий</option>
+                                    <option value="medium">Средний</option>
+                                    <option value="hard">Сложный</option>
+                                </select>
+                            </div>
+                            <div class="text-snippets-list">
+                                @if (textSnippets == null || !textSnippets.Any())
+                                {
+                                    <p class="no-snippets">Нет доступных текстов</p>
+                                }
+                                else
+                                {
+                                    @foreach (var snippet in FilteredSnippets())
+                                    {
+                                        <div class="text-snippet-card @(selectedSnippetId == snippet.Id ? "selected" : "")" 
+                                             @onclick="() => SelectSnippet(snippet.Id)">
+                                            <h4 class="snippet-title">@snippet.Title</h4>
+                                            <p class="snippet-preview">@TruncateText(snippet.Content, 150)</p>
+                                            <div class="snippet-meta">
+                                                <span class="meta-item">
+                                                    <i class="oi oi-globe"></i> @snippet.Language
+                                                </span>
+                                                <span class="meta-item">
+                                                    <i class="oi oi-dashboard"></i> @snippet.Difficulty
+                                                </span>
+                                                <span class="meta-item">
+                                                    <i class="oi oi-text"></i> @snippet.Content.Split(' ').Length слов
+                                                </span>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    }
+                    else if (activeTab == "generate")
+                    {
+                        <div class="ai-generation-tab">
+                            <div class="generation-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="ai-topic">Тема текста</label>
+                                        <input type="text" id="ai-topic" class="form-control" 
+                                               @bind="aiGenerationRequest.Topic" 
+                                               placeholder="Например: технологии, природа, спорт..." />
+                                        <small class="form-text">Оставьте пустым для случайной темы</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ai-language">Язык</label>
+                                        <select id="ai-language" class="form-control" @bind="aiGenerationRequest.Language">
+                                            <option value="ru">Русский</option>
+                                            <option value="en">English</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="ai-difficulty">Сложность</label>
+                                        <select id="ai-difficulty" class="form-control" @bind="aiGenerationRequest.Difficulty">
+                                            <option value="easy">Легкий</option>
+                                            <option value="medium">Средний</option>
+                                            <option value="hard">Сложный</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ai-length">Длина (символов)</label>
+                                        <input type="number" id="ai-length" class="form-control" 
+                                               @bind="aiGenerationRequest.Length" 
+                                               min="50" max="1000" step="50" />
+                                        <small class="form-text">От 50 до 1000 символов</small>
+                                    </div>
+                                </div>
+
+                                @if (isGeneratingText)
+                                {
+                                    <div class="generation-loading">
+                                        <div class="spinner-small"></div>
+                                        <span>Генерируем текст с помощью ИИ...</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-ai" @onclick="GenerateAIText">
+                                        <i class="oi oi-cog"></i> Сгенерировать текст
+                                    </button>
+                                }
+
+                                @if (!string.IsNullOrEmpty(generationError))
+                                {
+                                    <div class="alert alert-danger">
+                                        <i class="oi oi-warning"></i> @generationError
+                                    </div>
+                                }
+
+                                @if (generatedSnippet != null)
+                                {
+                                    <div class="generated-text-preview">
+                                        <h4>Сгенерированный текст:</h4>
+                                        <div class="text-snippet-card selected">
+                                            <h5 class="snippet-title">@generatedSnippet.Title</h5>
+                                            <p class="snippet-preview">@TruncateText(generatedSnippet.Content, 200)</p>
+                                            <div class="snippet-meta">
+                                                <span class="meta-item">
+                                                    <i class="oi oi-globe"></i> @generatedSnippet.Language
+                                                </span>
+                                                <span class="meta-item">
+                                                    <i class="oi oi-dashboard"></i> @generatedSnippet.Difficulty
+                                                </span>
+                                                <span class="meta-item">
+                                                    <i class="oi oi-text"></i> @generatedSnippet.Content.Length символов
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="generated-text-actions">
+                                            <button class="btn btn-secondary" @onclick="RegenerateText">
+                                                <i class="oi oi-reload"></i> Сгенерировать заново
+                                            </button>
+                                            <button class="btn btn-success" @onclick="UseGeneratedText">
+                                                <i class="oi oi-check"></i> Использовать этот текст
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseTextSelection">Отмена</button>
+                @if (activeTab == "existing")
+                {
+                    <button class="btn btn-primary" @onclick="StartGame" disabled="@(selectedSnippetId == 0)">
+                        Начать игру
+                    </button>
+                }
+                else if (activeTab == "generate" && generatedSnippet != null)
+                {
+                    <button class="btn btn-primary" @onclick="StartGameWithGenerated">
+                        Начать игру с ИИ текстом
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string LobbyId { get; set; } = string.Empty;
+
+    private HubConnection? hubConnection;
+    private Core.Models.CompetitionLobby? lobby;
+    private List<ChatMessage> chatMessages = new List<ChatMessage>();
+    private List<TextSnippet> textSnippets = new List<TextSnippet>();
+    private TextSnippet textSnippet = new TextSnippet();
+    private string currentUserId = "";
+    private string currentUserName = "";
+    private bool isHost = false;
+    private bool isLoading = true;
+    private string newMessage = "";
+    private bool showTextSelection = false;
+    private int selectedSnippetId = 0;
+    private string selectedLanguage = "";
+    private string selectedDifficulty = "";
+    private ElementReference chatContainer;
+    private ElementReference typingInputRef;
+    
+    private string activeTab = "existing";
+    
+    private bool isGeneratingText = false;
+    private string generationError = "";
+    private TextSnippet generatedSnippet = null;
+    private TextGenerationRequest aiGenerationRequest = new TextGenerationRequest
+    {
+        Topic = "",
+        Language = "ru",
+        Difficulty = "medium",
+        Length = 300
+    };
+    
+    private string typingInput = "";
+    private DateTime gameStartTime;
+    private DateTime lastUpdateTime;
+    private int currentPosition = 0;
+    private int correctChars = 0;
+    private int incorrectChars = 0;
+    private int totalKeystrokes = 0;
+    private bool gameActive = false;
+    private System.Timers.Timer statsTimer = new System.Timers.Timer();
+    private int currentWPM = 0;
+    private double currentAccuracy = 100.0;
+    private bool isGameFinished = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserInfo();
+        await LoadLobby();
+        await SetupSignalR();
+        await LoadTextSnippets();
+        
+        statsTimer = new System.Timers.Timer(1000);
+        statsTimer.Elapsed += async (sender, e) => await UpdateStats();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("lobbyInterop.initializeTypingGame");
+        }
+        
+        if (lobby?.Status == LobbyStatus.InGame && !HasPlayerFinished(currentUserId) && textSnippet != null && !gameActive)
+        {
+            gameActive = true;
+            gameStartTime = DateTime.Now;
+            lastUpdateTime = DateTime.Now;
+            await JS.InvokeVoidAsync("lobbyInterop.startGame");
+            statsTimer.Start();
+        }
+    }
+
+    private async Task LoadUserInfo()
+    {
+        try
+        {
+            var userInfo = await JS.InvokeAsync<Dictionary<string, string>>("authInterop.getUserInfo");
+            if (userInfo != null && userInfo.ContainsKey("userId"))
+            {
+                currentUserId = userInfo["userId"];
+                currentUserName = userInfo.ContainsKey("username") ? userInfo["username"] 
+                           : userInfo.ContainsKey("name") ? userInfo["name"]
+                           : userInfo.ContainsKey("email") ? userInfo["email"]
+                           : "Unknown User";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user info: {ex.Message}");
+        }
+    }
+
+    private async Task LoadLobby()
+    {
+        try
+        {
+            lobby = await LobbyService.GetLobbyAsync(LobbyId);
+            if (lobby != null)
+            {
+                isHost = lobby.HostId == currentUserId;
+                chatMessages = await LobbyService.GetChatMessagesAsync(LobbyId) ?? new List<ChatMessage>();
+                
+                if (lobby.Status == LobbyStatus.InGame && !string.IsNullOrEmpty(lobby.TextSnippetId))
+                {
+                    if (int.TryParse(lobby.TextSnippetId, out int snippetId))
+                    {
+                        textSnippet = await TextSnippetService.GetByIdAsync(snippetId);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading lobby: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadTextSnippets()
+    {
+        try
+        {
+            var snippets = await TextSnippetService.GetAllAsync();
+            textSnippets = snippets.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading text snippets: {ex.Message}");
+        }
+    }
+
+    private async Task SetupSignalR()
+    {
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
+            
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/typingHub"), options =>
+                {
+                    options.AccessTokenProvider = () => Task.FromResult(token);
+                })
+                .Build();
+
+            hubConnection.On<string>("UserJoined", async (userName) =>
+            {
+                Console.WriteLine($"SignalR: User joined - {userName}");
+                await LoadLobby();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On<string>("UserLeft", async (userName) =>
+            {
+                Console.WriteLine($"SignalR: User left - {userName}");
+                await LoadLobby();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On<string, bool>("UserReadyStatusChanged", async (userId, isReady) =>
+            {
+                Console.WriteLine($"SignalR: User ready status changed - {userId}: {isReady}");
+                await LoadLobby();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On("GameStarted", async () =>
+            {
+                Console.WriteLine("SignalR: Game started");
+                await LoadLobby();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On<string, int, int, double>("PlayerProgressUpdated", async (userId, progress, wpm, accuracy) =>
+            {
+                if (lobby != null)
+                {
+                    var player = lobby.Players.FirstOrDefault(p => p.UserId == userId);
+                    if (player != null)
+                    {
+                        player.Progress = progress;
+                        player.WPM = wpm;
+                        player.Accuracy = accuracy;
+                        await InvokeAsync(StateHasChanged);
+                    }
+                }
+            });
+
+            hubConnection.On<string, int, double>("PlayerFinished", async (userId, finalWpm, finalAccuracy) =>
+            {
+                Console.WriteLine($"SignalR: Player finished - {userId}");
+                await LoadLobby();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            hubConnection.On<ChatMessage>("ReceiveChatMessage", (message) =>
+            {
+                chatMessages.Add(message);
+                InvokeAsync(StateHasChanged);
+                InvokeAsync(ScrollChatToBottom);
+            });
+
+            await hubConnection.StartAsync();
+            await hubConnection.SendAsync("JoinLobby", LobbyId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error setting up SignalR: {ex.Message}");
+        }
+    }
+
+    private async Task ToggleReady()
+    {
+        if (lobby == null || currentUserId == null) 
+        {
+            Console.WriteLine($"Cannot toggle ready: lobby={lobby != null}, currentUserId={!string.IsNullOrEmpty(currentUserId)}");
+            return;
+        }
+
+        var player = lobby.Players.FirstOrDefault(p => p.UserId == currentUserId);
+        if (player != null)
+        {
+            var newReadyStatus = !player.IsReady;
+            Console.WriteLine($"Toggling ready status for {player.UserName} from {player.IsReady} to {newReadyStatus}");
+        
+            var success = await LobbyService.UpdateReadyStatusAsync(LobbyId, currentUserId, newReadyStatus);
+            Console.WriteLine($"UpdateReadyStatusAsync result: {success}");
+        
+            if (success && hubConnection != null)
+            {
+                await hubConnection.SendAsync("UpdateReadyStatus", LobbyId, newReadyStatus);
+                await LoadLobby();
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            Console.WriteLine($"Player not found in lobby. CurrentUserId: {currentUserId}");
+            Console.WriteLine($"Players in lobby: {string.Join(", ", lobby.Players.Select(p => $"{p.UserName}({p.UserId})"))}");
+        }
+    }
+
+    private void ShowTextSelection()
+    {
+        showTextSelection = true;
+        activeTab = "existing";
+        selectedSnippetId = 0;
+        generatedSnippet = null;
+        generationError = "";
+    }
+
+    private void CloseTextSelection()
+    {
+        showTextSelection = false;
+        selectedSnippetId = 0;
+        activeTab = "existing";
+        generatedSnippet = null;
+        generationError = "";
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+        selectedSnippetId = 0;
+        generatedSnippet = null;
+        generationError = "";
+    }
+
+    private void SelectSnippet(int snippetId)
+    {
+        selectedSnippetId = snippetId;
+    }
+
+    private IEnumerable<TextSnippet> FilteredSnippets()
+    {
+        var filtered = textSnippets.AsEnumerable();
+
+        if (!string.IsNullOrEmpty(selectedLanguage))
+            filtered = filtered.Where(s => s.Language == selectedLanguage);
+
+        if (!string.IsNullOrEmpty(selectedDifficulty))
+            filtered = filtered.Where(s => s.Difficulty == selectedDifficulty);
+
+        return filtered;
+    }
+
+    private async Task GenerateAIText()
+    {
+        isGeneratingText = true;
+        generationError = "";
+        generatedSnippet = null;
+        StateHasChanged();
+
+        try
+        {
+            aiGenerationRequest.Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            var response = await Http.PostAsJsonAsync("api/textgeneration/generate", aiGenerationRequest, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<TextSnippetDto>();
+                if (result != null)
+                {
+                    generatedSnippet = new TextSnippet
+                    {
+                        Id = result.Id,
+                        Title = result.Title,
+                        Content = result.Content,
+                        Difficulty = result.Difficulty,
+                        Language = result.Language,
+                        IsGenerated = true
+                    };
+                    
+                    textSnippets.Add(generatedSnippet);
+                    
+                    Console.WriteLine($"Successfully generated AI text: {generatedSnippet.Title}");
+                }
+                else
+                {
+                    generationError = "Не удалось получить сгенерированный текст";
+                }
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Failed to generate AI text: {error}");
+                generationError = $"Ошибка генерации: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating AI text: {ex.Message}");
+            generationError = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            isGeneratingText = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RegenerateText()
+    {
+        await GenerateAIText();
+    }
+
+    private void UseGeneratedText()
+    {
+        if (generatedSnippet != null)
+        {
+            selectedSnippetId = generatedSnippet.Id;
+            activeTab = "existing";
+        }
+    }
+
+    private async Task StartGame()
+    {
+        if (selectedSnippetId == 0 || !isHost) return;
+
+        var success = await LobbyService.StartGameAsync(LobbyId, selectedSnippetId.ToString());
+        
+        if (success && hubConnection != null)
+        {
+            await hubConnection.SendAsync("StartGame", LobbyId, selectedSnippetId);
+            CloseTextSelection();
+            await LoadLobby();
+        }
+    }
+
+    private async Task StartGameWithGenerated()
+    {
+        if (generatedSnippet == null || !isHost) return;
+
+        var success = await LobbyService.StartGameAsync(LobbyId, generatedSnippet.Id.ToString());
+        
+        if (success && hubConnection != null)
+        {
+            await hubConnection.SendAsync("StartGame", LobbyId, generatedSnippet.Id);
+            CloseTextSelection();
+            await LoadLobby();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(newMessage) || hubConnection == null) return;
+
+        await LobbyService.AddChatMessageAsync(LobbyId, currentUserId, currentUserName, newMessage);
+        await hubConnection.SendAsync("SendChatMessage", LobbyId, newMessage);
+        
+        newMessage = "";
+    }
+
+    private async Task LeaveLobby()
+    {
+        if (hubConnection != null)
+        {
+            await hubConnection.SendAsync("LeaveLobby", LobbyId);
+            await LobbyService.LeaveLobbyAsync(LobbyId, currentUserId);
+        }
+        
+        NavigationManager.NavigateTo("/competitions");
+    }
+
+    private async Task CopyLobbyId()
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", LobbyId);
+    }
+
+    private async Task ScrollChatToBottom()
+    {
+        await JS.InvokeVoidAsync("scrollToBottom", chatContainer);
+    }
+
+    private bool CanStartGame()
+    {
+        return lobby != null && 
+               lobby.Players.Count >= 2 && 
+               lobby.Players.All(p => p.IsReady);
+    }
+
+    private bool HasPlayerFinished(string userId)
+    {
+        return lobby?.Players.FirstOrDefault(p => p.UserId == userId)?.HasFinished ?? false;
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "?";
+        var parts = name.Split(' ');
+        if (parts.Length >= 2)
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return name.Substring(0, Math.Min(2, name.Length)).ToUpper();
+    }
+
+    private string GetStatusClass(LobbyStatus status)
+    {
+        return status switch
+        {
+            LobbyStatus.Waiting => "status-waiting",
+            LobbyStatus.InGame => "status-in-game",
+            LobbyStatus.Finished => "status-finished",
+            _ => ""
+        };
+    }
+
+    private string GetStatusIcon(LobbyStatus status)
+    {
+        return status switch
+        {
+            LobbyStatus.Waiting => "oi-clock",
+            LobbyStatus.InGame => "oi-media-play",
+            LobbyStatus.Finished => "oi-check",
+            _ => "oi-circle-x"
+        };
+    }
+
+    private string GetStatusText(LobbyStatus status)
+    {
+        return status switch
+        {
+            LobbyStatus.Waiting => "Ожидание игроков",
+            LobbyStatus.InGame => "Игра идёт",
+            LobbyStatus.Finished => "Завершено",
+            _ => "Неизвестно"
+        };
+    }
+
+    private string TruncateText(string text, int maxLength)
+    {
+        if (text.Length <= maxLength) return text;
+        return text.Substring(0, maxLength) + "...";
+    }
+
+    private string FormatCompletionTime(DateTime? finishedAt, DateTime? startedAt)
+    {
+        if (!finishedAt.HasValue || !startedAt.HasValue) return "-";
+        var duration = finishedAt.Value - startedAt.Value;
+        return $"{duration.Minutes:00}:{duration.Seconds:00}";
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (textSnippet == null || isGameFinished) return;
+        
+        totalKeystrokes++;
+        
+        if (currentPosition >= textSnippet.Content.Length)
+        {
+            return;
+        }
+        
+        await JS.InvokeVoidAsync("lobbyInterop.handleKeyDown", e.Key, currentPosition);
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (textSnippet == null || isGameFinished) return;
+        
+        if (typingInput.Length > 0)
+        {
+            int correctPositions = 0;
+            
+            for (int i = 0; i < Math.Min(typingInput.Length, textSnippet.Content.Length); i++)
+            {
+                if (typingInput[i] == textSnippet.Content[i])
+                {
+                    correctPositions++;
+                }
+            }
+            
+            currentPosition = correctPositions;
+            correctChars = correctPositions;
+            incorrectChars = typingInput.Length - correctPositions;
+            
+            int progress = (int)((double)currentPosition / textSnippet.Content.Length * 100);
+            
+            if (hubConnection != null)
+            {
+                await hubConnection.SendAsync("UpdateProgress", LobbyId, progress, currentWPM, currentAccuracy);
+            }
+            
+            if (currentPosition == textSnippet.Content.Length)
+            {
+                await FinishGame();
+            }
+        }
+        
+        await JS.InvokeVoidAsync("lobbyInterop.handleKeyUp", e.Key, currentPosition);
+    }
+
+    private async Task UpdateStats()
+    {
+        if (!gameActive || textSnippet == null) return;
+        
+        var elapsedMinutes = (DateTime.Now - gameStartTime).TotalMinutes;
+        
+        if (elapsedMinutes > 0)
+        {
+            currentWPM = (int)(correctChars / 5 / elapsedMinutes);
+            
+            if (totalKeystrokes > 0)
+            {
+                currentAccuracy = Math.Round((double)correctChars / totalKeystrokes * 100, 1);
+            }
+            
+            await JS.InvokeVoidAsync("lobbyInterop.updateStats", currentWPM, currentAccuracy, elapsedMinutes);
+            
+            if ((DateTime.Now - lastUpdateTime).TotalSeconds >= 2)
+            {
+                lastUpdateTime = DateTime.Now;
+                
+                int progress = (int)((double)currentPosition / textSnippet.Content.Length * 100);
+                
+                if (hubConnection != null)
+                {
+                    await hubConnection.SendAsync("UpdateProgress", LobbyId, progress, currentWPM, currentAccuracy);
+                }
+            }
+        }
+        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task FinishGame()
+    {
+        if (isGameFinished) return;
+        
+        isGameFinished = true;
+        gameActive = false;
+        statsTimer.Stop();
+        
+        if (hubConnection != null)
+        {
+            await hubConnection.SendAsync("FinishGame", LobbyId, currentWPM, currentAccuracy);
+        }
+        
+        await JS.InvokeVoidAsync("lobbyInterop.finishGame");
+        await LoadLobby();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (statsTimer != null)
+        {
+            statsTimer.Stop();
+            statsTimer.Dispose();
+        }
+        
+        if (hubConnection != null)
+        {
+            await hubConnection.SendAsync("LeaveLobby", LobbyId);
+            await hubConnection.DisposeAsync();
+        }
+    }
+}
