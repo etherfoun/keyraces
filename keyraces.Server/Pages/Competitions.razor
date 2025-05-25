@@ -389,7 +389,7 @@
         try
         {
             var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
-            
+
             if (string.IsNullOrEmpty(token))
             {
                 isAuthenticated = false;
@@ -397,7 +397,7 @@
             }
 
             bool isTokenExpired = await JS.InvokeAsync<bool>("authInterop.isTokenExpired");
-            
+
             if (isTokenExpired)
             {
                 isAuthenticated = false;
@@ -405,7 +405,7 @@
             }
 
             bool authCheck = await JS.InvokeAsync<bool>("authInterop.checkAuthentication");
-            
+
             if (!authCheck)
             {
                 isAuthenticated = false;
@@ -501,7 +501,7 @@
         try
         {
             var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
-            
+
             if (string.IsNullOrEmpty(token))
             {
                 joinLobbyError = "Токен авторизации не найден";
@@ -539,7 +539,7 @@
             {
                 var error = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Failed to join lobby: {error}");
-                
+
                 if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
                     joinLobbyError = "Не удалось присоединиться к лобби. Возможно, лобби заполнено или требуется пароль.";
@@ -578,7 +578,7 @@
         try
         {
             var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
-            
+
             if (string.IsNullOrEmpty(token))
             {
                 createLobbyError = "Токен авторизации не найден";
@@ -693,7 +693,7 @@
         passwordFilter = "all";
         participantsFilter = "all";
         timeFilter = "newest";
-        
+
         ApplyFilters();
     }
 
@@ -772,14 +772,14 @@
     private string FormatTime(DateTime time)
     {
         var timeSpan = DateTime.Now - time;
-        
+
         if (timeSpan.TotalMinutes < 1)
             return "только что";
         if (timeSpan.TotalMinutes < 60)
             return $"{(int)timeSpan.TotalMinutes} мин. назад";
         if (timeSpan.TotalHours < 24)
             return $"{(int)timeSpan.TotalHours} ч. назад";
-        
+
         return time.ToString("dd.MM.yyyy HH:mm");
     }
 
