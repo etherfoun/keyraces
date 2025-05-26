@@ -283,110 +283,120 @@
         }
         else
         {
-    <div class="typing-game card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Тренировка</h5>
-            <div class="timer">@elapsedTimeDisplay</div>
-        </div>
-        <div class="card-body p-0">
-            <div class="typing-section">
-                <div class="typing-title">
-                    <div>Набирайте текст:</div>
-                    <div class="typing-stats">
-                        <div>WPM: <span id="wpm-display">@wpm.ToString("F1")</span></div>
-                        <div>Точность: <span id="accuracy-display">@accuracy.ToString("F1")%</span></div>
-                        <div>Ошибки: <span id="errors-display">@errors</span></div>
-                    </div>
+            <div class="typing-game card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Тренировка</h5>
+                    <div class="timer">@elapsedTimeDisplay</div>
                 </div>
-                
-                <div class="progress" style="height: 4px; border-radius: 0;">
-                    <div id="typing-progress-bar" class="progress-bar" role="progressbar" 
-                         style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-                
-                <div class="text-display">
-                    <div id="original-text-content">
-                        @{
-                            var words = current?.Content.Split(' ');
-                            if (words != null)
-                            {
-                                for (int i = 0; i < words.Length; i++)
-                                {
-                                    <span class="word" data-word="@words[i]">
-                                        @foreach (var character in words[i])
-                                        {
-                                            <span class="character">@character</span>
-                                        }
-                                    </span>
-                                    if (i < words.Length - 1)
+                <div class="card-body p-0">
+                    <div class="typing-section">
+                        <div class="typing-title">
+                            <div>Набирайте текст:</div>
+                            <div class="typing-stats">
+                                <div>WPM: <span id="wpm-display">@wpm.ToString("F1")</span></div>
+                                <div>Точность: <span id="accuracy-display">@accuracy.ToString("F1")%</span></div>
+                                <div>Ошибки: <span id="errors-display">@totalErrors</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="progress" style="height: 4px; border-radius: 0;">
+                            <div id="typing-progress-bar" class="progress-bar" role="progressbar" 
+                                 style="width: @progressPercentage%;" aria-valuenow="@progressPercentage" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        
+                        <div class="text-display">
+                            <div id="original-text-content">
+                                @{
+                                    var words = current?.Content.Split(' ');
+                                    if (words != null)
                                     {
-                                        <span class="character space"> </span>
+                                        for (int i = 0; i < words.Length; i++)
+                                        {
+                                            <span class="word @(i < currentWordIndex ? "completed" : i == currentWordIndex ? "current-word" : "")" 
+                                                  data-word="@words[i]" data-index="@i">
+                                                @foreach (var character in words[i])
+                                                {
+                                                    <span class="character">@character</span>
+                                                }
+                                            </span>
+                                            if (i < words.Length - 1)
+                                            {
+                                                <span class="space"> </span>
+                                            }
+                                        }
                                     }
                                 }
-                            }
-                        }
+                            </div>
+                        </div>
+                       
+                        <input type="text" id="typing-input" 
+                               @ref="typingInputRef"
+                               @onkeydown="HandleKeyDown"
+                               @oninput="HandleInput"
+                               autocomplete="off"
+                               autocorrect="off"
+                               autocapitalize="off"
+                               spellcheck="false"
+                               autofocus
+                               class="typing-input" 
+                               placeholder="Введите текущее слово..." />
                     </div>
                 </div>
-                
-                <textarea id="typing-input" @bind="userInput" @oninput="OnInput" @onkeydown="OnKeyDown"
-                          class="typing-input" rows="3" placeholder="Начните печатать здесь..."></textarea>
+                <div class="card-footer d-flex justify-content-between">
+                    <button class="btn btn-outline-secondary" @onclick="ResetSession">
+                        Начать заново
+                    </button>
+                    <button class="btn btn-success" @onclick="Complete" disabled="@(currentWordIndex < totalWords)">
+                        Завершить
+                    </button>
+                </div>
             </div>
-        </div>
-        <div class="card-footer d-flex justify-content-between">
-            <button class="btn btn-outline-secondary" @onclick="ResetSession">
-                Начать заново
-            </button>
-            <button class="btn btn-success" @onclick="Complete">
-                Завершить
-            </button>
-        </div>
-    </div>
-}
+        }
 
         <div class="completion-modal @(showResults ? "show" : "")">
-    <div class="completion-modal-content">
-        <div class="results-header">
-            <h4>Результаты тренировки</h4>
-            <button type="button" class="btn-close" @onclick="CloseResults"></button>
-        </div>
-        <div class="results-body">
-            <div class="completion-icon">✓</div>
-            
-            <div class="result-item">
-                <div class="result-label">Скорость:</div>
-                <div class="result-value">@finalWpm.ToString("F1") WPM</div>
-            </div>
-            <div class="result-item">
-                <div class="result-label">Точность:</div>
-                <div class="result-value">@finalAccuracy.ToString("F1")%</div>
-            </div>
-            <div class="result-item">
-                <div class="result-label">Ошибки:</div>
-                <div class="result-value">@finalErrors</div>
-            </div>
-            <div class="result-item">
-                <div class="result-label">Время:</div>
-                <div class="result-value">@finalTimeDisplay</div>
-            </div>
-
-            @if (isPersonalBest)
-            {
-                <div class="personal-best">
-                    <div class="trophy-icon">🏆</div>
-                    <div class="personal-best-text">Новый личный рекорд!</div>
+            <div class="completion-modal-content">
+                <div class="results-header">
+                    <h4>Результаты тренировки</h4>
+                    <button type="button" class="btn-close" @onclick="CloseResults"></button>
                 </div>
-            }
+                <div class="results-body">
+                    <div class="completion-icon">✓</div>
+                    
+                    <div class="result-item">
+                        <div class="result-label">Скорость:</div>
+                        <div class="result-value">@finalWpm.ToString("F1") WPM</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">Точность:</div>
+                        <div class="result-value">@finalAccuracy.ToString("F1")%</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">Ошибки:</div>
+                        <div class="result-value">@finalErrors</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">Время:</div>
+                        <div class="result-value">@finalTimeDisplay</div>
+                    </div>
+
+                    @if (isPersonalBest)
+                    {
+                        <div class="personal-best">
+                            <div class="trophy-icon">🏆</div>
+                            <div class="personal-best-text">Новый личный рекорд!</div>
+                        </div>
+                    }
+                </div>
+                <div class="results-footer">
+                    <button class="btn btn-primary" @onclick="StartNewSession">
+                        Новая тренировка
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="CloseResults">
+                        Закрыть
+                    </button>
+                </div>
+            </div>
         </div>
-        <div class="results-footer">
-            <button class="btn btn-primary" @onclick="StartNewSession">
-                Новая тренировка
-            </button>
-            <button class="btn btn-outline-secondary" @onclick="CloseResults">
-                Закрыть
-            </button>
-        </div>
-    </div>
-</div>
     }
 </div>
 
@@ -411,12 +421,17 @@
     private bool isGenerating = false;
     private bool isResettingContext = false;
 
-    // Таймер для отслеживания времени тренировки
+    private int currentWordIndex = 0;
+    private int totalWords = 0;
+    private int totalErrors = 0;
+    private int totalCharactersTyped = 0;
+    private double progressPercentage = 0;
+    private string[]? words;
+
     private System.Timers.Timer? sessionTimer;
     private TimeSpan elapsedTime = TimeSpan.Zero;
     private string elapsedTimeDisplay = "00:00";
 
-    // Результаты тренировки
     private bool showResults = false;
     private double finalWpm;
     private double finalAccuracy;
@@ -424,12 +439,14 @@
     private string finalTimeDisplay = "";
     private bool isPersonalBest = false;
 
-    // Лучшие результаты пользователя
     private List<TypingStatistic>? bestResults;
     private double bestWpm = 0;
     private double bestAccuracy = 0;
     private DateTime bestWpmDate = DateTime.MinValue;
     private DateTime bestAccuracyDate = DateTime.MinValue;
+
+    private ElementReference typingInputRef;
+    private bool isTypingAreaInitialized = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -441,91 +458,77 @@
     {
         if (firstRender)
         {
-            try
+            Console.WriteLine("Checking authentication in OnAfterRenderAsync");
+
+            var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = auth.User;
+
+            if (user.Identity?.IsAuthenticated == true)
             {
-                Console.WriteLine("Checking authentication in OnAfterRenderAsync");
+                Console.WriteLine("User is authenticated via AuthenticationStateProvider");
 
-                var auth = await AuthStateProvider.GetAuthenticationStateAsync();
-                var user = auth.User;
+                identityId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var identityUserDisplayName = user.Identity.Name;
 
-                if (user.Identity?.IsAuthenticated == true)
+                if (!string.IsNullOrEmpty(identityId) && !string.IsNullOrEmpty(identityUserDisplayName))
                 {
-                    Console.WriteLine("User is authenticated via AuthenticationStateProvider");
-
-                    identityId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                    var identityUserDisplayName = user.Identity.Name;
-
-                    if (!string.IsNullOrEmpty(identityId) && !string.IsNullOrEmpty(identityUserDisplayName))
-                    {
-                        Console.WriteLine($"User ID: {identityId}, Name: {identityUserDisplayName}");
-                        profile = await UserProfileService.GetOrCreateAsync(identityId, identityUserDisplayName);
-                        isAuthenticated = true;
-                        await LoadBestResults();
-                        StateHasChanged();
-                        return;
-                    }
-                }
-
-                Console.WriteLine("Checking localStorage authentication");
-
-                var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
-
-                if (string.IsNullOrEmpty(token))
-                {
-                    Console.WriteLine("No auth_token found in localStorage");
-                    Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Nav.Uri)}", false);
+                    Console.WriteLine($"User ID: {identityId}, Name: {identityUserDisplayName}");
+                    profile = await UserProfileService.GetOrCreateAsync(identityId, identityUserDisplayName);
+                    isAuthenticated = true;
+                    await LoadBestResults();
+                    StateHasChanged();
                     return;
                 }
-
-                var isExpired = await JS.InvokeAsync<bool>("authInterop.isTokenExpired");
-
-                if (isExpired)
-                {
-                    Console.WriteLine("Token is expired");
-                    Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Nav.Uri)}", false);
-                    return;
-                }
-
-                identityId = await JS.InvokeAsync<string>("localStorage.getItem", "user_id");
-                var userDisplayName = await JS.InvokeAsync<string>("localStorage.getItem", "user_name");
-
-                if (string.IsNullOrEmpty(identityId))
-                {
-                    Console.WriteLine("No user_id found in localStorage");
-                    Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Nav.Uri)}", false);
-                    return;
-                }
-
-                if (string.IsNullOrEmpty(userDisplayName))
-                {
-                    userDisplayName = "User";
-                }
-
-                Console.WriteLine($"User ID from localStorage: {identityId}, Name: {userDisplayName}");
-                profile = await UserProfileService.GetOrCreateAsync(identityId, userDisplayName);
-                isAuthenticated = true;
-                await LoadBestResults();
-                StateHasChanged();
             }
-            catch (Exception ex)
+
+            Console.WriteLine("Checking localStorage authentication");
+
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
+
+            if (string.IsNullOrEmpty(token))
             {
-                Console.WriteLine($"Error checking authentication in OnAfterRenderAsync: {ex.Message}");
-                await JS.InvokeVoidAsync("alert", $"Ошибка при проверке аутентификации: {ex.Message}");
+                Console.WriteLine("No auth_token found in localStorage");
+                Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Nav.Uri)}", false);
+                return;
             }
+
+            var isExpired = await JS.InvokeAsync<bool>("authInterop.isTokenExpired");
+
+            if (isExpired)
+            {
+                Console.WriteLine("Token is expired");
+                Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Nav.Uri)}", false);
+                return;
+            }
+
+            identityId = await JS.InvokeAsync<string>("localStorage.getItem", "user_id");
+            var userDisplayName = await JS.InvokeAsync<string>("localStorage.getItem", "user_name");
+
+            if (string.IsNullOrEmpty(identityId))
+            {
+                Console.WriteLine("No user_id found in localStorage");
+                Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Nav.Uri)}", false);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(userDisplayName))
+            {
+                userDisplayName = "User";
+            }
+
+            Console.WriteLine($"User ID from localStorage: {identityId}, Name: {userDisplayName}");
+            profile = await UserProfileService.GetOrCreateAsync(identityId, userDisplayName);
+            isAuthenticated = true;
+            await LoadBestResults();
+            StateHasChanged();
         }
-        else if (sessionStarted && session != null)
+    
+        if (!firstRender && sessionStarted && session != null && !isTypingAreaInitialized)
         {
-            // Если сессия уже начата, но JS еще не инициализирован
-            try
-            {
-                // Проверяем, инициализирован ли уже JS
-                var isInitialized = await JS.InvokeAsync<bool>("window.trainInterop.initTypingArea", "typing-input", "original-text-content");
-                Console.WriteLine($"JS initialization result: {isInitialized}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error initializing typing area: {ex.Message}");
-            }
+            isTypingAreaInitialized = true;
+            await JS.InvokeVoidAsync("window.trainInterop.initWordByWord", currentWordIndex);
+        
+            await typingInputRef.FocusAsync();
         }
     }
 
@@ -535,7 +538,6 @@
 
         try
         {
-            // Получаем статистику пользователя
             var response = await Http.GetAsync($"/api/User/{profile.Id}/statistics");
             
             if (response.IsSuccessStatusCode)
@@ -544,14 +546,12 @@
                 
                 if (bestResults != null && bestResults.Count > 0)
                 {
-                    // Находим лучшие результаты
                     var bestWpmStat = bestResults.OrderByDescending(s => s.WPM).FirstOrDefault();
                     var bestAccuracyStat = bestResults.OrderByDescending(s => s.Accuracy).FirstOrDefault();
                     
                     if (bestWpmStat != null)
                     {
                         bestWpm = bestWpmStat.WPM;
-                        // Получаем дату сессии
                         var sessionResponse = await Http.GetAsync($"/api/Session/{bestWpmStat.SessionId}");
                         if (sessionResponse.IsSuccessStatusCode)
                         {
@@ -565,8 +565,7 @@
                     
                     if (bestAccuracyStat != null)
                     {
-                        bestAccuracy = bestAccuracyStat.Accuracy * 100; // Преобразуем в проценты
-                        // Получаем дату сессии
+                        bestAccuracy = bestAccuracyStat.Accuracy * 100;
                         var sessionResponse = await Http.GetAsync($"/api/Session/{bestAccuracyStat.SessionId}");
                         if (sessionResponse.IsSuccessStatusCode)
                         {
@@ -722,6 +721,11 @@
         errors = 0;
         accuracy = 100;
         session = null;
+        currentWordIndex = 0;
+        totalWords = 0;
+        totalErrors = 0;
+        totalCharactersTyped = 0;
+        progressPercentage = 0;
         StateHasChanged();
     }
 
@@ -736,25 +740,28 @@
                 current.Id
             );
         
-            // Устанавливаем флаг, что сессия начата
+            words = current.Content.Split(' ');
+            totalWords = words.Length;
+            currentWordIndex = 0;
+            totalErrors = 0;
+            totalCharactersTyped = 0;
+            progressPercentage = 0;
+            userInput = "";
+        
             sessionStarted = true;
         
-            // Инициализируем таймер
             StartTimer();
         
-            // Обновляем UI
             StateHasChanged();
         
-            // Даем время для рендеринга
-            await Task.Delay(300);
+            await Task.Delay(100);
         
-            // Инициализируем подсветку текста
             try {
-                var result = await JS.InvokeAsync<bool>("window.trainInterop.initTypingArea", "typing-input", "original-text-content");
-                Console.WriteLine($"Typing area initialization result: {result}");
+                await JS.InvokeVoidAsync("document.getElementById", "typing-input");
+                await JS.InvokeVoidAsync("eval", "document.getElementById('typing-input').focus()");
             }
             catch (Exception ex) {
-                Console.WriteLine($"Error initializing typing area: {ex.Message}");
+                Console.WriteLine($"Error focusing input: {ex.Message}");
             }
         }
         catch (Exception ex)
@@ -790,39 +797,79 @@
         }
     }
 
-    private async Task OnInput(ChangeEventArgs e)
+    private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (session == null || current == null) return;
+        if (words == null || currentWordIndex >= words.Length) return;
 
-        userInput = e.Value?.ToString() ?? "";
-        
-        // Обновляем статистику
-        UpdateStatistics();
-        
-        // Обновляем подсветку через JS
-        try {
-            await JS.InvokeVoidAsync("window.trainInterop.updateHighlighting", userInput);
-        }
-        catch (Exception ex) {
-            Console.WriteLine($"Error updating highlighting: {ex.Message}");
-        }
-        
-        // Если пользователь закончил набор текста, автоматически завершаем
-        if (userInput.Split(' ').Length >= current.Content.Split(' ').Length && 
-            userInput.Length >= current.Content.Length * 0.9) // Проверяем, что набрано не менее 90% текста
+        try
         {
-            await Complete();
+            if (e.Key == "v" && (e.CtrlKey || e.MetaKey))
+            {
+                return;
+            }
+    
+            if (e.Key == "Escape")
+            {
+                ResetSession();
+                return;
+            }
+
+            if (e.Key == " ")
+            {
+                if (words != null && currentWordIndex < words.Length)
+                {
+                    var expectedWord = words[currentWordIndex];
+                    if (userInput.Trim() == expectedWord)
+                    {
+                        await MoveToNextWord();
+                    }
+                }
+                return;
+            }
+
+            if (e.Key == "Enter")
+            {
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in HandleKeyDown: {ex.Message}");
         }
     }
 
-    private void OnKeyDown(KeyboardEventArgs e)
+    private async Task MoveToNextWord()
     {
-        // Можно добавить обработку специальных клавиш
-        if (e.Key == "Escape")
+        if (words == null || currentWordIndex >= words.Length) return;
+
+        var expectedWord = words[currentWordIndex];
+        var typedWord = userInput.Trim();
+
+        totalCharactersTyped += typedWord.Length;
+
+        currentWordIndex++;
+        userInput = "";
+        progressPercentage = (double)currentWordIndex / totalWords * 100;
+
+        totalErrors = await JS.InvokeAsync<int>("window.trainInterop.getErrorCount");
+
+        UpdateStatistics();
+
+        try 
         {
-            // Например, Escape для отмены тренировки
-            ResetSession();
+            await JS.InvokeVoidAsync("window.trainInterop.moveToNextWord", currentWordIndex);
         }
+        catch (Exception ex) 
+        {
+            Console.WriteLine($"Error updating word highlighting: {ex.Message}");
+        }
+
+        if (currentWordIndex >= totalWords)
+        {
+            await Complete();
+        }
+        
+        StateHasChanged();
     }
 
     private void UpdateStatistics()
@@ -831,18 +878,12 @@
         
         var elapsed = DateTime.UtcNow - session.StartTime;
         
-        // Расчет WPM (слов в минуту)
-        // Стандартное слово - 5 символов
-        var standardWords = userInput.Length / 5.0;
-        wpm = elapsed.TotalMinutes > 0 ? standardWords / elapsed.TotalMinutes : 0;
+        wpm = elapsed.TotalMinutes > 0 ? currentWordIndex / elapsed.TotalMinutes : 0;
         
-        // Расчет ошибок и точности
-        errors = CalculateErrors(userInput, current.Content.Substring(0, Math.Min(userInput.Length, current.Content.Length)));
-
-        if (userInput.Length > 0)
+        if (totalCharactersTyped > 0)
         {
-            var correctChars = Math.Max(0, userInput.Length - errors);
-            accuracy = (double)correctChars / userInput.Length * 100;
+            var correctChars = Math.Max(0, totalCharactersTyped - totalErrors);
+            accuracy = (double)correctChars / totalCharactersTyped * 100;
         }
         else
         {
@@ -850,7 +891,7 @@
         }
     }
 
-    private void ResetSession()
+    private async Task ResetSession()
     {
         StopTimer();
         sessionStarted = false;
@@ -858,6 +899,15 @@
         wpm = 0;
         errors = 0;
         accuracy = 100;
+        currentWordIndex = 0;
+        totalErrors = 0;
+        totalCharactersTyped = 0;
+        progressPercentage = 0;
+        isTypingAreaInitialized = false;
+        
+        // Сбрасываем счетчик ошибок в JavaScript
+        await JS.InvokeVoidAsync("window.trainInterop.resetErrorCount");
+        
         StateHasChanged();
     }
 
@@ -869,28 +919,26 @@
         {
             StopTimer();
             
-            // Сохраняем конечное время сессии
+            totalErrors = await JS.InvokeAsync<int>("window.trainInterop.getErrorCount");
+            
+            UpdateStatistics();
+            
             await SessionService.CompleteSessionAsync(session.Id, DateTime.UtcNow);
             
-            // Сохраняем статистику
-            await StatisticService.CreateAsync(session.Id, wpm, errors);
+            await StatisticService.CreateAsync(session.Id, wpm, totalErrors);
             
-            // Сохраняем финальные результаты для отображения
             finalWpm = wpm;
             finalAccuracy = accuracy;
-            finalErrors = errors;
+            finalErrors = totalErrors;
             finalTimeDisplay = elapsedTimeDisplay;
             
-            // Проверяем, является ли это личным рекордом
             isPersonalBest = bestWpm < wpm || bestAccuracy < accuracy;
             
-            // Если это новый рекорд, обновляем лучшие результаты
             if (isPersonalBest)
             {
                 await LoadBestResults();
             }
             
-            // Показываем анимацию завершения
             try {
                 await JS.InvokeVoidAsync("window.trainInterop.showCompletionAnimation");
             }
@@ -898,7 +946,6 @@
                 Console.WriteLine($"Error showing completion animation: {ex.Message}");
             }
             
-            // Показываем модальное окно с результатами
             showResults = true;
             sessionStarted = false;
             StateHasChanged();
@@ -918,6 +965,10 @@
         errors = 0;
         accuracy = 100;
         current = null;
+        currentWordIndex = 0;
+        totalErrors = 0;
+        totalCharactersTyped = 0;
+        progressPercentage = 0;
         StateHasChanged();
     }
 
@@ -929,22 +980,48 @@
         errors = 0;
         accuracy = 100;
         current = null;
+        currentWordIndex = 0;
+        totalErrors = 0;
+        totalCharactersTyped = 0;
+        progressPercentage = 0;
         StateHasChanged();
-    }
-
-    private int CalculateErrors(string input, string target)
-    {
-        var len = Math.Min(input.Length, target.Length);
-        var errs = 0;
-        for (int i = 0; i < len; i++)
-            if (input[i] != target[i]) errs++;
-        
-        // Не считаем разницу в длине как ошибки, так как пользователь еще не закончил набор
-        return errs;
     }
 
     public void Dispose()
     {
         StopTimer();
+    }
+
+    private async Task HandleInput(ChangeEventArgs e)
+    {
+        if (words == null || currentWordIndex >= words.Length) return;
+    
+        try
+        {
+            string currentInput = e.Value?.ToString() ?? "";
+            
+            userInput = currentInput;
+        
+            if (words != null && currentWordIndex < words.Length)
+            {
+                var expectedWord = words[currentWordIndex];
+                
+                var result = await JS.InvokeAsync<dynamic>("window.trainInterop.handleInput", new { value = currentInput });
+                
+                bool isCompleted = result.GetProperty("completed").GetBoolean();
+                
+                if (isCompleted)
+                {
+                    await MoveToNextWord();
+                }
+                
+                totalErrors = await JS.InvokeAsync<int>("window.trainInterop.getErrorCount");
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in HandleInput: {ex.Message}");
+        }
     }
 }
