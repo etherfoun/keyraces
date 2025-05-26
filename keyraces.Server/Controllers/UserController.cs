@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using keyraces.Core.Entities;
+using keyraces.Core.Interfaces;
 using keyraces.Server.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -17,13 +20,19 @@ namespace keyraces.Server.Controllers
     {
         private readonly UserManager<IdentityUser> _userManager;
         private readonly ILogger<UserController> _logger;
+        private readonly ITypingSessionService _typingSessionService;
+        private readonly ITypingStatisticService _statisticService;
 
         public UserController(
             UserManager<IdentityUser> userManager,
-            ILogger<UserController> logger)
+            ILogger<UserController> logger,
+            ITypingSessionService typingSessionService = null,
+            ITypingStatisticService statisticService = null)
         {
             _userManager = userManager;
             _logger = logger;
+            _typingSessionService = typingSessionService;
+            _statisticService = statisticService;
         }
 
         [HttpGet]
@@ -98,6 +107,49 @@ namespace keyraces.Server.Controllers
             {
                 _logger.LogError(ex, $"Ошибка при получении пользователя с email {email}");
                 return StatusCode(500, new { message = "Ошибка при получении пользователя" });
+            }
+        }
+
+        [HttpGet("{userId}/statistics")]
+        [AllowAnonymous] // Разрешаем доступ всем пользователям к своей статистике
+        public async Task<ActionResult> GetUserStatistics(int userId)
+        {
+            try
+            {
+                if (_typingSessionService == null || _statisticService == null)
+                {
+                    return StatusCode(500, new { message = "Сервисы статистики не настроены" });
+                }
+
+                // Получаем все сессии пользователя
+                var sessions = await _typingSessionService.GetByUserAsync(userId);
+
+                // Получаем статистику для каждой сессии
+                var statistics = new List<TypingStatistic>();
+                foreach (var session in sessions)
+                {
+                    try
+                    {
+                        var stat = await _statisticService.GetBySessionAsync(session.Id);
+                        if (stat != null)
+                        {
+                            statistics.Add(stat);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Не удалось получить статистику для сессии {SessionId}", session.Id);
+                        // Пропускаем сессии без статистики
+                        continue;
+                    }
+                }
+
+                return Ok(statistics);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Ошибка при получении статистики пользователя {userId}");
+                return StatusCode(500, new { message = "Ошибка при получении статистики пользователя" });
             }
         }
     }

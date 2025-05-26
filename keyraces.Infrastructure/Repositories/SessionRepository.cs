@@ -1,6 +1,8 @@
 ﻿using keyraces.Core.Entities;
 using keyraces.Core.Interfaces;
+using keyraces.Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace keyraces.Infrastructure.Repositories
@@ -9,33 +11,92 @@ namespace keyraces.Infrastructure.Repositories
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<SessionRepository> _logger;
+        private readonly AppDbContext _dbContext;
         private const string UserIdKey = "CurrentUserId";
         private const string UsernameKey = "CurrentUsername";
 
-        public SessionRepository(IHttpContextAccessor httpContextAccessor, ILogger<SessionRepository> logger)
+        public SessionRepository(
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<SessionRepository> logger,
+            AppDbContext dbContext)
         {
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
+            _dbContext = dbContext;
         }
 
         public async Task<TypingSession> GetByIdAsync(int id)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var session = await _dbContext.Sessions
+                    .Include(s => s.TextSnippet)
+                    .FirstOrDefaultAsync(s => s.Id == id);
+
+                if (session == null)
+                {
+                    _logger.LogWarning("Session with ID {SessionId} not found", id);
+                    throw new InvalidOperationException($"Session with ID {id} not found");
+                }
+
+                return session;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting session with ID {SessionId}", id);
+                throw;
+            }
         }
 
         public async Task<IEnumerable<TypingSession>> ListByUserAsync(int userId)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var sessions = await _dbContext.Sessions
+                    .Include(s => s.TextSnippet)
+                    .Where(s => s.UserId == userId)
+                    .OrderByDescending(s => s.StartTime)
+                    .ToListAsync();
+
+                _logger.LogInformation("Retrieved {Count} sessions for user {UserId}", sessions.Count, userId);
+                return sessions;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error listing sessions for user {UserId}", userId);
+                throw;
+            }
         }
 
         public async Task AddAsync(TypingSession session)
         {
-            throw new NotImplementedException();
+            try
+            {
+                await _dbContext.Sessions.AddAsync(session);
+                await _dbContext.SaveChangesAsync();
+                _logger.LogInformation("Added new session with ID {SessionId} for user {UserId}",
+                    session.Id, session.UserId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding session for user {UserId}", session.UserId);
+                throw;
+            }
         }
 
         public async Task UpdateAsync(TypingSession session)
         {
-            throw new NotImplementedException();
+            try
+            {
+                _dbContext.Sessions.Update(session);
+                await _dbContext.SaveChangesAsync();
+                _logger.LogInformation("Updated session with ID {SessionId}", session.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating session with ID {SessionId}", session.Id);
+                throw;
+            }
         }
 
         public int? GetCurrentUserId()

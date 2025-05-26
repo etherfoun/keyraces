@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using System.Threading.Tasks;
 using keyraces.Core.Interfaces;
-using keyraces.Server.Dtos;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace keyraces.Server.Controllers
 {
@@ -9,65 +12,48 @@ namespace keyraces.Server.Controllers
     public class SessionController : ControllerBase
     {
         private readonly ITypingSessionService _sessionService;
-        private readonly ITypingStatisticService _statService;
+        private readonly ILogger<SessionController> _logger;
 
-        public SessionController(ITypingSessionService sessionService, ITypingStatisticService statService)
+        public SessionController(
+            ITypingSessionService sessionService,
+            ILogger<SessionController> logger)
         {
             _sessionService = sessionService;
-            _statService = statService;
+            _logger = logger;
         }
 
-
-        // POST /api/session
-        [HttpPost]
-        public async Task<ActionResult<SessionDto>> Start([FromBody] StartSessionDto dto)
-        {
-            var session = await _sessionService.StartSessionAsync(dto.UserId, dto.TextSnippetId);
-
-            var resultDto = new SessionDto(
-                id: session.Id,
-                startTime: session.StartTime
-            );
-
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = session.Id },
-                resultDto
-            );
-        }
-
-        // GET /api/session/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<SessionDto>> GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var session = await _sessionService.GetByIdAsync(id);  // одиночный объект
-            if (session == null)
-                return NotFound();
-
-            return Ok(new SessionDto(session.Id, session.StartTime));
+            try
+            {
+                var session = await _sessionService.GetByIdAsync(id);
+                if (session == null)
+                {
+                    return NotFound(new { message = $"Сессия с ID {id} не найдена" });
+                }
+                return Ok(session);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при получении сессии с ID {SessionId}", id);
+                return StatusCode(500, new { message = "Ошибка при получении сессии" });
+            }
         }
 
-        // POST /api/session/{id}/complete
-        [HttpPost("{id}/complete")]
-        public async Task<IActionResult> Complete(
-            int id,
-            [FromBody] CompleteDto dto)   
-        {
-            var endTime = DateTime.UtcNow;
-            await _sessionService.CompleteSessionAsync(id, endTime);
-
-            await _statService.CreateAsync(id, dto.WPM, dto.Errors);
-
-            return NoContent();
-        }
-
-        // GET /api/session/user/{userProfileId}
         [HttpGet("user/{userId}")]
-        public async Task<ActionResult<IEnumerable<SessionDto>>> GetByUser(int userId)
+        public async Task<IActionResult> GetByUser(int userId)
         {
-            var list = await _sessionService.GetByUserAsync(userId);
-            var dtos = list.Select(s => new SessionDto(s.Id, s.StartTime));
-            return Ok(dtos);
+            try
+            {
+                var sessions = await _sessionService.GetByUserAsync(userId);
+                return Ok(sessions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при получении сессий пользователя {UserId}", userId);
+                return StatusCode(500, new { message = "Ошибка при получении сессий пользователя" });
+            }
         }
     }
 }
