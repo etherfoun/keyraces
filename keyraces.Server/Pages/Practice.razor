@@ -56,7 +56,7 @@
             <div class="keys-list">
                 @foreach (var key in GetCurrentLanguageKeys())
                 {
-                    <span class="key-badge @(key == currentKey ? "current" : "")">@key</span>
+                    <span class="key-badge @(key == currentKey ? "current" : "") @(keyStatistics.ContainsKey(key) && keyStatistics[key].IsCompleted ? "completed" : "")">@key</span>
                 }
             </div>
         </div>
@@ -532,7 +532,9 @@
     @if (showAccuracyFeedback)
     {
         <div class="feedback-modal">
+            @* Ensure this class provides overlay and centering *@
             <div class="feedback-content">
+                @* Ensure this class styles the modal box itself *@
                 <div class="feedback-header">
                     <h2>@GetLocalizedText("Practice Complete")</h2>
                     <button class="close-button" @onclick="CloseFeedback">×</button>
@@ -635,15 +637,24 @@
         public bool IsCompleted { get; set; } = false;
     }
 
+    // Method to reset the heatmap for a new practice key/level
+    private void ResetHeatMapForNewPracticeKey()
+    {
+        keyHeatMap.Clear();
+        foreach (var keyChar in GetCurrentLanguageKeys())
+        {
+            keyHeatMap[keyChar] = 0;
+        }
+        keyHeatMap[' '] = 0; // Ensure space is also reset
+    }
+
+
     protected override async Task OnInitializedAsync()
     {
         practiceTimer = new Timer(1000);
         practiceTimer.Elapsed += OnPracticeTimerElapsed;
 
-        foreach (var key in GetCurrentLanguageKeys())
-        {
-            keyHeatMap[key] = 0;
-        }
+        ResetHeatMapForNewPracticeKey(); // Initialize heat map
 
         currentKey = GetCurrentLanguageKeys()[0];
         highlightedKey = currentKey;
@@ -811,11 +822,11 @@
         }
     }
 
-    private async Task LoadDictionary(string language, string filePath)
+    private async Task LoadDictionary(string lang, string filePath)
     {
         try
         {
-            Console.WriteLine($"Loading dictionary for {language} from {filePath}");
+            Console.WriteLine($"Loading dictionary for {lang} from {filePath}");
 
             string jsonContent = await LoadDictionaryWithHttpClient(filePath);
 
@@ -826,7 +837,7 @@
 
             if (string.IsNullOrEmpty(jsonContent))
             {
-                Console.WriteLine($"Failed to load dictionary for {language}");
+                Console.WriteLine($"Failed to load dictionary for {lang}");
                 return;
             }
 
@@ -836,7 +847,7 @@
 
             if (dictionaryData == null || dictionaryData.Count == 0)
             {
-                Console.WriteLine($"Dictionary for {language} is empty or invalid");
+                Console.WriteLine($"Dictionary for {lang} is empty or invalid");
                 return;
             }
 
@@ -847,28 +858,28 @@
                     if (string.IsNullOrEmpty(word) || word.Length == 0)
                         continue;
 
-                    char firstChar = word[0];
+                    char firstChar = Char.ToLower(word[0]);
 
-                    if (!languagePracticeWords[language].ContainsKey(firstChar))
+                    if (!languagePracticeWords[lang].ContainsKey(firstChar))
                     {
-                        languagePracticeWords[language][firstChar] = new List<string>();
+                        languagePracticeWords[lang][firstChar] = new List<string>();
                     }
 
-                    if (!languagePracticeWords[language][firstChar].Contains(word))
+                    if (!languagePracticeWords[lang][firstChar].Contains(word))
                     {
-                        languagePracticeWords[language][firstChar].Add(word);
+                        languagePracticeWords[lang][firstChar].Add(word);
                     }
                 }
             }
 
-            Console.WriteLine($"Successfully loaded dictionary for {language} with {languagePracticeWords[language].Count} keys");
+            Console.WriteLine($"Successfully loaded dictionary for {lang} with {languagePracticeWords[lang].Count} keys");
 
-            string keys = string.Join(", ", languagePracticeWords[language].Keys.Take(10));
-            Console.WriteLine($"First keys: {keys}");
+            string keysLoaded = string.Join(", ", languagePracticeWords[lang].Keys.Take(10));
+            Console.WriteLine($"First keys for {lang}: {keysLoaded}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading dictionary for {language}: {ex.Message}");
+            Console.WriteLine($"Error loading dictionary for {lang}: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }
@@ -933,116 +944,6 @@
         }
     }
 
-    private async Task LoadDictionaryWithHttpClient(string language, string path)
-    {
-        try
-        {
-            Console.WriteLine($"Trying to load {language} dictionary via HttpClient from {path}");
-
-            using (var httpClient = new System.Net.Http.HttpClient())
-            {
-                httpClient.BaseAddress = new Uri(NavigationManager.BaseUri);
-                httpClient.Timeout = TimeSpan.FromSeconds(10);
-
-                var response = await httpClient.GetAsync(path);
-                Console.WriteLine($"HttpClient response for {language}: {response.StatusCode}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var jsonContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Received {language} JSON content via HttpClient, length: {jsonContent.Length}");
-
-                    if (!string.IsNullOrEmpty(jsonContent) && jsonContent.StartsWith("{") && jsonContent.EndsWith("}"))
-                    {
-                        var options = new System.Text.Json.JsonSerializerOptions
-                        {
-                            AllowTrailingCommas = true,
-                            ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip
-                        };
-
-                        var dictionary = System.Text.Json.JsonSerializer.Deserialize<Dictionary<char, List<string>>>(jsonContent, options);
-                        if (dictionary != null && dictionary.Count > 0)
-                        {
-                            languagePracticeWords[language] = dictionary;
-
-                            await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"dictionary_{language}", jsonContent);
-
-                            Console.WriteLine($"{language} dictionary loaded from server via HttpClient and cached, keys: {dictionary.Keys.Count}");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Failed to deserialize {language} dictionary via HttpClient or dictionary is empty");
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Invalid JSON format for {language} dictionary via HttpClient");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"Failed to load {language} dictionary via HttpClient, status code: {response.StatusCode}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"HttpClient error for {language} dictionary: {ex.Message}");
-            if (ex.InnerException != null)
-            {
-                Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
-            }
-        }
-    }
-
-    private async Task<string> DetectAndConvertEncoding(string content)
-    {
-        try
-        {
-            if (content.StartsWith("\uFEFF"))
-            {
-                content = content.Substring(1);
-            }
-
-            bool hasInvalidChars = content.Contains("�");
-
-            if (hasInvalidChars)
-            {
-                Console.WriteLine("Detected invalid characters, trying different encodings");
-
-                byte[] bytes = Encoding.UTF8.GetBytes(content);
-
-                string windows1251 = Encoding.GetEncoding(1251).GetString(bytes);
-                if (!windows1251.Contains("�"))
-                {
-                    Console.WriteLine("Windows-1251 encoding detected");
-                    return windows1251;
-                }
-
-                string iso88595 = Encoding.GetEncoding(28595).GetString(bytes);
-                if (!iso88595.Contains("�"))
-                {
-                    Console.WriteLine("ISO-8859-5 encoding detected");
-                    return iso88595;
-                }
-
-                string koi8r = Encoding.GetEncoding(20866).GetString(bytes);
-                if (!koi8r.Contains("�"))
-                {
-                    Console.WriteLine("KOI8-R encoding detected");
-                    return koi8r;
-                }
-            }
-
-            return content;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Encoding detection error: {ex.Message}");
-            return content;
-        }
-    }
-
     private async Task LoadSettingsFromLocalStorage()
     {
         try
@@ -1053,20 +954,18 @@
             if (!string.IsNullOrEmpty(savedKeyboardLayout))
             {
                 keyboardLayout = savedKeyboardLayout;
-                tempKeyboardLayout = savedKeyboardLayout;
             }
+            tempKeyboardLayout = keyboardLayout;
 
             if (!string.IsNullOrEmpty(savedLanguage))
             {
                 language = savedLanguage;
-                tempLanguage = savedLanguage;
+            }
+            tempLanguage = language;
 
-                keyHeatMap.Clear();
-                foreach (var key in GetCurrentLanguageKeys())
-                {
-                    keyHeatMap[key] = 0;
-                }
-
+            if (!string.IsNullOrEmpty(savedLanguage))
+            {
+                ResetHeatMapForNewPracticeKey();
                 currentKey = GetCurrentLanguageKeys()[0];
                 highlightedKey = currentKey;
             }
@@ -1087,15 +986,17 @@
     {
         try
         {
-            if (!languagePracticeWords.ContainsKey(language))
+            if (!languagePracticeWords.ContainsKey(language) || languagePracticeWords[language] == null)
             {
                 languagePracticeWords[language] = new Dictionary<char, List<string>>();
             }
 
-            if (languagePracticeWords[language].ContainsKey(currentKey) &&
-                languagePracticeWords[language][currentKey].Count > 0)
+            char normalizedCurrentKey = Char.ToLower(currentKey);
+
+            if (languagePracticeWords[language].ContainsKey(normalizedCurrentKey) &&
+                languagePracticeWords[language][normalizedCurrentKey].Count > 0)
             {
-                var wordsList = new List<string>(languagePracticeWords[language][currentKey]);
+                var wordsList = new List<string>(languagePracticeWords[language][normalizedCurrentKey]);
 
                 int wordsCount = Math.Min(random.Next(5, 11), wordsList.Count);
                 practiceWords = new List<string>();
@@ -1111,26 +1012,30 @@
             }
             else
             {
+                Console.WriteLine($"No words found for key '{currentKey}' in language '{language}'. Using fallback or trying next key.");
                 var keys = GetCurrentLanguageKeys();
-                int currentIndex = Array.IndexOf(keys, currentKey);
+                int currentIndexInKeysArray = Array.IndexOf(keys, currentKey);
+                if (currentIndexInKeysArray == -1) currentIndexInKeysArray = Array.IndexOf(keys, Char.ToLower(currentKey));
+
 
                 for (int i = 1; i < keys.Length; i++)
                 {
-                    int nextIndex = (currentIndex + i) % keys.Length;
-                    char nextKey = keys[nextIndex];
+                    int nextIndex = (currentIndexInKeysArray + i) % keys.Length;
+                    char nextKeyToTry = keys[nextIndex];
+                    char normalizedNextKeyToTry = Char.ToLower(nextKeyToTry);
 
-                    if (languagePracticeWords[language].ContainsKey(nextKey) &&
-                        languagePracticeWords[language][nextKey].Count > 0)
+                    if (languagePracticeWords[language].ContainsKey(normalizedNextKeyToTry) &&
+                        languagePracticeWords[language][normalizedNextKeyToTry].Count > 0)
                     {
-                        currentKey = nextKey;
+                        currentKey = nextKeyToTry;
                         highlightedKey = currentKey;
-
+                        Console.WriteLine($"Switched to next available key: {currentKey}");
                         GeneratePracticeWords();
                         return;
                     }
                 }
-
-                practiceWords = new List<string> { "no", "words", "found", "for", "this", "key" };
+                practiceWords = new List<string> { "no", "words", "available" };
+                Console.WriteLine("Using fallback words as no key has practice words.");
             }
 
             UpdateKeyStatus();
@@ -1142,7 +1047,8 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error in GeneratePracticeWords: {ex.Message}");
+            Console.WriteLine($"Error in GeneratePracticeWords: {ex.Message} {ex.StackTrace}");
+            practiceWords = new List<string> { "error", "generating", "words" };
         }
     }
 
@@ -1164,7 +1070,7 @@
     {
         if (language == "english")
         {
-            switch (currentKey)
+            switch (Char.ToLower(currentKey))
             {
                 case 'e':
                     currentKeyStatus = "Most common letter in English.";
@@ -1270,29 +1176,39 @@
     private string GetKeyClass(char key)
     {
         List<string> classes = new List<string>();
+        char normalizedKey = Char.ToLower(key);
 
-        if (pressedKeys.Contains(key.ToString()))
+        if (pressedKeys.Contains(key.ToString()) || pressedKeys.Contains(normalizedKey.ToString()))
         {
             classes.Add("pressed");
         }
 
-        if (keyHeatMap.ContainsKey(key))
+        if (keyHeatMap.ContainsKey(normalizedKey))
         {
-            int heat = keyHeatMap[key];
+            int heat = keyHeatMap[normalizedKey];
             if (heat > 20) classes.Add("heat-high");
             else if (heat > 10) classes.Add("heat-medium");
             else if (heat > 0) classes.Add("heat-low");
         }
 
-        if (key == highlightedKey)
+        if (highlightedKey.HasValue && Char.ToLower(highlightedKey.Value) == normalizedKey)
         {
             classes.Add("highlighted");
         }
 
-        if (keyStatistics.ContainsKey(key) && keyStatistics[key].IsCompleted)
+        if (keyStatistics.ContainsKey(normalizedKey) && keyStatistics[normalizedKey].IsCompleted)
         {
             classes.Add("completed");
         }
+
+        if (key == ' ' && keyHeatMap.ContainsKey(' '))
+        {
+            int heat = keyHeatMap[' '];
+            if (heat > 20) classes.Add("heat-high");
+            else if (heat > 10) classes.Add("heat-medium");
+            else if (heat > 0) classes.Add("heat-low");
+        }
+
 
         return string.Join(" ", classes);
     }
@@ -1335,37 +1251,33 @@
     {
         tempKeyboardLayout = keyboardLayout;
         tempLanguage = language;
-
         showSettings = true;
     }
 
     private void CloseSettings()
     {
-        keyboardLayout = tempKeyboardLayout;
-        language = tempLanguage;
-
         showSettings = false;
     }
 
     private async Task SaveSettings()
     {
-        if (tempLanguage != language)
+        bool languageChanged = tempLanguage != language;
+        language = tempLanguage;
+        keyboardLayout = tempKeyboardLayout;
+
+        if (languageChanged)
         {
-            keyHeatMap.Clear();
-
-            foreach (var key in GetCurrentLanguageKeys())
-            {
-                keyHeatMap[key] = 0;
-            }
-
+            ResetHeatMapForNewPracticeKey();
             currentKey = GetCurrentLanguageKeys()[0];
             highlightedKey = currentKey;
+            keyStatistics.Clear();
+            completedKeysCount = 0;
+            isAllKeysCompleted = false;
+            await InitializeLanguagePracticeWords();
         }
 
         await SaveSettingsToLocalStorage();
-
         RestartPractice();
-
         showSettings = false;
     }
 
@@ -1453,10 +1365,29 @@
 
         if (e.CtrlKey && e.Key == "Enter")
         {
-            NextPractice();
+            CompletePracticeAndGoToNext();
             return;
         }
     }
+
+    private void CompletePracticeAndGoToNext()
+    {
+        if (!isCompleted)
+        {
+            CompletePractice();
+        }
+        if (isAllKeysCompleted)
+        {
+            CalculateOverallStatistics();
+            showStatistics = true;
+        }
+        else
+        {
+            NextPractice();
+        }
+        StateHasChanged();
+    }
+
 
     private void HandleKeyPress(KeyboardEventArgs e)
     {
@@ -1469,19 +1400,23 @@
 
         if (e.Key.Length == 1)
         {
-            char key = e.Key[0];
+            char typedChar = e.Key[0];
+            char expectedChar = currentPosition < practiceText.Length ? practiceText[currentPosition] : '\0';
 
-            typedText += key;
-
+            typedText += typedChar;
             totalKeysPressed++;
 
-            if (currentPosition < practiceText.Length && key == practiceText[currentPosition])
+            if (expectedChar != '\0' && typedChar == expectedChar)
             {
                 correctKeysPressed++;
-
-                if (keyHeatMap.ContainsKey(key))
+                char normalizedKeyForMap = Char.ToLower(typedChar);
+                if (keyHeatMap.ContainsKey(normalizedKeyForMap))
                 {
-                    keyHeatMap[key]++;
+                    keyHeatMap[normalizedKeyForMap]++;
+                }
+                else if (typedChar == ' ' && keyHeatMap.ContainsKey(' '))
+                {
+                    keyHeatMap[' ']++;
                 }
             }
 
@@ -1493,7 +1428,6 @@
             }
 
             UpdateMetrics();
-
             StateHasChanged();
         }
     }
@@ -1506,16 +1440,18 @@
 
     private void NextPractice()
     {
+        ResetHeatMapForNewPracticeKey();
+
         var keys = GetCurrentLanguageKeys();
         int currentIndex = Array.IndexOf(keys, currentKey);
+        if (currentIndex == -1) currentIndex = Array.IndexOf(keys, Char.ToLower(currentKey));
+
         int nextIndex = (currentIndex + 1) % keys.Length;
         currentKey = keys[nextIndex];
         highlightedKey = currentKey;
 
         GeneratePracticeWords();
-
         ResetPracticeState();
-
         StateHasChanged();
     }
 
@@ -1523,31 +1459,30 @@
     {
         practiceTime++;
         UpdateMetrics();
-
         InvokeAsync(StateHasChanged);
     }
 
     private void PreviousPractice()
     {
+        ResetHeatMapForNewPracticeKey();
+
         var keys = GetCurrentLanguageKeys();
         int currentIndex = Array.IndexOf(keys, currentKey);
+        if (currentIndex == -1) currentIndex = Array.IndexOf(keys, Char.ToLower(currentKey));
+
         int prevIndex = (currentIndex - 1 + keys.Length) % keys.Length;
         currentKey = keys[prevIndex];
         highlightedKey = currentKey;
 
         GeneratePracticeWords();
-
         ResetPracticeState();
-
         StateHasChanged();
     }
 
     private void RestartPractice()
     {
         GeneratePracticeWords();
-
         ResetPracticeState();
-
         StateHasChanged();
     }
 
@@ -1556,7 +1491,6 @@
         isPracticeActive = true;
         startTime = DateTime.Now;
         practiceTime = 0;
-
         practiceTimer.Start();
     }
 
@@ -1564,48 +1498,40 @@
     {
         isCompleted = true;
         isPracticeActive = false;
-
         practiceTimer.Stop();
-
         UpdateMetrics();
 
-        if (!keyStatistics.ContainsKey(currentKey))
+        char statKey = Char.ToLower(currentKey);
+        if (!keyStatistics.ContainsKey(statKey))
         {
-            keyStatistics[currentKey] = new KeyStatistics();
+            keyStatistics[statKey] = new KeyStatistics();
         }
+        keyStatistics[statKey].Accuracy = accuracy;
+        keyStatistics[statKey].Wpm = wpm;
+        keyStatistics[statKey].Score = score;
+        keyStatistics[statKey].IsCompleted = true;
 
-        keyStatistics[currentKey].Accuracy = accuracy;
-        keyStatistics[currentKey].Wpm = wpm;
-        keyStatistics[currentKey].Score = score;
-        keyStatistics[currentKey].IsCompleted = true;
-
-        completedKeysCount = keyStatistics.Count(k => k.Value.IsCompleted);
-
+        completedKeysCount = keyStatistics.Values.Count(s => s.IsCompleted);
         CheckAllKeysCompleted();
 
-        if (isAllKeysCompleted)
-        {
-            CalculateOverallStatistics();
-            showStatistics = true;
-        }
-        else
-        {
-            NextPractice();
-        }
+        GenerateAccuracyFeedbackMessage();
+        showAccuracyFeedback = true;
+        nextKeyCountdown = 5;
+        feedbackTimer?.Dispose();
+        feedbackTimer = new Timer(1000);
+        feedbackTimer.Elapsed += OnFeedbackTimerElapsed;
+        feedbackTimer.Start();
     }
 
     private void OnFeedbackTimerElapsed(object sender, ElapsedEventArgs e)
     {
         nextKeyCountdown--;
-
         if (nextKeyCountdown <= 0)
         {
             feedbackTimer.Stop();
-
             InvokeAsync(() =>
             {
                 showAccuracyFeedback = false;
-
                 if (isAllKeysCompleted)
                 {
                     CalculateOverallStatistics();
@@ -1615,119 +1541,89 @@
                 {
                     NextPractice();
                 }
-
                 StateHasChanged();
             });
         }
-
-        InvokeAsync(StateHasChanged);
-    }
-
-    private void ShowFinalStatistics()
-    {
-        CalculateOverallStatistics();
-        showStatistics = true;
-        StateHasChanged();
+        else
+        {
+            InvokeAsync(StateHasChanged);
+        }
     }
 
     private void GenerateAccuracyFeedbackMessage()
     {
-        if (language == "english")
+        string localizedExcellent, localizedGood, localizedNotBad, localizedNeedsPractice;
+
+        if (language == "russian")
         {
-            if (accuracy >= 98)
-            {
-                accuracyFeedbackMessage = "Excellent! Your accuracy with this key is outstanding.";
-            }
-            else if (accuracy >= 90)
-            {
-                accuracyFeedbackMessage = "Good job! You have solid accuracy with this key.";
-            }
-            else if (accuracy >= 80)
-            {
-                accuracyFeedbackMessage = "Not bad, but try to focus more on accuracy than speed.";
-            }
-            else
-            {
-                accuracyFeedbackMessage = "You need more practice with this key. Focus on accuracy first.";
-            }
-        }
-        else if (language == "russian")
-        {
-            if (accuracy >= 98)
-            {
-                accuracyFeedbackMessage = "Отлично! У вас превосходная точность с этой клавишей.";
-            }
-            else if (accuracy >= 90)
-            {
-                accuracyFeedbackMessage = "Хорошая работа! У вас хорошая точность с этой клавишей.";
-            }
-            else if (accuracy >= 80)
-            {
-                accuracyFeedbackMessage = "Неплохо, но старайтесь больше сосредоточиться на точности, чем на скорости.";
-            }
-            else
-            {
-                accuracyFeedbackMessage = "Вам нужно больше практики с этой клавишей. Сначала сосредоточьтесь на точности.";
-            }
+            localizedExcellent = "Отлично! У вас превосходная точность с этой клавишей.";
+            localizedGood = "Хорошая работа! У вас хорошая точность с этой клавишей.";
+            localizedNotBad = "Неплохо, но старайтесь больше сосредоточиться на точности, чем на скорости.";
+            localizedNeedsPractice = "Вам нужно больше практики с этой клавишей. Сначала сосредоточьтесь на точности.";
         }
         else if (language == "ukrainian")
         {
-            if (accuracy >= 98)
-            {
-                accuracyFeedbackMessage = "Відмінно! У вас чудова точність з цією клавішею.";
-            }
-            else if (accuracy >= 90)
-            {
-                accuracyFeedbackMessage = "Гарна робота! У вас хороша точність з цією клавішею.";
-            }
-            else if (accuracy >= 80)
-            {
-                accuracyFeedbackMessage = "Непогано, але намагайтеся більше зосередитися на точності, ніж на швидкості.";
-            }
-            else
-            {
-                accuracyFeedbackMessage = "Вам потрібно більше практики з цією клавішею. Спочатку зосередьтеся на точності.";
-            }
+            localizedExcellent = "Відмінно! У вас чудова точність з цією клавішею.";
+            localizedGood = "Гарна робота! У вас хороша точність з цією клавішею.";
+            localizedNotBad = "Непогано, але намагайтеся більше зосередитися на точності, ніж на швидкості.";
+            localizedNeedsPractice = "Вам потрібно більше практики з цією клавішею. Спочатку зосередьтеся на точності.";
         }
+        else
+        {
+            localizedExcellent = "Excellent! Your accuracy with this key is outstanding.";
+            localizedGood = "Good job! You have solid accuracy with this key.";
+            localizedNotBad = "Not bad, but try to focus more on accuracy than speed.";
+            localizedNeedsPractice = "You need more practice with this key. Focus on accuracy first.";
+        }
+
+        if (accuracy >= 98) accuracyFeedbackMessage = localizedExcellent;
+        else if (accuracy >= 90) accuracyFeedbackMessage = localizedGood;
+        else if (accuracy >= 80) accuracyFeedbackMessage = localizedNotBad;
+        else accuracyFeedbackMessage = localizedNeedsPractice;
     }
 
     private void CheckAllKeysCompleted()
     {
-        var keys = GetCurrentLanguageKeys();
-        isAllKeysCompleted = keys.All(k => keyStatistics.ContainsKey(k) && keyStatistics[k].IsCompleted);
+        var currentLangKeys = GetCurrentLanguageKeys();
+        isAllKeysCompleted = currentLangKeys.All(k => keyStatistics.ContainsKey(Char.ToLower(k)) && keyStatistics[Char.ToLower(k)].IsCompleted);
     }
 
     private void CalculateOverallStatistics()
     {
         if (keyStatistics.Count == 0) return;
 
-        double totalAccuracy = 0;
-        double totalWpm = 0;
+        double totalAccuracySum = 0;
+        double totalWpmSum = 0;
         totalScore = 0;
+        int completedCountForAverage = 0;
         keysToImprove.Clear();
 
-        foreach (var stat in keyStatistics)
+        foreach (var statEntry in keyStatistics)
         {
-            totalAccuracy += stat.Value.Accuracy;
-            totalWpm += stat.Value.Wpm;
-            totalScore += stat.Value.Score;
-
-            if (stat.Value.Accuracy < 85)
+            if (statEntry.Value.IsCompleted)
             {
-                keysToImprove.Add(stat.Key);
+                totalAccuracySum += statEntry.Value.Accuracy;
+                totalWpmSum += statEntry.Value.Wpm;
+                totalScore += statEntry.Value.Score;
+                completedCountForAverage++;
+
+                if (statEntry.Value.Accuracy < 85)
+                {
+                    keysToImprove.Add(statEntry.Key);
+                }
             }
         }
 
-        averageAccuracy = totalAccuracy / keyStatistics.Count;
-        averageWpm = totalWpm / keyStatistics.Count;
+        averageAccuracy = completedCountForAverage > 0 ? totalAccuracySum / completedCountForAverage : 0;
+        averageWpm = completedCountForAverage > 0 ? totalWpmSum / completedCountForAverage : 0;
 
-        if (keysToImprove.Count == 0)
+        if (keysToImprove.Count == 0 && completedCountForAverage > 0)
         {
             var slowestKeys = keyStatistics
-                .OrderBy(k => k.Value.Wpm)
-                .Take(3)
-                .Select(k => k.Key);
-
+                .Where(kv => kv.Value.IsCompleted)
+                .OrderBy(kv => kv.Value.Wpm)
+                .Take(Math.Min(3, completedCountForAverage))
+                .Select(kv => kv.Key);
             keysToImprove.AddRange(slowestKeys);
         }
     }
@@ -1752,7 +1648,6 @@
         {
             NextPractice();
         }
-
         StateHasChanged();
     }
 
@@ -1761,16 +1656,15 @@
         keyStatistics.Clear();
         completedKeysCount = 0;
         isAllKeysCompleted = false;
-
         showStatistics = false;
 
         currentKey = GetCurrentLanguageKeys()[0];
         highlightedKey = currentKey;
 
+        ResetHeatMapForNewPracticeKey();
+
         GeneratePracticeWords();
-
         ResetPracticeState();
-
         StateHasChanged();
     }
 
@@ -1841,7 +1735,6 @@
         {
             return translations[language][key];
         }
-
         return key;
     }
 
@@ -1862,6 +1755,8 @@
         rawWpm = 0;
         accuracy = 0;
         score = 0;
+        typedText = "";
+        currentPosition = 0;
 
         practiceTimer.Stop();
     }
@@ -1871,36 +1766,57 @@
         if (practiceTime > 0)
         {
             double minutes = practiceTime / 60.0;
-            rawWpm = totalKeysPressed / 5.0 / minutes;
-            wpm = correctKeysPressed / 5.0 / minutes;
+            rawWpm = (totalKeysPressed / 5.0) / minutes;
+            wpm = (correctKeysPressed / 5.0) / minutes;
         }
+        else
+        {
+            rawWpm = 0;
+            wpm = 0;
+        }
+
 
         if (totalKeysPressed > 0)
         {
             accuracy = (int)Math.Round((double)correctKeysPressed / totalKeysPressed * 100);
         }
+        else
+        {
+            accuracy = 0;
+        }
 
         score = (int)(wpm * (accuracy / 100.0) * 10);
 
-        if (accuracy >= 98)
+        string localizedExcellentStreak, localizedGoodStreak, localizedDecentStreak, localizedFocusStreak, localizedNoStreak;
+        if (language == "russian")
         {
-            accuracyStatus = "Excellent! Keep up the good work.";
+            localizedExcellentStreak = "Отлично! Продолжайте в том же духе.";
+            localizedGoodStreak = "Очень хорошая точность. Сосредоточьтесь на постоянстве.";
+            localizedDecentStreak = "Хорошая точность. Старайтесь быть точнее.";
+            localizedFocusStreak = "Приличная точность. Замедлитесь, чтобы улучшить.";
+            localizedNoStreak = "Сосредоточьтесь на точности, а не на скорости.";
         }
-        else if (accuracy >= 95)
+        else if (language == "ukrainian")
         {
-            accuracyStatus = "Very good accuracy. Focus on consistency.";
-        }
-        else if (accuracy >= 90)
-        {
-            accuracyStatus = "Good accuracy. Try to be more precise.";
-        }
-        else if (accuracy >= 80)
-        {
-            accuracyStatus = "Decent accuracy. Slow down to improve.";
+            localizedExcellentStreak = "Відмінно! Продовжуйте в тому ж дусі.";
+            localizedGoodStreak = "Дуже хороша точність. Зосередьтеся на сталості.";
+            localizedDecentStreak = "Хороша точність. Намагайтеся бути точнішими.";
+            localizedFocusStreak = "Пристойна точність. Сповільніться, щоб покращити.";
+            localizedNoStreak = "Зосередьтеся на точності, а не на швидкості.";
         }
         else
         {
-            accuracyStatus = "Focus on accuracy rather than speed.";
+            localizedExcellentStreak = "Excellent! Keep up the good work.";
+            localizedGoodStreak = "Very good accuracy. Focus on consistency.";
+            localizedDecentStreak = "Good accuracy. Try to be more precise.";
+            localizedFocusStreak = "Decent accuracy. Slow down to improve.";
+            localizedNoStreak = "Focus on accuracy rather than speed.";
         }
+
+        if (accuracy >= 98) accuracyStatus = localizedExcellentStreak;
+        else if (accuracy >= 95) accuracyStatus = localizedGoodStreak;
+        else if (accuracy >= 90) accuracyStatus = localizedDecentStreak;
+        else if (accuracy >= 80) accuracyStatus = localizedFocusStreak;
+        else accuracyStatus = localizedNoStreak;
     }
 }
