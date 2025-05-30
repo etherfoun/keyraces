@@ -2,13 +2,13 @@
 @using keyraces.Server.Services
 @inject ThemeService ThemeService
 
-<PageTitle>KeyRaces - Тренажер скорости печати</PageTitle>
+<PageTitle>KeyRaces - Typing Speed Trainer</PageTitle>
 
 <div class="hero-section">
     <div class="hero-content">
         <img src="/images/logo.png" alt="KeyRaces Logo" class="logo" />
         <h1>KeyRaces</h1>
-        <p class="tagline">Улучшайте навыки печати, соревнуйтесь с друзьями и отслеживайте свой прогресс</p>
+        <p class="tagline">Improve your typing skills, compete with friends, and track your progress</p>
     </div>
 </div>
 
@@ -17,62 +17,61 @@
         <div class="feature-icon">
             <i class="oi oi-timer"></i>
         </div>
-        <h2>Практика</h2>
-        <p>Тренируйте скорость печати в свободном режиме с различными текстами и отслеживайте свой прогресс в реальном времени.</p>
-        <a href="/practice" class="feature-button">Начать практику</a>
+        <h2>Practice</h2>
+        <p>Practice your typing speed in free mode with various texts and track your progress in real time.</p>
+        <a href="/practice" class="feature-button">Start Practice</a>
     </div>
 
     <div class="feature-card">
         <div class="feature-icon">
             <i class="oi oi-graph"></i>
         </div>
-        <h2>Тренировка</h2>
-        <p>Структурированные тренировки с текстами разной сложности на русском, английском и украинском языках.</p>
-        <a href="/train" class="feature-button">Начать тренировку</a>
+        <h2>Training</h2>
+        <p>Structured training sessions with texts of varying difficulty in Russian, English, and Ukrainian.</p>
+        <a href="/train" class="feature-button">Start Training</a>
     </div>
 
     <div class="feature-card">
         <div class="feature-icon">
             <i class="oi oi-people"></i>
         </div>
-        <h2>Соревнования</h2>
-        <p>Соревнуйтесь с другими пользователями в режиме реального времени и поднимайтесь в рейтинге лидеров.</p>
-        <a href="/competitions" class="feature-button">Присоединиться к соревнованию</a>
+        <h2>Competitions</h2>
+        <p>Compete with other users in real time and climb the leaderboards.</p>
+        <a href="/competitions" class="feature-button">Join a Competition</a>
     </div>
 
     <div class="feature-card">
         <div class="feature-icon">
             <i class="oi oi-person"></i>
         </div>
-        <h2>Профиль</h2>
-        <p>Просматривайте свою статистику, достижения и историю тренировок в персональном профиле.</p>
-        <a href="/profile" class="feature-button">Мой профиль</a>
+        <h2>Profile</h2>
+        <p>View your statistics, achievements, and training history in your personal profile.</p>
+        <a href="/profile" class="feature-button">My Profile</a>
     </div>
 </div>
 
 <div class="stats-section">
     <div class="stat-item">
         <div class="stat-number">100+</div>
-        <div class="stat-label">Текстов для тренировки</div>
+        <div class="stat-label">Texts for training</div>
     </div>
     <div class="stat-item">
         <div class="stat-number">3</div>
-        <div class="stat-label">Языка</div>
+        <div class="stat-label">Languages</div>
     </div>
     <div class="stat-item">
-        <div class="stat-number">5</div>
-        <div class="stat-label">Уровней сложности</div>
+        <div class="stat-number">3</div>
+        <div class="stat-label">Difficulty Levels</div>
     </div>
 </div>
 
 <div class="cta-section">
-    <h2>Готовы улучшить свои навыки печати?</h2>
-    <p>Начните прямо сейчас и следите за своим прогрессом</p>
-    <a href="/practice" class="cta-button">Начать печатать</a>
+    <h2>Ready to improve your typing skills?</h2>
+    <p>Start now and track your progress</p>
+    <a href="/practice" class="cta-button">Start Typing</a>
 </div>
 
 <style>
-    /* Основные стили */
     :root {
         --primary-color: var(--accent-color);
         --secondary-color: var(--accent-hover);
@@ -83,7 +82,6 @@
         --transition: all 0.3s ease;
     }
 
-    /* Hero секция */
     .hero-section {
         text-align: center;
         padding: 3rem 1rem 4rem;
@@ -119,7 +117,6 @@
         margin: 0 auto;
     }
 
-    /* Карточки функций */
     .features-container {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -190,7 +187,6 @@
             text-decoration: none;
         }
 
-    /* Секция статистики */
     .stats-section {
         display: flex;
         justify-content: center;
@@ -220,7 +216,6 @@
         opacity: 0.8;
     }
 
-    /* CTA секция */
     .cta-section {
         text-align: center;
         padding: 4rem 1rem;
@@ -260,29 +255,25 @@
             text-decoration: none;
         }
 
-    /* Адаптивность */
     @@media (max-width: 768px) {
-        .hero-section h1
+        .hero-section h1 {
+            font-size: 2.5rem;
+        }
 
-    {
-        font-size: 2.5rem;
-    }
+        .tagline {
+            font-size: 1.2rem;
+        }
 
-    .tagline {
-        font-size: 1.2rem;
-    }
+        .features-container {
+            padding: 0 1rem;
+        }
 
-    .features-container {
-        padding: 0 1rem;
-    }
+        .stat-number {
+            font-size: 2.5rem;
+        }
 
-    .stat-number {
-        font-size: 2.5rem;
-    }
-
-    .cta-section h2 {
-        font-size: 1.8rem;
-    }
-
+        .cta-section h2 {
+            font-size: 1.8rem;
+        }
     }
 </style>
