@@ -1,13 +1,12 @@
 @import url("open-iconic/font/css/open-iconic-bootstrap.min.css");
 
 :root {
-    /* Базовые переменные темы будут определены в theme.css */
 }
 
 html,
 body {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    padding-top: 40px; /* Уменьшаем отступ сверху */
+    padding-top: 40px;
     background-color: var(--background-primary);
     color: var(--text-primary);
     transition: background-color 0.3s ease, color 0.3s ease;

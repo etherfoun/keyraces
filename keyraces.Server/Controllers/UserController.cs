@@ -1,21 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using keyraces.Core.Entities;
-using keyraces.Core.Interfaces;
+﻿using keyraces.Core.Interfaces;
 using keyraces.Server.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace keyraces.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")] // Только администраторы могут управлять пользователями
+    [Authorize(Roles = "Admin")]
     public class UserController : ControllerBase
     {
         private readonly UserManager<IdentityUser> _userManager;
@@ -26,8 +20,8 @@ namespace keyraces.Server.Controllers
         public UserController(
             UserManager<IdentityUser> userManager,
             ILogger<UserController> logger,
-            ITypingSessionService typingSessionService = null,
-            ITypingStatisticService statisticService = null)
+            ITypingSessionService typingSessionService = null!,
+            ITypingStatisticService statisticService = null!)
         {
             _userManager = userManager;
             _logger = logger;
@@ -53,8 +47,8 @@ namespace keyraces.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при получении списка пользователей");
-                return StatusCode(500, new { message = "Ошибка при получении списка пользователей" });
+                _logger.LogError(ex, "Error getting user list");
+                return StatusCode(500, new { message = "Error getting user list" });
             }
         }
 
@@ -66,7 +60,7 @@ namespace keyraces.Server.Controllers
                 var user = await _userManager.FindByIdAsync(id);
                 if (user == null)
                 {
-                    return NotFound(new { message = "Пользователь не найден" });
+                    return NotFound(new { message = "User not found" });
                 }
 
                 return Ok(new UserDto
@@ -79,8 +73,8 @@ namespace keyraces.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при получении пользователя с ID {id}");
-                return StatusCode(500, new { message = "Ошибка при получении пользователя" });
+                _logger.LogError(ex, $"Error getting user with ID {id}");
+                return StatusCode(500, new { message = "Error getting user" });
             }
         }
 
@@ -92,7 +86,7 @@ namespace keyraces.Server.Controllers
                 var user = await _userManager.FindByEmailAsync(email);
                 if (user == null)
                 {
-                    return NotFound(new { message = "Пользователь не найден" });
+                    return NotFound(new { message = "User not found" });
                 }
 
                 return Ok(new UserDto
@@ -105,26 +99,24 @@ namespace keyraces.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при получении пользователя с email {email}");
-                return StatusCode(500, new { message = "Ошибка при получении пользователя" });
+                _logger.LogError(ex, $"Error getting user with email {email}");
+                return StatusCode(500, new { message = "Error getting user" });
             }
         }
 
         [HttpGet("{userId}/statistics")]
-        [AllowAnonymous] // Разрешаем доступ всем пользователям к своей статистике
+        [AllowAnonymous]
         public async Task<ActionResult> GetUserStatistics(int userId)
         {
             try
             {
                 if (_typingSessionService == null || _statisticService == null)
                 {
-                    return StatusCode(500, new { message = "Сервисы статистики не настроены" });
+                    return StatusCode(500, new { message = "Statistics services are not configured" });
                 }
 
-                // Получаем все сессии пользователя
                 var sessions = await _typingSessionService.GetByUserAsync(userId);
 
-                // Получаем статистику для каждой сессии
                 var statistics = new List<TypingStatistic>();
                 foreach (var session in sessions)
                 {
@@ -138,8 +130,7 @@ namespace keyraces.Server.Controllers
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Не удалось получить статистику для сессии {SessionId}", session.Id);
-                        // Пропускаем сессии без статистики
+                        _logger.LogWarning(ex, "Failed to get statistics for session {SessionId}", session.Id);
                         continue;
                     }
                 }
@@ -148,8 +139,8 @@ namespace keyraces.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при получении статистики пользователя {userId}");
-                return StatusCode(500, new { message = "Ошибка при получении статистики пользователя" });
+                _logger.LogError(ex, $"Error getting user statistics {userId}");
+                return StatusCode(500, new { message = "Error getting user statistics" });
             }
         }
     }

@@ -1,5 +1,4 @@
 ﻿:root {
-    /* Светлая тема */
     --light-bg-primary: #f8f9fa;
     --light-bg-secondary: #ffffff;
     --light-bg-tertiary: #e9ecef;
@@ -16,7 +15,6 @@
     --light-error-text: #c53030;
     --light-success-background: #f0fff4;
     --light-success-text: #2f855a;
-    /* Темная тема */
     --dark-bg-primary: #121212;
     --dark-bg-secondary: #1e1e1e;
     --dark-bg-tertiary: #2d2d2d;
@@ -33,7 +31,6 @@
     --dark-error-text: #feb2b2;
     --dark-success-background: #22543d;
     --dark-success-text: #9ae6b4;
-    /* Навбар */
     --light-navbar-bg: #ffffff;
     --light-navbar-text: #212529;
     --light-navbar-text-hover: #3182ce;
@@ -56,7 +53,6 @@
     --dark-button-bg: #4299e1;
     --dark-button-text: #ffffff;
     --dark-button-hover: #63b3ed;
-    /* Цвета для кнопок в светлой теме */
     --light-primary-color: #3182ce;
     --light-primary-dark: #2c5282;
     --light-success-color: #38a169;
@@ -64,7 +60,6 @@
     --light-info-color: #3182ce;
     --light-secondary-color: #718096;
     --light-secondary-dark: #4a5568;
-    /* Цвета для кнопок в темной теме */
     --dark-primary-color: #4299e1;
     --dark-primary-dark: #3182ce;
     --dark-success-color: #48bb78;
@@ -72,7 +67,6 @@
     --dark-info-color: #4299e1;
     --dark-secondary-color: #a0aec0;
     --dark-secondary-dark: #718096;
-    /* RGB версии для использования с opacity */
     --light-primary-rgb: 49, 130, 206;
     --light-success-rgb: 56, 161, 105;
     --light-info-rgb: 49, 130, 206;
@@ -81,14 +75,12 @@
     --dark-success-rgb: 72, 187, 120;
     --dark-info-rgb: 66, 153, 225;
     --dark-secondary-rgb: 160, 174, 192;
-    /* Формы */
     --light-bg-input: #ffffff;
     --light-bg-input-focus: #ffffff;
     --dark-bg-input: #2d3748;
     --dark-bg-input-focus: #3a4a63;
 }
 
-/* Применение темной темы по умолчанию */
 :root {
     --background-primary: var(--dark-bg-primary);
     --background-secondary: var(--dark-bg-secondary);
@@ -106,7 +98,6 @@
     --error-text: var(--dark-error-text);
     --success-background: var(--dark-success-background);
     --success-text: var(--dark-success-text);
-    /* Навбар */
     --navbar-bg: var(--dark-navbar-bg);
     --navbar-text: var(--dark-navbar-text);
     --navbar-text-hover: var(--dark-navbar-text-hover);
@@ -118,7 +109,6 @@
     --button-bg: var(--dark-button-bg);
     --button-text: var(--dark-button-text);
     --button-hover: var(--dark-button-hover);
-    /* Общие настройки */
     --bg-primary: var(--dark-bg-primary);
     --bg-secondary: var(--dark-bg-secondary);
     --bg-tertiary: var(--dark-bg-tertiary);
@@ -130,17 +120,14 @@
     --info-color: var(--dark-info-color);
     --secondary-color: var(--dark-secondary-color);
     --secondary-dark: var(--dark-secondary-dark);
-    /* RGB версии */
     --primary-rgb: var(--dark-primary-rgb);
     --success-rgb: var(--dark-success-rgb);
     --info-rgb: var(--dark-info-rgb);
     --secondary-rgb: var(--dark-secondary-rgb);
-    /* Формы */
     --bg-input: var(--dark-bg-input);
     --bg-input-focus: var(--dark-bg-input-focus);
 }
 
-/* Светлая тема */
 [data-theme="light"] {
     --background-primary: var(--light-bg-primary);
     --background-secondary: var(--light-bg-secondary);
@@ -158,7 +145,6 @@
     --error-text: var(--light-error-text);
     --success-background: var(--light-success-background);
     --success-text: var(--light-success-text);
-    /* Навбар */
     --navbar-bg: var(--light-navbar-bg);
     --navbar-text: var(--light-navbar-text);
     --navbar-text-hover: var(--light-navbar-text-hover);
@@ -170,7 +156,6 @@
     --button-bg: var(--light-button-bg);
     --button-text: var(--light-button-text);
     --button-hover: var(--light-button-hover);
-    /* Общие настройки */
     --bg-primary: var(--light-bg-primary);
     --bg-secondary: var(--light-bg-secondary);
     --bg-tertiary: var(--light-bg-tertiary);
@@ -182,17 +167,14 @@
     --info-color: var(--light-info-color);
     --secondary-color: var(--light-secondary-color);
     --secondary-dark: var(--light-secondary-dark);
-    /* RGB версии */
     --primary-rgb: var(--light-primary-rgb);
     --success-rgb: var(--light-success-rgb);
     --info-rgb: var(--light-info-rgb);
     --secondary-rgb: var(--light-secondary-rgb);
-    /* Формы */
     --bg-input: var(--light-bg-input);
     --bg-input-focus: var(--light-bg-input-focus);
 }
 
-/* Плавные переходы для всех элементов */
 * {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }

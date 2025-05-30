@@ -18,22 +18,22 @@
     {
         <div class="auth-check">
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Проверка авторизации...</span>
+                <span class="visually-hidden">Checking authorization...</span>
             </div>
-            <p>Проверка авторизации...</p>
+            <p>Checking authorization...</p>
         </div>
     }
     else
     {
-        <h3>Тренировка скорости печати</h3>
+        <h3>Typing Speed Training</h3>
 
         @if (loading)
         {
             <div class="loading-container">
                 <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Загрузка...</span>
+                    <span class="visually-hidden">Loading...</span>
                 </div>
-                <p>Загрузка текста…</p>
+                <p>Loading text…</p>
             </div>
         }
         else if (current == null)
@@ -41,34 +41,35 @@
             <div class="text-options">
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0">Настройки текста</h5>
+                        <h5 class="mb-0">Text Settings</h5>
                     </div>
                     <div class="card-body">
                         <div class="row mb-3">
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="textSource">Источник текста:</label>
+                                    <label for="textSource">Text Source:</label>
                                     <select id="textSource" class="form-select" @bind="textSource">
-                                        <option value="random">Случайный текст из базы</option>
-                                        <option value="generated">Сгенерировать с помощью AI</option>
+                                        <option value="random">Random text from database</option>
+                                        <option value="generated">Generate with AI</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="difficulty">Сложность:</label>
+                                    <label for="difficulty">Difficulty:</label>
                                     <select id="difficulty" class="form-select" @bind="difficulty">
-                                        <option value="easy">Легкий</option>
-                                        <option value="medium">Средний</option>
-                                        <option value="hard">Сложный</option>
+                                        <option value="easy">Easy</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="hard">Hard</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="language">Язык:</label>
+                                    <label for="language">Language:</label>
                                     <select id="language" class="form-select" @bind="language">
-                                        <option value="ru">Русский</option>
+                                        <option value="ru">Русский (Russian)</option>
+                                        <option value="uk">Українська (Ukrainian)</option>
                                         <option value="en">English</option>
                                     </select>
                                 </div>
@@ -78,57 +79,63 @@
                         @if (textSource == "generated")
                         {
                             <div class="row mb-3">
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <div class="form-group">
-                                        <label for="topic">Тема текста (опционально):</label>
-                                        <input type="text" id="topic" class="form-control" @bind="topic" placeholder="Введите тему или оставьте пустым для случайной темы" />
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="length">Длина текста (символов):</label>
+                                        <label for="length">Text Length (characters):</label>
                                         <input type="number" id="length" class="form-control" @bind="length" min="100" max="1000" step="50" />
                                     </div>
                                 </div>
                             </div>
                             <div class="d-flex gap-2">
-                                <button class="btn btn-primary" @onclick="GenerateText" disabled="@isGenerating">
+                                <button class="btn btn-primary" @onclick="GenerateText" disabled="@(isGenerating || string.IsNullOrEmpty(language) || string.IsNullOrEmpty(difficulty))">
                                     @if (isGenerating)
                                     {
                                         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                        <span class="ms-2">Генерация...</span>
+                                        <span class="ms-2">Generating...</span>
                                     }
                                     else
                                     {
-                                        <span>Сгенерировать текст</span>
+                                        <span>Generate Text</span>
                                     }
                                 </button>
                                 <button class="btn btn-outline-secondary" @onclick="ResetOllamaContext" disabled="@isResettingContext">
                                     @if (isResettingContext)
                                     {
                                         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                        <span class="ms-2">Сброс...</span>
+                                        <span class="ms-2">Resetting...</span>
                                     }
                                     else
                                     {
-                                        <span>Сбросить контекст AI</span>
+                                        <span>Reset AI Context</span>
                                     }
                                 </button>
                                 <button class="btn btn-outline-secondary" @onclick="ResetText">
-                                    Сбросить
+                                    Reset
                                 </button>
                             </div>
+                            @if (string.IsNullOrEmpty(language) || string.IsNullOrEmpty(difficulty))
+                            {
+                                <div class="alert alert-warning mt-2">
+                                    <i class="oi oi-warning"></i> Please select language and text difficulty.
+                                </div>
+                            }
                         }
                         else
                         {
                             <div class="d-flex gap-2">
-                                <button class="btn btn-primary" @onclick="LoadRandom">
-                                    Загрузить текст
+                                <button class="btn btn-primary" @onclick="LoadRandom" disabled="@(string.IsNullOrEmpty(language) || string.IsNullOrEmpty(difficulty))">
+                                    Load Text
                                 </button>
                                 <button class="btn btn-outline-secondary" @onclick="ResetText">
-                                    Сбросить
+                                    Reset
                                 </button>
                             </div>
+                            @if (string.IsNullOrEmpty(language) || string.IsNullOrEmpty(difficulty))
+                            {
+                                <div class="alert alert-warning mt-2">
+                                    <i class="oi oi-warning"></i> Please select language and text difficulty.
+                                </div>
+                            }
                         }
                     </div>
                 </div>
@@ -138,20 +145,20 @@
             {
                 <div class="best-results card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0">Ваши лучшие результаты</h5>
+                        <h5 class="mb-0">Your Best Results</h5>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="best-result-card">
-                                    <div class="best-result-title">Лучшая скорость</div>
+                                    <div class="best-result-title">Best Speed</div>
                                     <div class="best-result-value">@bestWpm.ToString("F1") WPM</div>
                                     <div class="best-result-date">@bestWpmDate.ToString("dd.MM.yyyy HH:mm")</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="best-result-card">
-                                    <div class="best-result-title">Лучшая точность</div>
+                                    <div class="best-result-title">Best Accuracy</div>
                                     <div class="best-result-value">@bestAccuracy.ToString("F1")%</div>
                                     <div class="best-result-date">@bestAccuracyDate.ToString("dd.MM.yyyy HH:mm")</div>
                                 </div>
@@ -162,7 +169,7 @@
             }
 
             <div class="alert alert-info">
-                <p>Выберите источник текста и нажмите кнопку для начала тренировки.</p>
+                <p>Select text source and click the button to start training.</p>
             </div>
         }
         else if (!sessionStarted)
@@ -170,34 +177,35 @@
             <div class="text-options">
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0">Настройки текста</h5>
+                        <h5 class="mb-0">Text Settings</h5>
                     </div>
                     <div class="card-body">
                         <div class="row mb-3">
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="textSource">Источник текста:</label>
+                                    <label for="textSource">Text Source:</label>
                                     <select id="textSource" class="form-select" @bind="textSource">
-                                        <option value="random">Случайный текст из базы</option>
-                                        <option value="generated">Сгенерировать с помощью AI</option>
+                                        <option value="random">Random text from database</option>
+                                        <option value="generated">Generate with AI</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="difficulty">Сложность:</label>
+                                    <label for="difficulty">Difficulty:</label>
                                     <select id="difficulty" class="form-select" @bind="difficulty">
-                                        <option value="easy">Легкий</option>
-                                        <option value="medium">Средний</option>
-                                        <option value="hard">Сложный</option>
+                                        <option value="easy">Easy</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="hard">Hard</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="language">Язык:</label>
+                                    <label for="language">Language:</label>
                                     <select id="language" class="form-select" @bind="language">
-                                        <option value="ru">Русский</option>
+                                        <option value="ru">Русский (Russian)</option>
+                                        <option value="uk">Українська (Ukrainian)</option>
                                         <option value="en">English</option>
                                     </select>
                                 </div>
@@ -207,57 +215,63 @@
                         @if (textSource == "generated")
                         {
                             <div class="row mb-3">
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <div class="form-group">
-                                        <label for="topic">Тема текста (опционально):</label>
-                                        <input type="text" id="topic" class="form-control" @bind="topic" placeholder="Введите тему или оставьте пустым для случайной темы" />
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="length">Длина текста (символов):</label>
+                                        <label for="length">Text Length (characters):</label>
                                         <input type="number" id="length" class="form-control" @bind="length" min="100" max="1000" step="50" />
                                     </div>
                                 </div>
                             </div>
                             <div class="d-flex gap-2">
-                                <button class="btn btn-primary" @onclick="GenerateText" disabled="@isGenerating">
+                                <button class="btn btn-primary" @onclick="GenerateText" disabled="@(isGenerating || string.IsNullOrEmpty(language) || string.IsNullOrEmpty(difficulty))">
                                     @if (isGenerating)
                                     {
                                         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                        <span class="ms-2">Генерация...</span>
+                                        <span class="ms-2">Generating...</span>
                                     }
                                     else
                                     {
-                                        <span>Сгенерировать текст</span>
+                                        <span>Generate Text</span>
                                     }
                                 </button>
                                 <button class="btn btn-outline-secondary" @onclick="ResetOllamaContext" disabled="@isResettingContext">
                                     @if (isResettingContext)
                                     {
                                         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                        <span class="ms-2">Сброс...</span>
+                                        <span class="ms-2">Resetting...</span>
                                     }
                                     else
                                     {
-                                        <span>Сбросить контекст AI</span>
+                                        <span>Reset AI Context</span>
                                     }
                                 </button>
                                 <button class="btn btn-outline-secondary" @onclick="ResetText">
-                                    Сбросить
+                                    Reset
                                 </button>
                             </div>
+                            @if (string.IsNullOrEmpty(language) || string.IsNullOrEmpty(difficulty))
+                            {
+                                <div class="alert alert-warning mt-2">
+                                    <i class="oi oi-warning"></i> Please select language and text difficulty.
+                                </div>
+                            }
                         }
                         else
                         {
                             <div class="d-flex gap-2">
-                                <button class="btn btn-outline-secondary" @onclick="LoadRandom">
-                                    Другой текст
+                                <button class="btn btn-outline-secondary" @onclick="LoadRandom" disabled="@(string.IsNullOrEmpty(language) || string.IsNullOrEmpty(difficulty))">
+                                    Another Text
                                 </button>
                                 <button class="btn btn-outline-secondary" @onclick="ResetText">
-                                    Сбросить
+                                    Reset
                                 </button>
                             </div>
+                            @if (string.IsNullOrEmpty(language) || string.IsNullOrEmpty(difficulty))
+                            {
+                                <div class="alert alert-warning mt-2">
+                                    <i class="oi oi-warning"></i> Please select language and text difficulty.
+                                </div>
+                            }
                         }
                     </div>
                 </div>
@@ -265,10 +279,13 @@
 
             <div class="text-preview card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Текст для тренировки</h5>
+                    <h5 class="mb-0">Training Text</h5>
                     <div>
                         <span class="badge bg-secondary me-2">@current.Difficulty</span>
-                        <span class="badge bg-info">@(current.Language == "ru" ? "Русский" : "English")</span>
+                        <span class="badge bg-info">
+                            @(current.Language == "ru" ? "Russian" : 
+                              current.Language == "uk" ? "Ukrainian" : "English")
+                        </span>
                     </div>
                 </div>
                 <div class="card-body">
@@ -276,7 +293,7 @@
                 </div>
                 <div class="card-footer">
                     <button class="btn btn-success" @onclick="Start">
-                        Начать тренировку
+                        Start Training
                     </button>
                 </div>
             </div>
@@ -285,17 +302,17 @@
         {
             <div class="typing-game card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Тренировка</h5>
+                    <h5 class="mb-0">Training</h5>
                     <div class="timer">@elapsedTimeDisplay</div>
                 </div>
                 <div class="card-body p-0">
                     <div class="typing-section">
                         <div class="typing-title">
-                            <div>Набирайте текст:</div>
+                            <div>Type the text:</div>
                             <div class="typing-stats">
                                 <div>WPM: <span id="wpm-display">@wpm.ToString("F1")</span></div>
-                                <div>Точность: <span id="accuracy-display">@accuracy.ToString("F1")%</span></div>
-                                <div>Ошибки: <span id="errors-display">@totalErrors</span></div>
+                                <div>Accuracy: <span id="accuracy-display">@accuracy.ToString("F1")%</span></div>
+                                <div>Errors: <span id="errors-display">@totalErrors</span></div>
                             </div>
                         </div>
                         
@@ -328,7 +345,7 @@
                                 }
                             </div>
                         </div>
-                       
+                        
                         <input type="text" id="typing-input" 
                                @ref="typingInputRef"
                                @onkeydown="HandleKeyDown"
@@ -339,15 +356,15 @@
                                spellcheck="false"
                                autofocus
                                class="typing-input" 
-                               placeholder="Введите текущее слово..." />
+                               placeholder="Type the current word..." />
                     </div>
                 </div>
                 <div class="card-footer d-flex justify-content-between">
                     <button class="btn btn-outline-secondary" @onclick="ResetSession">
-                        Начать заново
+                        Start Over
                     </button>
                     <button class="btn btn-success" @onclick="Complete" disabled="@(currentWordIndex < totalWords)">
-                        Завершить
+                        Finish
                     </button>
                 </div>
             </div>
@@ -356,26 +373,26 @@
         <div class="completion-modal @(showResults ? "show" : "")">
             <div class="completion-modal-content">
                 <div class="results-header">
-                    <h4>Результаты тренировки</h4>
+                    <h4>Training Results</h4>
                     <button type="button" class="btn-close" @onclick="CloseResults"></button>
                 </div>
                 <div class="results-body">
                     <div class="completion-icon">✓</div>
                     
                     <div class="result-item">
-                        <div class="result-label">Скорость:</div>
+                        <div class="result-label">Speed:</div>
                         <div class="result-value">@finalWpm.ToString("F1") WPM</div>
                     </div>
                     <div class="result-item">
-                        <div class="result-label">Точность:</div>
+                        <div class="result-label">Accuracy:</div>
                         <div class="result-value">@finalAccuracy.ToString("F1")%</div>
                     </div>
                     <div class="result-item">
-                        <div class="result-label">Ошибки:</div>
+                        <div class="result-label">Errors:</div>
                         <div class="result-value">@finalErrors</div>
                     </div>
                     <div class="result-item">
-                        <div class="result-label">Время:</div>
+                        <div class="result-label">Time:</div>
                         <div class="result-value">@finalTimeDisplay</div>
                     </div>
 
@@ -383,16 +400,16 @@
                     {
                         <div class="personal-best">
                             <div class="trophy-icon">🏆</div>
-                            <div class="personal-best-text">Новый личный рекорд!</div>
+                            <div class="personal-best-text">New Personal Best!</div>
                         </div>
                     }
                 </div>
                 <div class="results-footer">
                     <button class="btn btn-primary" @onclick="StartNewSession">
-                        Новая тренировка
+                        New Training
                     </button>
                     <button class="btn btn-outline-secondary" @onclick="CloseResults">
-                        Закрыть
+                        Close
                     </button>
                 </div>
             </div>
@@ -415,7 +432,6 @@
 
     private string textSource = "random";
     private string difficulty = "medium";
-    private string topic = "";
     private int length = 300;
     private string language = "ru";
     private bool isGenerating = false;
@@ -527,7 +543,6 @@
         {
             isTypingAreaInitialized = true;
             await JS.InvokeVoidAsync("window.trainInterop.initWordByWord", currentWordIndex);
-        
             await typingInputRef.FocusAsync();
         }
     }
@@ -565,7 +580,7 @@
                     
                     if (bestAccuracyStat != null)
                     {
-                        bestAccuracy = bestAccuracyStat.Accuracy * 100;
+                        bestAccuracy = bestAccuracyStat.Accuracy * 100; 
                         var sessionResponse = await Http.GetAsync($"/api/Session/{bestAccuracyStat.SessionId}");
                         if (sessionResponse.IsSuccessStatusCode)
                         {
@@ -591,6 +606,12 @@
 
     private async Task LoadRandom()
     {
+        if (string.IsNullOrEmpty(language) || string.IsNullOrEmpty(difficulty))
+        {
+            await JS.InvokeVoidAsync("alert", "Please select language and text difficulty.");
+            return;
+        }
+
         try
         {
             loading = true;
@@ -629,6 +650,12 @@
 
     private async Task GenerateText()
     {
+        if (string.IsNullOrEmpty(language) || string.IsNullOrEmpty(difficulty))
+        {
+            await JS.InvokeVoidAsync("alert", "Please select language and text difficulty.");
+            return;
+        }
+
         try
         {
             isGenerating = true;
@@ -642,14 +669,14 @@
 
             var request = new
             {
-                Topic = topic,
+                Topic = "",
                 Difficulty = difficulty,
                 Length = length,
                 Language = language,
                 Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
 
-            Console.WriteLine($"Generating text with topic: {topic}, difficulty: {difficulty}, length: {length}, language: {language}, timestamp: {request.Timestamp}");
+            Console.WriteLine($"Generating text with difficulty: {difficulty}, length: {length}, language: {language}, timestamp: {request.Timestamp}");
 
             var response = await Http.PostAsJsonAsync("/api/TextGeneration/generate", request);
 
@@ -662,14 +689,13 @@
             {
                 var error = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Error generating text: {error}");
-
-                await JS.InvokeVoidAsync("alert", $"Ошибка при генерации текста: {error}");
+                await JS.InvokeVoidAsync("alert", $"Error generating text: {error}");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Exception during text generation: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", $"Ошибка при генерации текста: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"Error generating text: {ex.Message}");
             current = null;
         }
         finally
@@ -691,19 +717,19 @@
 
             if (response.IsSuccessStatusCode)
             {
-                await JS.InvokeVoidAsync("alert", "Контекст AI успешно сброшен");
+                await JS.InvokeVoidAsync("alert", "AI context successfully reset");
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Error resetting Ollama context: {error}");
-                await JS.InvokeVoidAsync("alert", $"Ошибка при сбросе контекста AI: {error}");
+                await JS.InvokeVoidAsync("alert", $"Error resetting AI context: {error}");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Exception during context reset: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", $"Ошибка при сбросе контекста AI: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"Error resetting AI context: {ex.Message}");
         }
         finally
         {
@@ -767,7 +793,7 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error starting session: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", $"Ошибка при начале сессии: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"Error starting session: {ex.Message}");
         }
     }
 
@@ -905,7 +931,6 @@
         progressPercentage = 0;
         isTypingAreaInitialized = false;
         
-        // Сбрасываем счетчик ошибок в JavaScript
         await JS.InvokeVoidAsync("window.trainInterop.resetErrorCount");
         
         StateHasChanged();
@@ -953,7 +978,7 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error completing session: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", $"Ошибка при завершении сессии: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"Error completing session: {ex.Message}");
         }
     }
 

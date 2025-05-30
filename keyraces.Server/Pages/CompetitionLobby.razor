@@ -20,16 +20,16 @@
     {
         <div class="loading-state">
             <div class="spinner"></div>
-            <p class="loading-text">Загрузка лобби...</p>
+            <p class="loading-text">Loading lobby...</p>
         </div>
     }
     else if (lobby == null)
     {
         <div class="error-state">
             <i class="oi oi-warning error-icon"></i>
-            <h3 class="error-title">Лобби не найдено</h3>
-            <p class="error-text">Возможно, лобби было удалено или истекло время его существования</p>
-            <a href="/competitions" class="btn btn-primary">Вернуться к списку</a>
+            <h3 class="error-title">Lobby not found</h3>
+            <p class="error-text">The lobby may have been deleted or expired</p>
+            <a href="/competitions" class="btn btn-primary">Back to list</a>
         </div>
     }
     else
@@ -44,7 +44,7 @@
             </div>
             <div class="header-actions">
                 <button class="btn btn-secondary leave-btn" @onclick="LeaveLobby">
-                    <i class="oi oi-account-logout"></i> Покинуть
+                    <i class="oi oi-account-logout"></i> Leave
                 </button>
             </div>
         </div>
@@ -56,7 +56,7 @@
                     <div class="waiting-area">
                         <div class="lobby-controls">
                             <h3 class="section-title">
-                                <i class="oi oi-cog"></i> Управление
+                                <i class="oi oi-cog"></i> Controls
                             </h3>
                             
                             @if (!isHost)
@@ -70,7 +70,7 @@
                                     <button class="control-btn ready-control-btn @(isReady ? "ready-active" : "")" 
                                             @onclick="ToggleReady">
                                         <i class="oi @(isReady ? "oi-check" : "oi-clock")"></i>
-                                        @(isReady ? "Готов! Нажмите для отмены" : "Нажмите когда будете готовы")
+                                        @(isReady ? "Ready! Click to cancel" : "Click when ready")
                                     </button>
                                 </div>
                             }
@@ -85,14 +85,14 @@
                                     <button class="control-btn ready-control-btn @(isReady ? "ready-active" : "")" 
                                             @onclick="ToggleReady">
                                         <i class="oi @(isReady ? "oi-check" : "oi-clock")"></i>
-                                        @(isReady ? "Готов! Нажмите для отмены" : "Нажмите когда будете готовы")
+                                        @(isReady ? "Ready! Click to cancel" : "Click when ready")
                                     </button>
                                     
                                     <button class="control-btn start-control-btn" 
                                             @onclick="ShowTextSelection" 
                                             disabled="@(!CanStartGame())">
                                         <i class="oi oi-media-play"></i>
-                                        Начать игру
+                                        Start Game
                                     </button>
                                     
                                     @if (!CanStartGame())
@@ -101,11 +101,11 @@
                                             <span>
                                                 @if (lobby.Players.Count < 2)
                                                 {
-                                                    @:Нужно минимум 2 игрока
+                                                    @:Need at least 2 players
                                                 }
                                                 else if (!lobby.Players.All(p => p.IsReady))
                                                 {
-                                                    @:Все игроки должны быть готовы
+                                                    @:All players must be ready
                                                 }
                                             </span>
                                         </div>
@@ -116,7 +116,7 @@
 
                         <div class="participants-section">
                             <h3 class="section-title">
-                                <i class="oi oi-people"></i> Участники (@lobby.Players.Count/@lobby.MaxPlayers)
+                                <i class="oi oi-people"></i> Participants (@lobby.Players.Count/@lobby.MaxPlayers)
                             </h3>
                             <div class="participants-grid">
                                 @foreach (var player in lobby.Players)
@@ -130,17 +130,17 @@
                                                 @player.UserName
                                                 @if (player.IsHost)
                                                 {
-                                                    <span class="host-badge">Хост</span>
+                                                    <span class="host-badge">Host</span>
                                                 }
                                             </div>
                                             <div class="participant-status">
                                                 @if (player.IsReady)
                                                 {
-                                                    <i class="oi oi-check">Готов</i>
+                                                    <i class="oi oi-check">Ready</i>
                                                 }
                                                 else
                                                 {
-                                                    <i class="oi oi-clock">Не готов</i>
+                                                    <i class="oi oi-clock">Not Ready</i>
                                                 }
                                             </div>
                                         </div>
@@ -151,13 +151,13 @@
 
                         <div class="instructions-section">
                             <h3 class="section-title">
-                                <i class="oi oi-info"></i> Инструкции
+                                <i class="oi oi-info"></i> Instructions
                             </h3>
                             <div class="instructions-content">
-                                <p>1. Дождитесь, пока все участники будут готовы</p>
-                                <p>2. Хост выберет текст для набора</p>
-                                <p>3. После начала игры набирайте текст как можно быстрее и точнее</p>
-                                <p>4. Побеждает тот, кто первым закончит с лучшими показателями</p>
+                                <p>1. Wait for all participants to be ready</p>
+                                <p>2. The host will select the text to type</p>
+                                <p>3. After the game starts, type the text as quickly and accurately as possible</p>
+                                <p>4. The first to finish with the best stats wins</p>
                             </div>
                         </div>
                     </div>
@@ -170,7 +170,7 @@
                             <div class="typing-header">
                                 <div class="user-info">
                                     <span class="user-name">@currentUserName</span>
-                                    <span class="game-status">ИГРА ИДЕТ</span>
+                                    <span class="game-status">GAME IN PROGRESS</span>
                                 </div>
                             </div>
 
@@ -179,7 +179,7 @@
                                 <div class="typing-area">
                                     <div class="typing-section">
                                         <div class="typing-title">
-                                            <i class="oi oi-text"></i> Набор текста
+                                            <i class="oi oi-text"></i> Typing Text
                                             <div class="typing-stats">
                                                 <span id="wpm-display">0</span> WPM
                                                 <span id="accuracy-display">100.0</span> %
@@ -221,14 +221,14 @@
                             }
                             else
                             {
-                                <div class="loading-text">Загрузка текста...</div>
+                                <div class="loading-text">Loading text...</div>
                             }
                         </div>
                     }
 
                     <div class="game-progress">
                         <h3 class="section-title">
-                            <i class="oi oi-dashboard"></i> Прогресс игры
+                            <i class="oi oi-dashboard"></i> Game Progress
                         </h3>
                         <div class="progress-list">
                             @foreach (var player in lobby.Players.OrderByDescending(p => p.Progress))
@@ -254,14 +254,14 @@
                     <div class="results-area">
                         <div class="results-header">
                             <h3 class="section-title">
-                                <i class="oi oi-trophy"></i> Результаты соревнования
+                                <i class="oi oi-trophy"></i> Competition Results
                             </h3>
                             <div class="results-actions">
                                 <button class="btn btn-primary" @onclick="CreateNewCompetition">
-                                    <i class="oi oi-plus"></i> Новое соревнование
+                                    <i class="oi oi-plus"></i> New Competition
                                 </button>
                                 <button class="btn btn-secondary" @onclick="ShareResults">
-                                    <i class="oi oi-share"></i> Поделиться
+                                    <i class="oi oi-share"></i> Share
                                 </button>
                             </div>
                         </div>
@@ -280,7 +280,7 @@
                                 <div class="winner-avatar">@GetInitials(winner.UserName)</div>
                                 <div class="winner-info">
                                     <h2 class="winner-name">@winner.UserName</h2>
-                                    <div class="winner-title">Победитель</div>
+                                    <div class="winner-title">Winner</div>
                                 </div>
                                 <div class="winner-stats">
                                     <div class="stat-item">
@@ -289,11 +289,11 @@
                                     </div>
                                     <div class="stat-item">
                                         <div class="stat-value">@winner.FinalAccuracy?.ToString("F1")%</div>
-                                        <div class="stat-label">Точность</div>
+                                        <div class="stat-label">Accuracy</div>
                                     </div>
                                     <div class="stat-item">
                                         <div class="stat-value">@FormatCompletionTime(winner.FinishedAt, lobby.StartedAt)</div>
-                                        <div class="stat-label">Время</div>
+                                        <div class="stat-label">Time</div>
                                     </div>
                                 </div>
                             </div>
@@ -337,11 +337,11 @@
                         <div class="results-tabs">
                             <button class="tab-btn @(activeResultsTab == "table" ? "active" : "")" 
                                     @onclick='() => activeResultsTab = "table"'>
-                                <i class="oi oi-list"></i> Таблица
+                                <i class="oi oi-list"></i> Table
                             </button>
                             <button class="tab-btn @(activeResultsTab == "stats" ? "active" : "")" 
                                     @onclick='() => activeResultsTab = "stats"'>
-                                <i class="oi oi-dashboard"></i> Статистика
+                                <i class="oi oi-dashboard"></i> Statistics
                             </button>
                         </div>
 
@@ -352,12 +352,12 @@
                                     <table class="results-table">
                                         <thead>
                                             <tr>
-                                                <th>Место</th>
-                                                <th>Участник</th>
+                                                <th>Place</th>
+                                                <th>Participant</th>
                                                 <th>WPM</th>
-                                                <th>Точность</th>
-                                                <th>Время</th>
-                                                <th>Статус</th>
+                                                <th>Accuracy</th>
+                                                <th>Time</th>
+                                                <th>Status</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -375,14 +375,14 @@
                                                             <span>@player.UserName</span>
                                                             @if (player.IsHost)
                                                             {
-                                                                <span class="host-badge small">Хост</span>
+                                                                <span class="host-badge small">Host</span>
                                                             }
                                                         </div>
                                                     </td>
                                                     <td>@player.FinalWPM</td>
                                                     <td>@player.FinalAccuracy?.ToString("F1")%</td>
                                                     <td>@FormatCompletionTime(player.FinishedAt, lobby.StartedAt)</td>
-                                                    <td><span class="status-badge completed">Завершил</span></td>
+                                                    <td><span class="status-badge completed">Finished</span></td>
                                                 </tr>
                                             }
                                             
@@ -396,14 +396,14 @@
                                                             <span>@player.UserName</span>
                                                             @if (player.IsHost)
                                                             {
-                                                                <span class="host-badge small">Хост</span>
+                                                                <span class="host-badge small">Host</span>
                                                             }
                                                         </div>
                                                     </td>
                                                     <td>@player.WPM</td>
                                                     <td>@player.Accuracy.ToString("F1")%</td>
                                                     <td>-</td>
-                                                    <td><span class="status-badge not-completed">Не завершил</span></td>
+                                                    <td><span class="status-badge not-completed">Not Finished</span></td>
                                                 </tr>
                                             }
                                         </tbody>
@@ -415,7 +415,7 @@
                                 <div class="results-statistics">
                                     <div class="stats-cards">
                                         <div class="stats-card">
-                                            <div class="stats-card-title">Средняя скорость</div>
+                                            <div class="stats-card-title">Average Speed</div>
                                             <div class="stats-card-value">
                                                 @{
                                                     var avgWpm = finishedPlayers.Any() 
@@ -427,7 +427,7 @@
                                         </div>
                                         
                                         <div class="stats-card">
-                                            <div class="stats-card-title">Средняя точность</div>
+                                            <div class="stats-card-title">Average Accuracy</div>
                                             <div class="stats-card-value">
                                                 @{
                                                     var avgAccuracy = finishedPlayers.Any() 
@@ -439,14 +439,14 @@
                                         </div>
                                         
                                         <div class="stats-card">
-                                            <div class="stats-card-title">Участников завершило</div>
+                                            <div class="stats-card-title">Participants Finished</div>
                                             <div class="stats-card-value">
-                                                @finishedPlayers.Count из @lobby.Players.Count
+                                                @finishedPlayers.Count of @lobby.Players.Count
                                             </div>
                                         </div>
                                         
                                         <div class="stats-card">
-                                            <div class="stats-card-title">Длительность соревнования</div>
+                                            <div class="stats-card-title">Competition Duration</div>
                                             <div class="stats-card-value">
                                                 @{
                                                     var lastFinish = finishedPlayers.Any() 
@@ -470,7 +470,7 @@
             <div class="sidebar">
                 <div class="chat-section">
                     <h3 class="section-title">
-                        <i class="oi oi-comment-square"></i> Чат
+                        <i class="oi oi-comment-square"></i> Chat
                     </h3>
                     <div class="chat-messages" @ref="chatContainer">
                         @foreach (var message in chatMessages)
@@ -485,7 +485,7 @@
                         }
                     </div>
                     <div class="chat-input">
-                        <input type="text" class="message-input" placeholder="Введите сообщение..." 
+                        <input type="text" class="message-input" placeholder="Enter message..." 
                                @bind="newMessage" @bind:event="oninput" @onkeypress="@(async (e) => { if (e.Key == "Enter") await SendMessage(); })" />
                         <button class="send-btn" @onclick="SendMessage" disabled="@string.IsNullOrWhiteSpace(newMessage)">
                             <i class="oi oi-location"></i>
@@ -495,22 +495,22 @@
 
                 <div class="lobby-info-section">
                     <h3 class="section-title">
-                        <i class="oi oi-info"></i> Информация
+                        <i class="oi oi-info"></i> Information
                     </h3>
                     <div class="info-content">
                         <div class="info-item">
-                            <span class="info-label">Код лобби:</span>
+                            <span class="info-label">Lobby Code:</span>
                             <span class="info-value">@LobbyId</span>
                             <button class="copy-btn" @onclick="CopyLobbyId">
                                 <i class="oi oi-clipboard"></i>
                             </button>
                         </div>
                         <div class="info-item">
-                            <span class="info-label">Хост:</span>
+                            <span class="info-label">Host:</span>
                             <span class="info-value">@lobby.HostName</span>
                         </div>
                         <div class="info-item">
-                            <span class="info-label">Создано:</span>
+                            <span class="info-label">Created:</span>
                             <span class="info-value">@lobby.CreatedAt.ToString("HH:mm dd.MM")</span>
                         </div>
                     </div>
@@ -525,8 +525,8 @@
                 <i class="oi oi-check"></i>
             </div>
             <div class="completion-message">
-                <h3>Отлично!</h3>
-                <p>Вы завершили набор текста</p>
+                <h3>Great!</h3>
+                <p>You have finished typing the text</p>
             </div>
             <div class="completion-stats">
                 <div class="completion-stat">
@@ -535,7 +535,7 @@
                 </div>
                 <div class="completion-stat">
                     <span id="final-accuracy">0</span>
-                    <span class="stat-label">Точность</span>
+                    <span class="stat-label">Accuracy</span>
                 </div>
             </div>
             <button class="close-completion-btn" @onclick="CloseCompletionModal">
@@ -550,7 +550,7 @@
     <div class="modal-overlay show" @onclick="CloseTextSelection">
         <div class="modal-content text-selection-modal" @onclick:stopPropagation="true">
             <div class="modal-header">
-                <h2>Выберите текст для соревнования</h2>
+                <h2>Select Text for Competition</h2>
                 <button class="close-modal-btn" @onclick="CloseTextSelection">
                     <i class="oi oi-x"></i>
                 </button>
@@ -559,11 +559,11 @@
                 <div class="text-selection-tabs">
                     <button class="tab-btn @(activeTab == "existing" ? "active" : "")" 
                             @onclick='@(() => SetActiveTab("existing"))'>
-                        <i class="oi oi-document"></i> Готовые тексты
+                        <i class="oi oi-document"></i> Existing Texts
                     </button>
                     <button class="tab-btn @(activeTab == "generate" ? "active" : "")" 
                             @onclick='@(() => SetActiveTab("generate"))'>
-                        <i class="oi oi-cog"></i> Генерация ИИ
+                        <i class="oi oi-cog"></i> AI Generation
                     </button>
                 </div>
 
@@ -573,44 +573,72 @@
                         <div class="existing-texts-tab">
                             <div class="text-selection-filters">
                                 <select class="form-control" @bind="selectedLanguage">
-                                    <option value="">Все языки</option>
-                                    <option value="English">English</option>
-                                    <option value="Russian">Русский</option>
-                                    <option value="Ukrainian">Українська</option>
+                                    <option value="">Select language</option>
+                                    <option value="ru">Русский (Russian)</option>
+                                    <option value="en">English</option>
+                                    <option value="uk">Українська (Ukrainian)</option>
                                 </select>
                                 <select class="form-control" @bind="selectedDifficulty">
-                                    <option value="">Все уровни сложности</option>
-                                    <option value="easy">Легкий</option>
-                                    <option value="medium">Средний</option>
-                                    <option value="hard">Сложный</option>
+                                    <option value="">Select difficulty level</option>
+                                    <option value="easy">Easy</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="hard">Hard</option>
                                 </select>
                             </div>
-                            <div class="text-snippets-list">
-                                @if (textSnippets == null || !textSnippets.Any())
-                                {
-                                    <p class="no-snippets">Нет доступных текстов</p>
-                                }
-                                else
-                                {
-                                    @foreach (var snippet in FilteredSnippets())
+                            
+                            <div class="random-text-selection">
+                                <button class="btn btn-primary btn-random-text" @onclick="SelectRandomText" disabled="@(!CanSelectRandomText() || isSelectingRandomText)">
+                                    @if (isSelectingRandomText)
                                     {
-                                        <div class="text-snippet-card @(selectedSnippetId == snippet.Id ? "selected" : "")" 
-                                             @onclick="() => SelectSnippet(snippet.Id)">
-                                            <h4 class="snippet-title">@snippet.Title</h4>
-                                            <p class="snippet-preview">@TruncateText(snippet.Content, 150)</p>
-                                            <div class="snippet-meta">
-                                                <span class="meta-item">
-                                                    <i class="oi oi-globe"></i> @snippet.Language
-                                                </span>
-                                                <span class="meta-item">
-                                                    <i class="oi oi-dashboard"></i> @snippet.Difficulty
-                                                </span>
-                                                <span class="meta-item">
-                                                    <i class="oi oi-text"></i> @snippet.Content.Split(' ').Length слов
-                                                </span>
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        <span class="ml-2">Selecting text...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="oi oi-random"></i>
+                                        <span>Select Random Text</span>
+                                    }
+                                </button>
+                                
+                                @if (!CanSelectRandomText())
+                                {
+                                    <div class="selection-hint mt-2">
+                                        <i class="oi oi-info text-info"></i> Please select language and difficulty level
+                                    </div>
+                                }
+                                
+                                @if (selectedSnippetId > 0)
+                                {
+                                    var snippet = textSnippets.FirstOrDefault(s => s.Id == selectedSnippetId);
+                                    @if (snippet != null)
+                                    {
+                                        <div class="selected-text-info mt-3">
+                                            <h4 class="text-success">
+                                                <i class="oi oi-check"></i> Selected text:
+                                            </h4>
+                                            <div class="text-snippet-card selected p-3 border rounded">
+                                                <h4 class="snippet-title">@snippet.Title</h4>
+                                                <p class="snippet-preview">@TruncateText(snippet.Content, 150)</p>
+                                                <div class="snippet-meta d-flex justify-content-between">
+                                                    <span class="meta-item">
+                                                        <i class="oi oi-globe"></i> @GetLanguageName(snippet.Language)
+                                                    </span>
+                                                    <span class="meta-item">
+                                                        <i class="oi oi-dashboard"></i> @GetDifficultyName(snippet.Difficulty)
+                                                    </span>
+                                                    <span class="meta-item">
+                                                        <i class="oi oi-text"></i> @snippet.Content.Split(' ').Length words
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     }
+                                }
+                                else if (!string.IsNullOrEmpty(selectedLanguage) && !string.IsNullOrEmpty(selectedDifficulty) && !isSelectingRandomText)
+                                {
+                                    <div class="alert alert-info mt-3">
+                                        <i class="oi oi-info"></i> Click "Select Random Text" to choose a text for the competition
+                                    </div>
                                 }
                             </div>
                         </div>
@@ -621,36 +649,29 @@
                             <div class="generation-form">
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="ai-topic">Тема текста</label>
-                                        <input type="text" id="ai-topic" class="form-control" 
-                                               @bind="aiGenerationRequest.Topic" 
-                                               placeholder="Например: технологии, природа, спорт..." />
-                                        <small class="form-text">Оставьте пустым для случайной темы</small>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="ai-language">Язык</label>
+                                        <label for="ai-language">Language</label>
                                         <select id="ai-language" class="form-control" @bind="aiGenerationRequest.Language">
-                                            <option value="ru">Русский</option>
+                                            <option value="ru">Русский (Russian)</option>
                                             <option value="en">English</option>
                                         </select>
                                     </div>
-                                </div>
-                                
-                                <div class="form-row">
                                     <div class="form-group">
-                                        <label for="ai-difficulty">Сложность</label>
+                                        <label for="ai-difficulty">Difficulty</label>
                                         <select id="ai-difficulty" class="form-control" @bind="aiGenerationRequest.Difficulty">
-                                            <option value="easy">Легкий</option>
-                                            <option value="medium">Средний</option>
-                                            <option value="hard">Сложный</option>
+                                            <option value="easy">Easy</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="hard">Hard</option>
                                         </select>
                                     </div>
+                                </div>
+
+                                <div class="form-row">
                                     <div class="form-group">
-                                        <label for="ai-length">Длина (символов)</label>
+                                        <label for="ai-length">Length (characters)</label>
                                         <input type="number" id="ai-length" class="form-control" 
                                                @bind="aiGenerationRequest.Length" 
                                                min="50" max="1000" step="50" />
-                                        <small class="form-text">От 50 до 1000 символов</small>
+                                        <small class="form-text">From 50 to 1000 characters</small>
                                     </div>
                                 </div>
 
@@ -658,13 +679,13 @@
                                 {
                                     <div class="generation-loading">
                                         <div class="spinner-small"></div>
-                                        <span>Генерируем текст с помощью ИИ...</span>
+                                        <span>Generating text with AI...</span>
                                     </div>
                                 }
                                 else
                                 {
                                     <button class="btn btn-ai" @onclick="GenerateAIText">
-                                        <i class="oi oi-cog"></i> Сгенерировать текст
+                                        <i class="oi oi-cog"></i> Generate Text
                                     </button>
                                 }
 
@@ -678,7 +699,7 @@
                                 @if (generatedSnippet != null)
                                 {
                                     <div class="generated-text-preview">
-                                        <h4>Сгенерированный текст:</h4>
+                                        <h4>Generated Text:</h4>
                                         <div class="text-snippet-card selected">
                                             <h5 class="snippet-title">@generatedSnippet.Title</h5>
                                             <p class="snippet-preview">@TruncateText(generatedSnippet.Content, 200)</p>
@@ -690,16 +711,16 @@
                                                     <i class="oi oi-dashboard"></i> @generatedSnippet.Difficulty
                                                 </span>
                                                 <span class="meta-item">
-                                                    <i class="oi oi-text"></i> @generatedSnippet.Content.Length символов
+                                                    <i class="oi oi-text"></i> @generatedSnippet.Content.Length characters
                                                 </span>
                                             </div>
                                         </div>
                                         <div class="generated-text-actions">
                                             <button class="btn btn-secondary" @onclick="RegenerateText">
-                                                <i class="oi oi-reload"></i> Сгенерировать заново
+                                                <i class="oi oi-reload"></i> Regenerate
                                             </button>
                                             <button class="btn btn-success" @onclick="UseGeneratedText">
-                                                <i class="oi oi-check"></i> Использовать этот текст
+                                                <i class="oi oi-check"></i> Use This Text
                                             </button>
                                         </div>
                                     </div>
@@ -710,17 +731,17 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" @onclick="CloseTextSelection">Отмена</button>
+                <button class="btn btn-secondary" @onclick="CloseTextSelection">Cancel</button>
                 @if (activeTab == "existing")
                 {
                     <button class="btn btn-primary" @onclick="StartGame" disabled="@(selectedSnippetId == 0)">
-                        Начать игру
+                        Start Game
                     </button>
                 }
                 else if (activeTab == "generate" && generatedSnippet != null)
                 {
                     <button class="btn btn-primary" @onclick="StartGameWithGenerated">
-                        Начать игру с ИИ текстом
+                        Start Game with AI Text
                     </button>
                 }
             </div>
@@ -755,7 +776,6 @@
     private TextSnippet generatedSnippet = null!;
     private TextGenerationRequest aiGenerationRequest = new TextGenerationRequest
     {
-        Topic = "",
         Language = "ru",
         Difficulty = "medium",
         Length = 300
@@ -774,6 +794,8 @@
     private double currentAccuracy = 100.0;
     private bool isGameFinished = false;
     private string activeResultsTab = "table";
+
+    private bool isSelectingRandomText = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -868,11 +890,103 @@
         {
             var snippets = await TextSnippetService.GetAllAsync();
             textSnippets = snippets.ToList();
+            
+            var languages = textSnippets.Select(s => s.Language).Distinct().ToList();
+            var difficulties = textSnippets.Select(s => s.Difficulty).Distinct().ToList();
+            
+            Console.WriteLine($"Available languages: {string.Join(", ", languages)}");
+            Console.WriteLine($"Available difficulties: {string.Join(", ", difficulties)}");
+            Console.WriteLine($"Total texts: {textSnippets.Count}");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading text snippets: {ex.Message}");
         }
+    }
+
+    private async Task SelectRandomText()
+    {
+        if (!CanSelectRandomText()) return;
+        
+        try
+        {
+            isSelectingRandomText = true;
+            StateHasChanged();
+            
+            Console.WriteLine($"Selecting random text with language {selectedLanguage} and difficulty {selectedDifficulty}");
+            
+            var filteredSnippets = textSnippets
+                .Where(s => s.Language.Equals(selectedLanguage, StringComparison.OrdinalIgnoreCase) && 
+                       s.Difficulty.Equals(selectedDifficulty, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            
+            if (!filteredSnippets.Any())
+            {
+                Console.WriteLine($"No texts found with exact parameters. Searching by language {selectedLanguage}");
+                filteredSnippets = textSnippets
+                    .Where(s => s.Language.Equals(selectedLanguage, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+            
+            if (!filteredSnippets.Any())
+            {
+                Console.WriteLine("No texts found with selected parameters. Selecting random text from all available.");
+                filteredSnippets = textSnippets.ToList();
+            }
+            
+            if (filteredSnippets.Any())
+            {
+                var random = new Random();
+                var randomIndex = random.Next(0, filteredSnippets.Count);
+                var randomSnippet = filteredSnippets[randomIndex];
+                
+                Console.WriteLine($"Selected text: ID={randomSnippet.Id}, Language={randomSnippet.Language}, Difficulty={randomSnippet.Difficulty}");
+                
+                selectedSnippetId = randomSnippet.Id;
+                
+                await Task.Delay(300); // Simulate selection time
+            }
+            else
+            {
+                Console.WriteLine("No texts found in the database.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error selecting random text: {ex.Message}");
+        }
+        finally
+        {
+            isSelectingRandomText = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetLanguageName(string languageCode)
+    {
+        return languageCode.ToLower() switch
+        {
+            "ru" => "Russian",
+            "en" => "English",
+            "uk" => "Ukrainian",
+            _ => languageCode
+        };
+    }
+
+    private string GetDifficultyName(string difficultyCode)
+    {
+        return difficultyCode.ToLower() switch
+        {
+            "easy" => "Easy",
+            "medium" => "Medium",
+            "hard" => "Hard",
+            _ => difficultyCode
+        };
+    }
+
+    private bool CanSelectRandomText()
+    {
+        return !string.IsNullOrEmpty(selectedLanguage) && !string.IsNullOrEmpty(selectedDifficulty);
     }
 
     private async Task SetupSignalR()
@@ -1023,7 +1137,7 @@
     {
         if (lobby == null || currentUserId == null) 
         {
-            Console.WriteLine($"Cannot toggle ready: lobby={lobby != null}, currentUserId={!string.IsNullOrEmpty(currentUserId)}");
+            Console.WriteLine($"Cannot toggle ready: lobby={(lobby != null)}, currentUserId={(!string.IsNullOrEmpty(currentUserId))}");
             return;
         }
 
@@ -1146,20 +1260,20 @@
                 }
                 else
                 {
-                    generationError = "Не удалось получить сгенерированный текст";
+                    generationError = "Failed to get generated text";
                 }
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Failed to generate AI text: {error}");
-                generationError = $"Ошибка генерации: {response.StatusCode}";
+                generationError = $"Generation error: {response.StatusCode}";
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error generating AI text: {ex.Message}");
-            generationError = $"Ошибка: {ex.Message}";
+            generationError = $"Error: {ex.Message}";
         }
         finally
         {
@@ -1288,10 +1402,10 @@
     {
         return status switch
         {
-            LobbyStatus.Waiting => "Ожидание игроков",
-            LobbyStatus.InGame => "Игра идёт",
-            LobbyStatus.Finished => "Завершено",
-            _ => "Неизвестно"
+            LobbyStatus.Waiting => "Waiting for players",
+            LobbyStatus.InGame => "Game in progress",
+            LobbyStatus.Finished => "Finished",
+            _ => "Unknown"
         };
     }
 
@@ -1317,16 +1431,16 @@
     {
         if (lobby == null) return;
     
-        var shareText = $"Результаты соревнования по набору текста в KeyRaces!\n\n";
-        shareText += $"Победитель: {lobby.Players.Where(p => p.HasFinished).OrderBy(p => p.Position).FirstOrDefault()?.UserName ?? "Нет победителя"}\n\n";
+        var shareText = $"Typing competition results in KeyRaces!\n\n";
+        shareText += $"Winner: {lobby.Players.Where(p => p.HasFinished).OrderBy(p => p.Position).FirstOrDefault()?.UserName ?? "No winner"}\n\n";
     
         foreach (var player in lobby.Players.Where(p => p.HasFinished).OrderBy(p => p.Position))
         {
-            shareText += $"{player.Position}. {player.UserName} - {player.FinalWPM} WPM, {player.FinalAccuracy?.ToString("F1")}% точность\n";
+            shareText += $"{player.Position}. {player.UserName} - {player.FinalWPM} WPM, {player.FinalAccuracy?.ToString("F1")}% accuracy\n";
         }
     
         await JS.InvokeVoidAsync("navigator.clipboard.writeText", shareText);
-        await JS.InvokeVoidAsync("alert", "Результаты скопированы в буфер обмена!");
+        await JS.InvokeVoidAsync("alert", "Results copied to clipboard!");
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
@@ -1340,28 +1454,67 @@
                 return;
             }
         
-        totalKeystrokes++;
-        
-        var allowInput = await JS.InvokeAsync<bool>("lobbyInterop.handleKeyDown", e, typingInput);
-        
-        if (!allowInput)
-        {
-            var filteredInput = await JS.InvokeAsync<string>("lobbyInterop.filterInput", typingInput, await JS.InvokeAsync<int>("eval", "window.lobbyInterop.currentWordIndex"));
-            if (filteredInput != typingInput)
+            totalKeystrokes++;
+            
+            var allowInput = await JS.InvokeAsync<bool>("lobbyInterop.handleKeyDown", e, typingInput);
+            
+            if (!allowInput) 
             {
-                typingInput = filteredInput;
-                StateHasChanged();
+                var filteredInput = await JS.InvokeAsync<string>("lobbyInterop.filterInput", typingInput, await JS.InvokeAsync<int>("eval", "window.lobbyInterop.currentWordIndex"));
+                if (filteredInput != typingInput)
+                {
+                    typingInput = filteredInput;
+                    StateHasChanged();
+                }
+            }
+            
+            var player = lobby?.Players.FirstOrDefault(p => p.UserId == currentUserId);
+            if (player != null && hubConnection != null)
+            {
+                var progress = await JS.InvokeAsync<int>("lobbyInterop.calculateProgress");
+                
+                player.Progress = progress;
+                
+                var elapsedMinutes = (DateTime.Now - gameStartTime).TotalMinutes;
+                var stats = await JS.InvokeAsync<JsonElement>("lobbyInterop.updateStats", elapsedMinutes);
+                
+                if (stats.ValueKind == JsonValueKind.Object)
+                {
+                    if (stats.TryGetProperty("wpm", out JsonElement wpmElement))
+                    {
+                        currentWPM = wpmElement.GetInt32();
+                        player.WPM = currentWPM;
+                    }
+                    
+                    if (stats.TryGetProperty("accuracy", out JsonElement accuracyElement))
+                    {
+                        currentAccuracy = accuracyElement.GetDouble();
+                        player.Accuracy = currentAccuracy;
+                    }
+                }
+                
+                if ((DateTime.Now - lastUpdateTime).TotalSeconds >= 1)
+                {
+                    lastUpdateTime = DateTime.Now;
+                    await hubConnection.SendAsync("UpdateProgress", LobbyId, progress, currentWPM, currentAccuracy);
+                    StateHasChanged();
+                }
             }
         }
-        
-        var player = lobby?.Players.FirstOrDefault(p => p.UserId == currentUserId);
-        if (player != null && hubConnection != null)
+        catch (Exception ex)
         {
-            var progress = await JS.InvokeAsync<int>("lobbyInterop.calculateProgress");
-            
-            player.Progress = progress;
-            
+            Console.WriteLine($"Error in HandleKeyDown: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateStats()
+    {
+        if (!gameActive || textSnippet == null) return;
+        
+        try
+        {
             var elapsedMinutes = (DateTime.Now - gameStartTime).TotalMinutes;
+            
             var stats = await JS.InvokeAsync<JsonElement>("lobbyInterop.updateStats", elapsedMinutes);
             
             if (stats.ValueKind == JsonValueKind.Object)
@@ -1369,151 +1522,112 @@
                 if (stats.TryGetProperty("wpm", out JsonElement wpmElement))
                 {
                     currentWPM = wpmElement.GetInt32();
-                    player.WPM = currentWPM;
                 }
                 
                 if (stats.TryGetProperty("accuracy", out JsonElement accuracyElement))
                 {
                     currentAccuracy = accuracyElement.GetDouble();
-                    player.Accuracy = currentAccuracy;
-                }
-            }
-            
-            if ((DateTime.Now - lastUpdateTime).TotalSeconds >= 1)
-            {
-                lastUpdateTime = DateTime.Now;
-                await hubConnection.SendAsync("UpdateProgress", LobbyId, progress, currentWPM, currentAccuracy);
-                StateHasChanged();
-            }
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error in HandleKeyDown: {ex.Message}");
-    }
-}
-
-private async Task UpdateStats()
-{
-    if (!gameActive || textSnippet == null) return;
-    
-    try
-    {
-        var elapsedMinutes = (DateTime.Now - gameStartTime).TotalMinutes;
-        
-        var stats = await JS.InvokeAsync<JsonElement>("lobbyInterop.updateStats", elapsedMinutes);
-        
-        if (stats.ValueKind == JsonValueKind.Object)
-        {
-            if (stats.TryGetProperty("wpm", out JsonElement wpmElement))
-            {
-                currentWPM = wpmElement.GetInt32();
-            }
-            
-            if (stats.TryGetProperty("accuracy", out JsonElement accuracyElement))
-            {
-                currentAccuracy = accuracyElement.GetDouble();
-            }
-            
-            if ((DateTime.Now - lastUpdateTime).TotalSeconds >= 2)
-            {
-                lastUpdateTime = DateTime.Now;
-                
-                int progress = 0;
-                var player = lobby?.Players.FirstOrDefault(p => p.UserId == currentUserId);
-                if (player != null)
-                {
-                    progress = player.Progress;
                 }
                 
-                if (hubConnection != null)
+                if ((DateTime.Now - lastUpdateTime).TotalSeconds >= 2) 
                 {
-                    await hubConnection.SendAsync("UpdateProgress", LobbyId, progress, currentWPM, currentAccuracy);
+                    lastUpdateTime = DateTime.Now;
+                    
+                    int progress = 0;
+                    var player = lobby?.Players.FirstOrDefault(p => p.UserId == currentUserId);
+                    if (player != null)
+                    {
+                        progress = player.Progress;
+                    }
+                    
+                    if (hubConnection != null)
+                    {
+                        await hubConnection.SendAsync("UpdateProgress", LobbyId, progress, currentWPM, currentAccuracy);
+                    }
                 }
             }
+            
+            await CheckGameCompletion();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating stats: {ex.Message}");
+        }
+    }
+
+    private async Task CheckGameCompletion()
+    {
+        if (lobby == null || !gameActive) return;
+        
+        var isComplete = await JS.InvokeAsync<bool>("lobbyInterop.isGameComplete");
+        
+        if (isComplete && !isGameFinished)
+        {
+            Console.WriteLine("Game completed detected. Finishing game...");
+            await FinishGame();
         }
         
-        await CheckGameCompletion();
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error updating stats: {ex.Message}");
-    }
-}
-
-private async Task CheckGameCompletion()
-{
-    if (lobby == null || !gameActive) return;
-    
-    var isComplete = await JS.InvokeAsync<bool>("lobbyInterop.isGameComplete");
-    
-    if (isComplete && !isGameFinished)
-    {
-        Console.WriteLine("Game completed detected. Finishing game...");
-        await FinishGame();
-    }
-    
-    if (lobby.Players.All(p => p.HasFinished) && lobby.Status != LobbyStatus.Finished)
-    {
-        Console.WriteLine("All players finished. Reloading lobby to update status...");
-        await LoadLobby();
-    }
-}
-
-private async Task FinishGame()
-{
-    if (isGameFinished) return;
-    
-    isGameFinished = true;
-    gameActive = false;
-    statsTimer.Stop();
-    
-    if (hubConnection != null)
-    {
-        await hubConnection.SendAsync("FinishGame", LobbyId, currentWPM, currentAccuracy);
-        
-        await LobbyService.PlayerFinishedAsync(LobbyId, currentUserId, currentWPM, (int)currentAccuracy);
-    }
-    
-    await JS.InvokeVoidAsync("lobbyInterop.finishGame");
-    
-    await LoadLobby();
-    
-    if (lobby != null && lobby.Players.All(p => p.HasFinished))
-    {
-        if (lobby.Status != LobbyStatus.Finished)
+        if (lobby.Players.All(p => p.HasFinished) && lobby.Status != LobbyStatus.Finished)
         {
-            Console.WriteLine("All players finished but lobby status is not updated. Forcing UI update.");
+            Console.WriteLine("All players finished. Reloading lobby to update status...");
             await LoadLobby();
         }
     }
-}
 
-private async Task ShowResults()
-{
-    if (lobby == null || lobby.Status != LobbyStatus.Finished) return;
-    
-    await CloseCompletionModal();
-    
-    await JS.InvokeVoidAsync("scrollToElement", ".results-area");
-    
-    activeResultsTab = "table";
-    
-    StateHasChanged();
-}
-
-public async ValueTask DisposeAsync()
-{
-    if (statsTimer != null)
+    private async Task FinishGame()
     {
+        if (isGameFinished) return;
+        
+        isGameFinished = true;
+        gameActive = false;
         statsTimer.Stop();
-        statsTimer.Dispose();
+        
+        if (hubConnection != null)
+        {
+            await hubConnection.SendAsync("FinishGame", LobbyId, currentWPM, currentAccuracy);
+            
+            await LobbyService.PlayerFinishedAsync(LobbyId, currentUserId, currentWPM, (int)currentAccuracy);
+        }
+        
+        await JS.InvokeVoidAsync("lobbyInterop.finishGame"); 
+        
+        await LoadLobby(); 
+        
+        if (lobby != null && lobby.Players.All(p => p.HasFinished))
+        {
+            if (lobby.Status != LobbyStatus.Finished)
+            {
+                Console.WriteLine("All players finished but lobby status is not updated. Forcing UI update.");
+                await LoadLobby(); 
+            }
+        }
     }
-    
-    if (hubConnection != null)
+
+    private async Task ShowResults()
     {
-        await hubConnection.SendAsync("LeaveLobby", LobbyId);
-        await hubConnection.DisposeAsync();
+        if (lobby == null || lobby.Status != LobbyStatus.Finished) return;
+        
+        await CloseCompletionModal();
+        
+        await JS.InvokeVoidAsync("scrollToElement", ".results-area"); 
+        
+        activeResultsTab = "table";
+        
+        StateHasChanged();
     }
-}
+
+    public async ValueTask DisposeAsync()
+    {
+        if (statsTimer != null)
+        {
+            statsTimer.Stop();
+            statsTimer.Dispose();
+        }
+        
+        if (hubConnection != null)
+        {
+            await hubConnection.SendAsync("LeaveLobby", LobbyId); 
+            await hubConnection.DisposeAsync();
+        }
+    }
 }

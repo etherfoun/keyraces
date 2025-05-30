@@ -11,18 +11,18 @@
 <div class="admin-container">
     <div class="card">
         <div class="card-header">
-            <h3>Панель администратора</h3>
+            <h3>Admin Panel</h3>
         </div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6 mb-4">
                     <div class="card h-100">
                         <div class="card-header">
-                            <h4>Управление пользователями</h4>
+                            <h4>User Management</h4>
                         </div>
                         <div class="card-body">
-                            <p>Управление пользователями и ролями в системе.</p>
-                            <a href="/admin/users" class="btn btn-primary">Перейти</a>
+                            <p>Manage users and roles in the system.</p>
+                            <a href="/admin/users" class="btn btn-primary">Go</a>
                         </div>
                     </div>
                 </div>
@@ -30,15 +30,15 @@
                 <div class="col-md-6 mb-4">
                     <div class="card h-100">
                         <div class="card-header">
-                            <h4>Управление текстами</h4>
+                            <h4>Text Management</h4>
                         </div>
                         <div class="card-body">
-                            <p>Управление текстами для тренировки печати.</p>
+                            <p>Manage texts for typing practice.</p>
                             <div class="alert alert-warning">
-                                <strong>Внимание!</strong> Следующие действия удалят все тексты из базы данных. Это действие нельзя отменить.
+                                <strong>Warning!</strong> The following actions will delete all texts from the database. This action cannot be undone.
                             </div>
                             <button class="btn btn-danger" @onclick="ShowConfirmClearDialog">
-                                Очистить все тексты
+                                Clear All Texts
                             </button>
                         </div>
                     </div>
@@ -46,41 +46,41 @@
             </div>
 
             <div class="mt-4">
-                <h4>Статистика базы данных</h4>
+                <h4>Database Statistics</h4>
                 @if (isLoading)
                 {
                     <div class="d-flex align-items-center">
                         <div class="spinner-border spinner-border-sm me-2" role="status">
-                            <span class="visually-hidden">Загрузка...</span>
+                            <span class="visually-hidden">Loading...</span>
                         </div>
-                        <span>Загрузка статистики...</span>
+                        <span>Loading statistics...</span>
                     </div>
                 }
                 else
                 {
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-title">Всего текстов</div>
+                            <div class="stat-title">Total Texts</div>
                             <div class="stat-value">@statistics.TotalTexts</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-title">Русских текстов</div>
+                            <div class="stat-title">Russian Texts</div>
                             <div class="stat-value">@statistics.RussianTexts</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-title">Английских текстов</div>
+                            <div class="stat-title">English Texts</div>
                             <div class="stat-value">@statistics.EnglishTexts</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-title">Легких текстов</div>
+                            <div class="stat-title">Easy Texts</div>
                             <div class="stat-value">@statistics.EasyTexts</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-title">Средних текстов</div>
+                            <div class="stat-title">Medium Texts</div>
                             <div class="stat-value">@statistics.MediumTexts</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-title">Сложных текстов</div>
+                            <div class="stat-title">Hard Texts</div>
                             <div class="stat-value">@statistics.HardTexts</div>
                         </div>
                     </div>
@@ -93,20 +93,20 @@
     {
         <div class="confirmation-dialog">
             <div class="confirmation-dialog-content">
-                <h4>Подтвердите действие</h4>
-                <p>Вы уверены, что хотите удалить <strong>ВСЕ тексты</strong> из базы данных?</p>
-                <p>Это действие нельзя отменить.</p>
+                <h4>Confirm Action</h4>
+                <p>Are you sure you want to delete <strong>ALL texts</strong> from the database?</p>
+                <p>This action cannot be undone.</p>
                 <div class="d-flex justify-content-end gap-2">
-                    <button class="btn btn-secondary" @onclick="() => showConfirmDialog = false">Отмена</button>
+                    <button class="btn btn-secondary" @onclick="() => showConfirmDialog = false">Cancel</button>
                     <button class="btn btn-danger" @onclick="ClearAllTexts">
                         @if (isClearing)
                         {
                             <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                            <span>Удаление...</span>
+                            <span>Deleting...</span>
                         }
                         else
                         {
-                            <span>Да, удалить все</span>
+                            <span>Yes, delete all</span>
                         }
                     </button>
                 </div>
@@ -180,14 +180,14 @@
 
             showConfirmDialog = false;
 
-            await JS.InvokeVoidAsync("alert", "Все тексты успешно удалены из базы данных");
+            await JS.InvokeVoidAsync("alert", "All texts successfully deleted from the database");
 
             await LoadStatisticsData();
         }
         catch (Exception ex)
         {
             await JS.InvokeVoidAsync("console.error", $"Error clearing texts: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", $"Ошибка при удалении текстов: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"Error deleting texts: {ex.Message}");
         }
         finally
         {

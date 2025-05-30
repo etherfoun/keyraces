@@ -1,20 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using keyraces.Core.Interfaces;
+﻿using keyraces.Core.Interfaces;
 using keyraces.Server.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace keyraces.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")] // Только администраторы могут управлять ролями
+    [Authorize(Roles = "Admin")]
     public class RoleController : ControllerBase
     {
         private readonly IRoleService _roleService;
@@ -41,8 +36,8 @@ namespace keyraces.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при получении списка ролей");
-                return StatusCode(500, new { message = "Ошибка при получении списка ролей" });
+                _logger.LogError(ex, "Error while getting the list of roles");
+                return StatusCode(500, new { message = "Error while getting the list of roles" });
             }
         }
 
@@ -62,8 +57,8 @@ namespace keyraces.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при получении пользователей в роли {roleName}");
-                return StatusCode(500, new { message = $"Ошибка при получении пользователей в роли {roleName}" });
+                _logger.LogError(ex, $"Error while getting users in role {roleName}");
+                return StatusCode(500, new { message = $"Error while getting users in role {roleName}" });
             }
         }
 
@@ -77,8 +72,8 @@ namespace keyraces.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при получении ролей пользователя {userId}");
-                return StatusCode(500, new { message = $"Ошибка при получении ролей пользователя" });
+                _logger.LogError(ex, $"Error while getting user roles {userId}");
+                return StatusCode(500, new { message = $"Error while getting user roles" });
             }
         }
 
@@ -89,23 +84,23 @@ namespace keyraces.Server.Controllers
             {
                 if (string.IsNullOrWhiteSpace(dto.Name))
                 {
-                    return BadRequest(new { message = "Имя роли не может быть пустым" });
+                    return BadRequest(new { message = "Name of role cannot be empty" });
                 }
 
                 var result = await _roleService.EnsureRoleExistsAsync(dto.Name);
                 if (result)
                 {
-                    return Ok(new { message = $"Роль {dto.Name} успешно создана или уже существует" });
+                    return Ok(new { message = $"Role {dto.Name} successfully created or already exists" });
                 }
                 else
                 {
-                    return StatusCode(500, new { message = $"Не удалось создать роль {dto.Name}" });
+                    return StatusCode(500, new { message = $"Failed to create role {dto.Name}" });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при создании роли {dto.Name}");
-                return StatusCode(500, new { message = "Ошибка при создании роли" });
+                _logger.LogError(ex, $"Error creating role {dto.Name}");
+                return StatusCode(500, new { message = "Error creating role" });
             }
         }
 
@@ -116,23 +111,23 @@ namespace keyraces.Server.Controllers
             {
                 if (string.IsNullOrWhiteSpace(dto.UserId) || string.IsNullOrWhiteSpace(dto.RoleName))
                 {
-                    return BadRequest(new { message = "ID пользователя и имя роли не могут быть пустыми" });
+                    return BadRequest(new { message = "User ID and role name cannot be empty" });
                 }
 
                 var result = await _roleService.AddUserToRoleAsync(dto.UserId, dto.RoleName);
                 if (result)
                 {
-                    return Ok(new { message = $"Пользователь успешно добавлен в роль {dto.RoleName}" });
+                    return Ok(new { message = $"User successfully added to role {dto.RoleName}" });
                 }
                 else
                 {
-                    return StatusCode(500, new { message = $"Не удалось добавить пользователя в роль {dto.RoleName}" });
+                    return StatusCode(500, new { message = $"Failed to add user to role {dto.RoleName}" });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при добавлении пользователя {dto.UserId} в роль {dto.RoleName}");
-                return StatusCode(500, new { message = "Ошибка при добавлении пользователя в роль" });
+                _logger.LogError(ex, $"Error adding user {dto.UserId} to role {dto.RoleName}");
+                return StatusCode(500, new { message = "Error adding user to role" });
             }
         }
 
@@ -143,79 +138,75 @@ namespace keyraces.Server.Controllers
             {
                 if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(roleName))
                 {
-                    return BadRequest(new { message = "ID пользователя и имя роли не могут быть пустыми" });
+                    return BadRequest(new { message = "User ID and role name cannot be empty" });
                 }
 
                 var result = await _roleService.RemoveUserFromRoleAsync(userId, roleName);
                 if (result)
                 {
-                    return Ok(new { message = $"Пользователь успешно удален из роли {roleName}" });
+                    return Ok(new { message = $"User successfully removed from role {roleName}" });
                 }
                 else
                 {
-                    return StatusCode(500, new { message = $"Не удалось удалить пользователя из роли {roleName}" });
+                    return StatusCode(500, new { message = $"Failed to remove user from role {roleName}" });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при удалении пользователя {userId} из роли {roleName}");
-                return StatusCode(500, new { message = "Ошибка при удалении пользователя из роли" });
+                _logger.LogError(ex, $"Error removing user {userId} from role {roleName}");
+                return StatusCode(500, new { message = "Error removing user from role" });
             }
         }
 
         [HttpGet("check-admin")]
-        [AllowAnonymous] // Этот метод доступен всем для проверки статуса админа
+        [AllowAnonymous]
         public async Task<ActionResult> CheckAdminRole()
         {
             try
             {
-                // Проверяем, существует ли роль Admin
                 var adminRoleExists = await _roleService.EnsureRoleExistsAsync("Admin");
 
                 if (!adminRoleExists)
                 {
-                    _logger.LogInformation("Роль Admin не существует");
-                    return Ok(new { adminExists = false, adminCount = 0, message = "Роль Admin не существует" });
+                    _logger.LogInformation("Admin role does not exist");
+                    return Ok(new { adminExists = false, adminCount = 0, message = "Admin role does not exist" });
                 }
 
-                // Проверяем, есть ли хотя бы один пользователь с ролью Admin
                 var admins = await _roleService.GetUsersInRoleAsync("Admin");
                 var adminCount = admins.Count();
                 var adminExists = admins.Any();
 
-                _logger.LogInformation($"Проверка админов: существуют = {adminExists}, количество = {adminCount}");
+                _logger.LogInformation($"Admin check: exists = {adminExists}, count = {adminCount}");
 
                 return Ok(new
                 {
                     adminExists = adminExists,
                     adminCount = adminCount,
                     message = adminExists
-                        ? $"Найдено {adminCount} администраторов"
-                        : "Администраторы не найдены"
+                        ? $"Found {adminCount} administrators"
+                        : "Administrators not found"
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при проверке роли Admin");
-                return StatusCode(500, new { message = "Ошибка при проверке роли Admin" });
+                _logger.LogError(ex, "Error checking Admin role");
+                return StatusCode(500, new { message = "Error checking Admin role" });
             }
         }
 
         [HttpPost("setup-admin")]
-        [AllowAnonymous] // Этот метод доступен всем для первоначальной настройки
+        [AllowAnonymous]
         public async Task<ActionResult> SetupAdminRole([FromBody] SetupAdminDto dto)
         {
             try
             {
-                _logger.LogInformation($"Попытка настройки администратора для email: {dto.AdminEmail}");
+                _logger.LogInformation($"Attempting to set up administrator for email: {dto.AdminEmail}");
 
-                // Проверяем, существует ли уже роль Admin и есть ли в ней пользователи
                 var adminCheckResponse = await CheckAdminRole() as ObjectResult;
                 if (adminCheckResponse?.Value != null)
                 {
-                    // Преобразуем в строку JSON и обратно для безопасного доступа к свойствам
                     var jsonString = JsonSerializer.Serialize(adminCheckResponse.Value);
-                    _logger.LogInformation($"Результат проверки админа: {jsonString}");
+                    _logger.LogInformation($"Admin check result: {jsonString}");
 
                     var jsonDoc = JsonDocument.Parse(jsonString);
                     var root = jsonDoc.RootElement;
@@ -223,53 +214,49 @@ namespace keyraces.Server.Controllers
                     if (root.TryGetProperty("adminExists", out var adminExistsElement) &&
                         adminExistsElement.GetBoolean())
                     {
-                        _logger.LogInformation("Администраторы уже существуют");
-                        return BadRequest(new { message = "Администраторы уже существуют. Используйте существующую учетную запись администратора для управления ролями." });
+                        _logger.LogInformation("Administrators already exist");
+                        return BadRequest(new { message = "Administrators already exist. Use an existing administrator account to manage roles." });
                     }
                 }
 
-                // Проверяем секретный ключ (простая защита для первоначальной настройки)
                 if (dto.SecretKey != "keyraces-admin-setup-2025")
                 {
-                    _logger.LogWarning("Введен неверный секретный ключ");
-                    return BadRequest(new { message = "Неверный секретный ключ" });
+                    _logger.LogWarning("Invalid secret key entered");
+                    return BadRequest(new { message = "Invalid secret key" });
                 }
 
-                // Находим пользователя по email
                 var user = await _userManager.FindByEmailAsync(dto.AdminEmail);
                 if (user == null)
                 {
-                    _logger.LogWarning($"Пользователь с email {dto.AdminEmail} не найден");
-                    return NotFound(new { message = $"Пользователь с email {dto.AdminEmail} не найден" });
+                    _logger.LogWarning($"User with email {dto.AdminEmail} not found");
+                    return NotFound(new { message = $"User with email {dto.AdminEmail} not found" });
                 }
 
-                _logger.LogInformation($"Пользователь найден: {user.Id}, {user.UserName}");
+                _logger.LogInformation($"User found: {user.Id}, {user.UserName}");
 
-                // Создаем роль Admin, если она не существует
                 var roleCreated = await _roleService.EnsureRoleExistsAsync("Admin");
                 if (!roleCreated)
                 {
-                    _logger.LogError("Не удалось создать роль Admin");
-                    return StatusCode(500, new { message = "Не удалось создать роль Admin" });
+                    _logger.LogError("Failed to create Admin role");
+                    return StatusCode(500, new { message = "Failed to create Admin role" });
                 }
 
-                // Добавляем пользователя в роль Admin
                 var result = await _roleService.AddUserToRoleAsync(user.Id, "Admin");
                 if (result)
                 {
-                    _logger.LogInformation($"Пользователь {dto.AdminEmail} успешно назначен администратором");
-                    return Ok(new { message = $"Пользователь {dto.AdminEmail} успешно назначен администратором" });
+                    _logger.LogInformation($"User {dto.AdminEmail} successfully assigned as administrator");
+                    return Ok(new { message = $"User {dto.AdminEmail} successfully assigned as administrator" });
                 }
                 else
                 {
-                    _logger.LogError($"Не удалось назначить пользователя {dto.AdminEmail} администратором");
-                    return StatusCode(500, new { message = "Не удалось назначить пользователя администратором" });
+                    _logger.LogError($"Failed to assign user {dto.AdminEmail} as administrator");
+                    return StatusCode(500, new { message = "Failed to assign user as administrator" });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при настройке роли Admin");
-                return StatusCode(500, new { message = $"Ошибка при настройке роли Admin: {ex.Message}" });
+                _logger.LogError(ex, "Error setting up Admin role");
+                return StatusCode(500, new { message = $"Error setting up Admin role: {ex.Message}" });
             }
         }
     }

@@ -1,5 +1,4 @@
-﻿/* Обновленные стили для страниц аутентификации с поддержкой тем */
-.auth-container {
+﻿.auth-container {
     display: flex;
     justify-content: center;
     align-items: center;

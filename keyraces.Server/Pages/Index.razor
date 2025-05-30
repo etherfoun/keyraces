@@ -1,10 +1,288 @@
 ﻿@page "/"
+@using keyraces.Server.Services
+@inject ThemeService ThemeService
 
-<PageTitle>Index</PageTitle>
+<PageTitle>KeyRaces - Тренажер скорости печати</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="hero-section">
+    <div class="hero-content">
+        <img src="/images/logo.png" alt="KeyRaces Logo" class="logo" />
+        <h1>KeyRaces</h1>
+        <p class="tagline">Улучшайте навыки печати, соревнуйтесь с друзьями и отслеживайте свой прогресс</p>
+    </div>
+</div>
 
-Welcome to your new app.
+<div class="features-container">
+    <div class="feature-card">
+        <div class="feature-icon">
+            <i class="oi oi-timer"></i>
+        </div>
+        <h2>Практика</h2>
+        <p>Тренируйте скорость печати в свободном режиме с различными текстами и отслеживайте свой прогресс в реальном времени.</p>
+        <a href="/practice" class="feature-button">Начать практику</a>
+    </div>
 
+    <div class="feature-card">
+        <div class="feature-icon">
+            <i class="oi oi-graph"></i>
+        </div>
+        <h2>Тренировка</h2>
+        <p>Структурированные тренировки с текстами разной сложности на русском, английском и украинском языках.</p>
+        <a href="/train" class="feature-button">Начать тренировку</a>
+    </div>
 
+    <div class="feature-card">
+        <div class="feature-icon">
+            <i class="oi oi-people"></i>
+        </div>
+        <h2>Соревнования</h2>
+        <p>Соревнуйтесь с другими пользователями в режиме реального времени и поднимайтесь в рейтинге лидеров.</p>
+        <a href="/competitions" class="feature-button">Присоединиться к соревнованию</a>
+    </div>
 
+    <div class="feature-card">
+        <div class="feature-icon">
+            <i class="oi oi-person"></i>
+        </div>
+        <h2>Профиль</h2>
+        <p>Просматривайте свою статистику, достижения и историю тренировок в персональном профиле.</p>
+        <a href="/profile" class="feature-button">Мой профиль</a>
+    </div>
+</div>
+
+<div class="stats-section">
+    <div class="stat-item">
+        <div class="stat-number">100+</div>
+        <div class="stat-label">Текстов для тренировки</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-number">3</div>
+        <div class="stat-label">Языка</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-number">5</div>
+        <div class="stat-label">Уровней сложности</div>
+    </div>
+</div>
+
+<div class="cta-section">
+    <h2>Готовы улучшить свои навыки печати?</h2>
+    <p>Начните прямо сейчас и следите за своим прогрессом</p>
+    <a href="/practice" class="cta-button">Начать печатать</a>
+</div>
+
+<style>
+    /* Основные стили */
+    :root {
+        --primary-color: var(--accent-color);
+        --secondary-color: var(--accent-hover);
+        --text-color: var(--text-primary);
+        --bg-color: var(--background-primary);
+        --card-bg: var(--background-secondary);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
+    }
+
+    /* Hero секция */
+    .hero-section {
+        text-align: center;
+        padding: 3rem 1rem 4rem;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        color: white;
+        border-radius: 0 0 30px 30px;
+        margin-bottom: 3rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .hero-content {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .logo {
+        width: 120px;
+        height: auto;
+        margin-bottom: 1rem;
+    }
+
+    .hero-section h1 {
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .tagline {
+        font-size: 1.5rem;
+        opacity: 0.9;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    /* Карточки функций */
+    .features-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        padding: 0 2rem;
+        max-width: 1200px;
+        margin: 0 auto 4rem;
+    }
+
+    .feature-card {
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+    .feature-icon {
+        background-color: var(--primary-color);
+        color: white;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+    }
+
+    .feature-card h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        color: var(--text-color);
+    }
+
+    .feature-card p {
+        color: var(--text-color);
+        opacity: 0.8;
+        margin-bottom: 1.5rem;
+        flex-grow: 1;
+    }
+
+    .feature-button {
+        display: inline-block;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 30px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: var(--transition);
+    }
+
+        .feature-button:hover {
+            background-color: var(--secondary-color);
+            transform: scale(1.05);
+            color: white;
+            text-decoration: none;
+        }
+
+    /* Секция статистики */
+    .stats-section {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 3rem;
+        padding: 3rem 1rem;
+        background-color: var(--card-bg);
+        margin: 0 auto 4rem;
+        border-radius: 12px;
+        max-width: 1000px;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        font-size: 1.1rem;
+        color: var(--text-color);
+        opacity: 0.8;
+    }
+
+    /* CTA секция */
+    .cta-section {
+        text-align: center;
+        padding: 4rem 1rem;
+        max-width: 800px;
+        margin: 0 auto 2rem;
+    }
+
+        .cta-section h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+        }
+
+        .cta-section p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+    .cta-button {
+        display: inline-block;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 30px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+        .cta-button:hover {
+            background-color: var(--secondary-color);
+            transform: scale(1.05);
+            color: white;
+            text-decoration: none;
+        }
+
+    /* Адаптивность */
+    @@media (max-width: 768px) {
+        .hero-section h1
+
+    {
+        font-size: 2.5rem;
+    }
+
+    .tagline {
+        font-size: 1.2rem;
+    }
+
+    .features-container {
+        padding: 0 1rem;
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+    }
+
+    .cta-section h2 {
+        font-size: 1.8rem;
+    }
+
+    }
+</style>

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using keyraces.Core.Interfaces;
+﻿using keyraces.Core.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -31,28 +27,26 @@ namespace keyraces.Infrastructure.Services
             {
                 if (string.IsNullOrWhiteSpace(roleName))
                 {
-                    throw new ArgumentException("Имя роли не может быть пустым", nameof(roleName));
+                    throw new ArgumentException("Role name cannot be empty", nameof(roleName));
                 }
 
-                // Проверяем, существует ли уже роль
                 var roleExists = await _roleManager.RoleExistsAsync(roleName);
                 if (!roleExists)
                 {
-                    // Создаем роль, если она не существует
                     var result = await _roleManager.CreateAsync(new IdentityRole(roleName));
                     if (!result.Succeeded)
                     {
                         var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                        _logger.LogError($"Ошибка при создании роли {roleName}: {errors}");
+                        _logger.LogError($"Error while creating a role {roleName}: {errors}");
                         return false;
                     }
-                    _logger.LogInformation($"Роль {roleName} успешно создана");
+                    _logger.LogInformation($"Role {roleName} created successfully");
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при проверке/создании роли {roleName}");
+                _logger.LogError(ex, $"Error while checking/creating a role {roleName}");
                 return false;
             }
         }
@@ -64,7 +58,7 @@ namespace keyraces.Infrastructure.Services
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    _logger.LogWarning($"Пользователь с ID {userId} не найден");
+                    _logger.LogWarning($"User with ID {userId} not found");
                     return false;
                 }
 
@@ -72,7 +66,7 @@ namespace keyraces.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при проверке роли {roleName} для пользователя {userId}");
+                _logger.LogError(ex, $"Error while checking role {roleName} for user {userId}");
                 return false;
             }
         }
@@ -81,7 +75,6 @@ namespace keyraces.Infrastructure.Services
         {
             try
             {
-                // Убедимся, что роль существует
                 if (!await EnsureRoleExistsAsync(roleName))
                 {
                     return false;
@@ -90,32 +83,30 @@ namespace keyraces.Infrastructure.Services
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    _logger.LogWarning($"Пользователь с ID {userId} не найден");
+                    _logger.LogWarning($"User with ID {userId} not found");
                     return false;
                 }
 
-                // Проверяем, есть ли у пользователя уже эта роль
                 if (await _userManager.IsInRoleAsync(user, roleName))
                 {
                     _logger.LogInformation($"Пользователь {user.UserName} уже имеет роль {roleName}");
                     return true;
                 }
 
-                // Добавляем пользователя в роль
                 var result = await _userManager.AddToRoleAsync(user, roleName);
                 if (!result.Succeeded)
                 {
                     var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                    _logger.LogError($"Ошибка при добавлении пользователя {user.UserName} в роль {roleName}: {errors}");
+                    _logger.LogError($"Error while adding a user {user.UserName} to role {roleName}: {errors}");
                     return false;
                 }
 
-                _logger.LogInformation($"Пользователь {user.UserName} успешно добавлен в роль {roleName}");
+                _logger.LogInformation($"User {user.UserName} are added to role {roleName}");
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при добавлении пользователя {userId} в роль {roleName}");
+                _logger.LogError(ex, $"Error while addign a user {userId} to role {roleName}");
                 return false;
             }
         }
@@ -127,32 +118,30 @@ namespace keyraces.Infrastructure.Services
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    _logger.LogWarning($"Пользователь с ID {userId} не найден");
+                    _logger.LogWarning($"User with ID {userId} not found");
                     return false;
                 }
 
-                // Проверяем, есть ли у пользователя эта роль
                 if (!await _userManager.IsInRoleAsync(user, roleName))
                 {
-                    _logger.LogInformation($"Пользователь {user.UserName} не имеет роли {roleName}");
+                    _logger.LogInformation($"User {user.UserName} doesnt have a role {roleName}");
                     return true;
                 }
 
-                // Удаляем пользователя из роли
                 var result = await _userManager.RemoveFromRoleAsync(user, roleName);
                 if (!result.Succeeded)
                 {
                     var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                    _logger.LogError($"Ошибка при удалении пользователя {user.UserName} из роли {roleName}: {errors}");
+                    _logger.LogError($"Error while deleting user {user.UserName} from role {roleName}: {errors}");
                     return false;
                 }
 
-                _logger.LogInformation($"Пользователь {user.UserName} успешно удален из роли {roleName}");
+                _logger.LogInformation($"User {user.UserName} successfully deleted from role {roleName}");
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при удалении пользователя {userId} из роли {roleName}");
+                _logger.LogError(ex, $"Error while deleting a user {userId} from role {roleName}");
                 return false;
             }
         }
@@ -164,7 +153,7 @@ namespace keyraces.Infrastructure.Services
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    _logger.LogWarning($"Пользователь с ID {userId} не найден");
+                    _logger.LogWarning($"User with ID {userId} not found");
                     return Enumerable.Empty<string>();
                 }
 
@@ -172,7 +161,7 @@ namespace keyraces.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при получении ролей пользователя {userId}");
+                _logger.LogError(ex, $"Error getting user roles {userId}");
                 return Enumerable.Empty<string>();
             }
         }
@@ -185,7 +174,7 @@ namespace keyraces.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ошибка при получении пользователей в роли {roleName}");
+                _logger.LogError(ex, $"Error getting users in role {roleName}");
                 return Enumerable.Empty<IdentityUser>();
             }
         }
@@ -198,7 +187,7 @@ namespace keyraces.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при получении всех ролей");
+                _logger.LogError(ex, "Error getting all roles");
                 return Enumerable.Empty<IdentityRole>();
             }
         }

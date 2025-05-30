@@ -14,19 +14,22 @@ namespace keyraces.Server.Controllers
         private readonly ITextGenerationService _textGenerationService;
         private readonly ITextSnippetRepository _textSnippetRepository;
         private readonly ILogger<TextGenerationController> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         public TextGenerationController(
             ITextGenerationService textGenerationService,
             ITextSnippetRepository textSnippetRepository,
+            IHttpClientFactory httpClientFactory,
             ILogger<TextGenerationController> logger)
         {
             _textGenerationService = textGenerationService;
             _textSnippetRepository = textSnippetRepository;
+            _httpClientFactory = httpClientFactory;
             _logger = logger;
         }
 
         [HttpPost("generate")]
-        [AllowAnonymous] // Оставляем AllowAnonymous, так как есть проблемы с авторизацией
+        [AllowAnonymous]
         public async Task<ActionResult<TextSnippetDto>> GenerateText([FromBody] TextGenerationRequest request)
         {
             try
@@ -35,10 +38,10 @@ namespace keyraces.Server.Controllers
 
                 if (request.Length < 50 || request.Length > 1000)
                 {
-                    return BadRequest(new { message = "Длина текста должна быть от 50 до 1000 символов" });
+                    return BadRequest(new { message = "Text length must be between 50 and 1000 characters" });
                 }
 
-                if (string.IsNullOrEmpty(request.Language) || (request.Language != "ru" && request.Language != "en"))
+                if (string.IsNullOrEmpty(request.Language) || (request.Language != "ru" && request.Language != "en" && request.Language != "uk"))
                 {
                     request.Language = "ru";
                 }
@@ -58,16 +61,46 @@ namespace keyraces.Server.Controllers
                 if (string.IsNullOrEmpty(generatedText))
                 {
                     _logger.LogWarning("Generated text is empty");
-                    return BadRequest(new { message = "Не удалось сгенерировать текст: пустой результат" });
+                    return BadRequest(new { message = "Failed to generate text: empty result" });
                 }
 
                 _logger.LogInformation($"Successfully generated text: {generatedText.Substring(0, Math.Min(50, generatedText.Length))}...");
 
+                string title;
+                if (string.IsNullOrEmpty(request.Topic))
+                {
+                    switch (request.Language.ToLower())
+                    {
+                        case "en":
+                            title = "Generated Text";
+                            break;
+                        case "uk":
+                            title = "Generated text";
+                            break;
+                        default:
+                            title = "Generated Text"; 
+                            break;
+                    }
+                }
+                else
+                {
+                    switch (request.Language.ToLower())
+                    {
+                        case "en":
+                            title = $"Text about: {request.Topic}";
+                            break;
+                        case "uk":
+                            title = $"Text on the topic: {request.Topic}";
+                            break;
+                        default:
+                            title = $"Text on the topic: {request.Topic}"; 
+                            break;
+                    }
+                }
+
                 var textSnippet = new TextSnippet
                 {
-                    Title = string.IsNullOrEmpty(request.Topic)
-                        ? (request.Language.ToLower() == "en" ? "Generated Text" : "Сгенерированный текст")
-                        : (request.Language.ToLower() == "en" ? $"Text about: {request.Topic}" : $"Текст на тему: {request.Topic}"),
+                    Title = title,
                     Content = generatedText,
                     Difficulty = request.Difficulty,
                     Language = request.Language,
@@ -91,7 +124,79 @@ namespace keyraces.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating text");
-                return StatusCode(500, new { message = $"Ошибка при генерации текста: {ex.Message}" });
+                return StatusCode(500, new { message = $"Error generating text: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("check-connection")]
+        [AllowAnonymous]
+        public async Task<ActionResult> CheckOllamaConnection()
+        {
+            try
+            {
+                _logger.LogInformation("Checking Ollama connection");
+
+                string ollamaUrl = "";
+                if (_textGenerationService is LocalLLMTextGenerationService localService)
+                {
+                    var fieldInfo = localService.GetType().GetField("_apiUrl",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                    if (fieldInfo != null)
+                    {
+                        ollamaUrl = (string)fieldInfo.GetValue(localService);
+                    }
+                }
+
+                if (string.IsNullOrEmpty(ollamaUrl))
+                {
+                    ollamaUrl = "http://localhost:11434/api/generate";
+                }
+
+                var healthUrl = ollamaUrl.Replace("/api/generate", "/");
+                _logger.LogInformation($"Testing Ollama connection at: {healthUrl}");
+
+                using var client = _httpClientFactory.CreateClient();
+                client.Timeout = TimeSpan.FromSeconds(5);
+
+                var response = await client.GetAsync(healthUrl);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+
+                    var modelUrl = healthUrl + "api/tags";
+                    var modelResponse = await client.GetAsync(modelUrl);
+                    var modelContent = await modelResponse.Content.ReadAsStringAsync();
+
+                    return Ok(new
+                    {
+                        status = "success",
+                        message = "Ollama connection successful",
+                        url = healthUrl,
+                        response = content,
+                        models = modelContent
+                    });
+                }
+                else
+                {
+                    return StatusCode((int)response.StatusCode, new
+                    {
+                        status = "error",
+                        message = $"Ollama returned status code: {response.StatusCode}",
+                        url = healthUrl
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking Ollama connection");
+                return StatusCode(500, new
+                {
+                    status = "error",
+                    message = $"Error checking Ollama connection: {ex.Message}",
+                    exceptionType = ex.GetType().Name
+                });
             }
         }
 
@@ -109,20 +214,20 @@ namespace keyraces.Server.Controllers
                     if (methodInfo != null)
                     {
                         await (Task)methodInfo.Invoke(localService, null);
-                        return Ok(new { message = "Контекст Ollama успешно сброшен" });
+                        return Ok(new { message = "Ollama context successfully reset" });
                     }
                     else
                     {
-                        return StatusCode(500, new { message = "Метод ResetOllamaContext не найден" });
+                        return StatusCode(500, new { message = "ResetOllamaContext method not found" });
                     }
                 }
 
-                return Ok(new { message = "Сервис не поддерживает сброс контекста" });
+                return Ok(new { message = "Service does not support context reset" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error resetting Ollama context");
-                return StatusCode(500, new { message = $"Ошибка при сбросе контекста Ollama: {ex.Message}" });
+                return StatusCode(500, new { message = $"Error resetting Ollama context: {ex.Message}" });
             }
         }
     }
@@ -132,7 +237,7 @@ namespace keyraces.Server.Controllers
         public string Topic { get; set; } = "";
         public string Difficulty { get; set; } = "medium";
         public int Length { get; set; } = 300;
-        public string Language { get; set; } = "ru"; 
+        public string Language { get; set; } = "ru";
         public long Timestamp { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
 }

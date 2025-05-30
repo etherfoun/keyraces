@@ -7,9 +7,9 @@ namespace keyraces.Core.Interfaces
 {
     public interface ICompetitionLobbyService
     {
-        Task<CompetitionLobby> CreateLobbyAsync(string hostId, string hostName, string lobbyName, int maxPlayers, bool hasPassword = false, string password = null);
+        Task<CompetitionLobby> CreateLobbyAsync(string hostId, string hostName, string lobbyName, int maxPlayers, bool hasPassword = false, string password = null!);
         Task<CompetitionLobby> GetLobbyAsync(string lobbyId);
-        Task<bool> JoinLobbyAsync(string lobbyId, string userId, string userName, string password = null);
+        Task<bool> JoinLobbyAsync(string lobbyId, string userId, string userName, string password = null!);
         Task<bool> LeaveLobbyAsync(string lobbyId, string userId);
         Task<bool> UpdateReadyStatusAsync(string lobbyId, string userId, bool isReady);
         Task<bool> StartGameAsync(string lobbyId, string textSnippetId);

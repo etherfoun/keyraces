@@ -312,7 +312,6 @@
     subscribeToAuthChanges: function (dotNetRef) {
         this.dotNetReference = dotNetRef
 
-        // Проверяем изменения в localStorage
         window.addEventListener("storage", (e) => {
             if (e.key === "auth_token" || e.key === "user_roles") {
                 if (window.authInterop.dotNetReference) {
@@ -321,7 +320,6 @@
             }
         })
 
-        // Также вызываем проверку сразу
         if (this.dotNetReference) {
             setTimeout(() => {
                 this.dotNetReference.invokeMethodAsync("OnAuthChanged")

@@ -223,57 +223,51 @@ namespace keyraces.Server.Controllers
         {
             try
             {
-                // Проверяем, существует ли лобби
                 var lobby = await _lobbyService.GetLobbyAsync(lobbyId);
                 if (lobby == null)
                 {
-                    return NotFound(new { message = "Лобби не найдено" });
+                    return NotFound(new { message = "Lobby not found" });
                 }
 
-                // Удаляем лобби
                 var success = await _lobbyService.DeleteLobbyAsync(lobbyId);
                 if (success)
                 {
-                    // Уведомляем всех клиентов о удалении лобби
                     await _hubContext.Clients.All.SendAsync("LobbyDeleted", lobbyId);
-                    return Ok(new { message = "Лобби успешно удалено" });
+                    return Ok(new { message = "Lobby deleted successfully" });
                 }
                 else
                 {
-                    return BadRequest(new { message = "Не удалось удалить лобби" });
+                    return BadRequest(new { message = "Cannot delete a lobby" });
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка при удалении лобби: {ex.Message}");
-                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+                Console.WriteLine($"Error while deleting a lobby: {ex.Message}");
+                return StatusCode(500, new { message = "Internal server error" });
             }
         }
 
-        // Метод для удаления "застрявших" лобби (без проверки авторизации)
         [HttpDelete("force/{lobbyId}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ForceDeleteLobby(string lobbyId)
         {
             try
             {
-                // Удаляем лобби напрямую
                 var success = await _lobbyService.DeleteLobbyAsync(lobbyId);
                 if (success)
                 {
-                    // Уведомляем всех клиентов о удалении лобби
                     await _hubContext.Clients.All.SendAsync("LobbyDeleted", lobbyId);
-                    return Ok(new { message = "Лобби успешно удалено" });
+                    return Ok(new { message = "Lobby deleted successfully" });
                 }
                 else
                 {
-                    return BadRequest(new { message = "Не удалось удалить лобби" });
+                    return BadRequest(new { message = "Cannot delete a lobby" });
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка при удалении лобби: {ex.Message}");
-                return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+                Console.WriteLine($"Error while deleting a lobby: {ex.Message}");
+                return StatusCode(500, new { message = "Internal server error" });
             }
         }
     }

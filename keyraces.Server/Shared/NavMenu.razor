@@ -17,8 +17,6 @@
                 <a href="/train" class="nav-link">Train</a>
                 <a href="/practice" class="nav-link">Practice</a>
                 <a href="/competitions" class="nav-link">Competitions</a>
-                <a href="/leaderboard" class="nav-link">Leaderboard</a>
-                <a href="/about" class="nav-link">About</a>
             </div>
 
             <div class="navbar-user">
@@ -240,8 +238,8 @@
 </style>
 
 @code {
-    private string username;
-    private string userId;
+    private string username = string.Empty;
+    private string userId = string.Empty;
     private bool isFirstRender = true;
     private bool isAdmin = false;
     private bool isAuthenticated = false;
@@ -254,12 +252,11 @@
             isFirstRender = false;
             await LoadUserInfoAsync();
 
-            // Устанавливаем таймер для периодической проверки токена
             authCheckTimer = new System.Threading.Timer(
                 async _ => await CheckAuthStatusAsync(),
                 null,
-                TimeSpan.FromMinutes(1), // Первая проверка через 1 минуту
-                TimeSpan.FromMinutes(5)  // Затем каждые 5 минут
+                TimeSpan.FromMinutes(1),
+                TimeSpan.FromMinutes(5)
             );
 
             StateHasChanged();
@@ -276,12 +273,10 @@
                 return;
             }
 
-            // Проверяем валидность токена перед загрузкой данных пользователя
             bool isTokenValid = await CheckAuthStatusAsync();
 
             if (!isTokenValid)
             {
-                // Если токен невалиден, очищаем данные пользователя
                 ClearUserData();
                 return;
             }
@@ -354,7 +349,6 @@
     {
         try
         {
-            // Проверяем, истек ли токен
             bool isTokenExpired = await JS.InvokeAsync<bool>("authInterop.isTokenExpired");
 
             if (isTokenExpired)
@@ -364,7 +358,6 @@
                 return false;
             }
 
-            // Дополнительная проверка через authInterop.checkAuthentication
             bool isAuthenticated = await JS.InvokeAsync<bool>("authInterop.checkAuthentication");
 
             if (!isAuthenticated)
@@ -414,7 +407,6 @@
 
     public void Dispose()
     {
-        // Освобождаем ресурсы таймера при уничтожении компонента
         authCheckTimer?.Dispose();
     }
 }

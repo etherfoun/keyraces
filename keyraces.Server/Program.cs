@@ -6,7 +6,6 @@ using keyraces.Infrastructure.Repositories;
 using keyraces.Infrastructure.Security;
 using keyraces.Infrastructure.Services;
 using keyraces.Server;
-using keyraces.Server.Data;
 using keyraces.Server.Hubs;
 using keyraces.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -61,7 +60,6 @@ builder.Services.AddSession(options =>
 });
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddSingleton<WeatherForecastService>();
 builder.Services.AddScoped<ThemeService>();
 
 builder.Services.AddDbContextFactory<AppDbContext>(opts =>
@@ -189,11 +187,16 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 builder.Services.AddHttpClient("OllamaClient", (serviceProvider, client) =>
 {
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-    var apiUrl = configuration["Ollama:ApiUrl"] ?? "http://host.docker.internal:11434/api/generate";
+    var apiUrl = configuration["Ollama:ApiUrl"] ?? "http://localhost:11434/api/generate";
     var timeoutSeconds = configuration.GetValue<int>("Ollama:TimeoutSeconds", 120);
 
     client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-    client.BaseAddress = new Uri(apiUrl.Replace("/api/generate", ""));
+
+    // Устанавливаем базовый адрес для клиента
+    var baseUrl = apiUrl.Replace("/api/generate", "");
+    client.BaseAddress = new Uri(baseUrl);
+
+    Console.WriteLine($"Configured OllamaClient with base URL: {baseUrl}");
 });
 
 builder.Services.AddScoped<ITextGenerationService>(serviceProvider =>
@@ -202,11 +205,40 @@ builder.Services.AddScoped<ITextGenerationService>(serviceProvider =>
     var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
     var logger = serviceProvider.GetRequiredService<ILogger<LocalLLMTextGenerationService>>();
 
-    var apiUrl = configuration["Ollama:ApiUrl"] ?? "http://host.docker.internal:11434/api/generate";
+    // Получаем URL из конфигурации или используем localhost по умолчанию
+    var apiUrl = configuration["Ollama:ApiUrl"] ?? "http://localhost:11434/api/generate";
+
+    logger.LogInformation($"Initializing Ollama text generation service with URL: {apiUrl}");
+
+    // Проверяем доступность URL
+    try
+    {
+        using var testClient = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+        var healthUrl = apiUrl.Replace("/api/generate", "/");
+        logger.LogInformation($"Testing Ollama connection at: {healthUrl}");
+
+        var response = testClient.GetAsync(healthUrl).GetAwaiter().GetResult();
+
+        if (response.IsSuccessStatusCode)
+        {
+            logger.LogInformation($"✓ Successfully connected to Ollama at: {apiUrl}");
+        }
+        else
+        {
+            logger.LogWarning($"✗ Ollama returned status {response.StatusCode} at: {apiUrl}. Will still try to use it.");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning($"✗ Failed to connect to Ollama at {apiUrl}: {ex.Message}. Will still try to use it.");
+    }
+
     var modelName = configuration["Ollama:ModelName"] ?? "llama2";
 
+    // Создаем HTTP клиент для Ollama
     var httpClient = httpClientFactory.CreateClient("OllamaClient");
 
+    // Создаем и возвращаем сервис генерации текста
     return new LocalLLMTextGenerationService(
         logger,
         httpClient,

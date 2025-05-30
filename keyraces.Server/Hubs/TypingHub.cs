@@ -51,13 +51,10 @@ namespace keyraces.Server.Hubs
                     return;
                 }
 
-                // Добавляем пользователя в группу SignalR
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"lobby-{lobbyId}");
 
-                // Добавляем пользователя в лобби в Redis
                 await _lobbyService.JoinLobbyAsync(lobbyId, userId, userName);
 
-                // Уведомляем всех участников лобби о новом пользователе
                 await Clients.Group($"lobby-{lobbyId}").SendAsync("UserJoined", userName);
             }
             catch (Exception ex)
@@ -86,7 +83,6 @@ namespace keyraces.Server.Hubs
 
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"lobby-{lobbyId}");
 
-                // Уведомляем всех участников лобби об уходе пользователя
                 await Clients.Group($"lobby-{lobbyId}").SendAsync("UserLeft", userName);
             }
             catch (Exception ex)
@@ -113,16 +109,12 @@ namespace keyraces.Server.Hubs
                 if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(lobbyId))
                     return;
 
-                // Обновляем статус готовности в Redis
                 await _lobbyService.UpdateReadyStatusAsync(lobbyId, userId, isReady);
 
-                // Получаем обновленное лобби
                 var updatedLobby = await _lobbyService.GetLobbyAsync(lobbyId);
 
-                // Уведомляем всех участников лобби об изменении статуса
                 await Clients.Group($"lobby-{lobbyId}").SendAsync("UserReadyStatusChanged", userId, isReady);
 
-                // Также отправляем обновленное лобби для синхронизации состояния
                 if (updatedLobby != null)
                 {
                     await Clients.Group($"lobby-{lobbyId}").SendAsync("ReadyStatusChanged", updatedLobby);
@@ -149,7 +141,6 @@ namespace keyraces.Server.Hubs
 
                 var lobby = await _lobbyService.GetLobbyAsync(lobbyId);
 
-                // Проверяем, что пользователь является хостом
                 if (lobby == null || lobby.HostId != userId)
                 {
                     _logger.LogWarning("User {UserId} attempted to start game but is not the host of lobby {LobbyId}",
@@ -157,10 +148,8 @@ namespace keyraces.Server.Hubs
                     return;
                 }
 
-                // Запускаем игру
                 await _lobbyService.StartGameAsync(lobbyId, textSnippetId.ToString());
 
-                // Уведомляем всех участников лобби о начале игры
                 await Clients.Group($"lobby-{lobbyId}").SendAsync("GameStarted");
             }
             catch (Exception ex)
@@ -179,10 +168,8 @@ namespace keyraces.Server.Hubs
                 if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(lobbyId))
                     return;
 
-                // Обновляем прогресс в Redis
                 await _lobbyService.UpdatePlayerProgressAsync(lobbyId, userId, progress, wpm, accuracy);
 
-                // Уведомляем всех участников лобби о прогрессе
                 await Clients.Group($"lobby-{lobbyId}").SendAsync("PlayerProgressUpdated", userId, progress, wpm, accuracy);
             }
             catch (Exception ex)
@@ -204,31 +191,24 @@ namespace keyraces.Server.Hubs
                 if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(lobbyId))
                     return;
 
-                // Завершаем игру для пользователя
                 var success = await _lobbyService.CompleteGameAsync(lobbyId, userId, finalWpm, finalAccuracy);
 
                 if (success)
                 {
-                    // Получаем обновленное лобби
                     var lobby = await _lobbyService.GetLobbyAsync(lobbyId);
 
                     if (lobby != null)
                     {
-                        // Уведомляем всех участников лобби о завершении игры пользователем
                         await Clients.Group($"lobby-{lobbyId}").SendAsync("PlayerFinished", userId, finalWpm, finalAccuracy);
 
-                        // Отправляем обновленное лобби
                         await Clients.Group($"lobby-{lobbyId}").SendAsync("LobbyUpdated", lobby);
 
-                        // Проверяем, все ли игроки завершили игру
                         if (lobby.Status == LobbyStatus.Finished)
                         {
                             _logger.LogInformation("All players finished in lobby {LobbyId}", lobbyId);
 
-                            // Уведомляем всех участников о завершении игры
                             await Clients.Group($"lobby-{lobbyId}").SendAsync("AllPlayersFinished", lobby);
 
-                            // Отправляем финальные результаты
                             var results = lobby.Players
                                 .Where(p => p.HasFinished)
                                 .OrderBy(p => p.Position)
@@ -272,10 +252,8 @@ namespace keyraces.Server.Hubs
                 if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(lobbyId) || string.IsNullOrEmpty(message))
                     return;
 
-                // Добавляем сообщение в Redis
                 await _lobbyService.AddChatMessageAsync(lobbyId, userId, userName, message);
 
-                // Создаем объект сообщения
                 var chatMessage = new ChatMessage
                 {
                     UserId = userId,
@@ -284,7 +262,6 @@ namespace keyraces.Server.Hubs
                     Timestamp = DateTime.UtcNow
                 };
 
-                // Отправляем сообщение всем участникам лобби
                 await Clients.Group($"lobby-{lobbyId}").SendAsync("ReceiveChatMessage", chatMessage);
             }
             catch (Exception ex)
@@ -294,7 +271,6 @@ namespace keyraces.Server.Hubs
             }
         }
 
-        // Тестовый метод для проверки подключения
         public async Task SendMessage(string message)
         {
             _logger.LogInformation("Received message: {Message}", message);

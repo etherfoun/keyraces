@@ -12,13 +12,13 @@
 <div class="competitions-container">
     <div class="competitions-content">
         <div class="competitions-header">
-            <h1>Соревнования</h1>
+            <h1>Competitions</h1>
             <div class="header-actions">
                 <button class="filter-btn" @onclick="ToggleFilterSidebar">
-                    <i class="oi oi-filter"></i> Фильтры
+                    <i class="oi oi-filter"></i> Filters
                 </button>
                 <button class="create-lobby-btn" @onclick="OpenCreateLobbyModal">
-                    <i class="oi oi-plus"></i> Создать лобби
+                    <i class="oi oi-plus"></i> Create Lobby
                 </button>
             </div>
         </div>
@@ -27,17 +27,17 @@
         {
             <div class="loading-state">
                 <div class="spinner"></div>
-                <p class="loading-text">Загрузка соревнований...</p>
+                <p class="loading-text">Loading competitions...</p>
             </div>
         }
         else if (lobbies.Count == 0)
         {
             <div class="empty-state">
                 <i class="oi oi-people empty-icon"></i>
-                <h3 class="empty-title">Нет активных соревнований</h3>
-                <p class="empty-description">Создайте новое лобби или попробуйте изменить параметры фильтрации</p>
+                <h3 class="empty-title">No Active Competitions</h3>
+                <p class="empty-description">Create a new lobby or try changing the filter parameters</p>
                 <button class="create-lobby-btn" @onclick="OpenCreateLobbyModal">
-                    <i class="oi oi-plus"></i> Создать лобби
+                    <i class="oi oi-plus"></i> Create Lobby
                 </button>
             </div>
         }
@@ -76,11 +76,11 @@
                                     <span>@FormatTime(lobby.CreatedAt)</span>
                                 </div>
                                 <button class="join-btn" @onclick="() => JoinLobby(lobby)" disabled="@(!CanJoinLobby(lobby))">
-                                    Присоединиться
+                                    Join
                                 </button>
                                 @if (isAdmin)
                                 {
-                                    <button class="delete-lobby-btn" @onclick="() => DeleteLobby(lobby.Id)" title="Удалить лобби">
+                                    <button class="delete-lobby-btn" @onclick="() => DeleteLobby(lobby.Id)" title="Delete Lobby">
                                         <i class="oi oi-trash"></i>
                                     </button>
                                 }
@@ -110,100 +110,100 @@
 
     <div class="filter-sidebar @(isFilterOpen ? "open" : "")">
         <div class="filter-header">
-            <h3>Фильтры</h3>
+            <h3>Filters</h3>
             <button class="close-filter-btn" @onclick="ToggleFilterSidebar">
                 <i class="oi oi-x"></i>
             </button>
         </div>
         <div class="filter-content">
             <div class="filter-group">
-                <h4>Поиск</h4>
-                <input type="text" class="search-input" placeholder="Название лобби или имя хоста..." 
+                <h4>Search</h4>
+                <input type="text" class="search-input" placeholder="Lobby name or host name..." 
                        @bind-value="searchQuery" @bind-value:event="oninput" @onkeyup="ApplyFilters" />
             </div>
 
             <div class="filter-group">
-                <h4>Статус лобби</h4>
+                <h4>Lobby Status</h4>
                 <div class="filter-options">
                     <div class="filter-option">
                         <input type="checkbox" id="status-waiting" class="filter-checkbox" 
                                checked="@filterWaiting" @onchange="e => { filterWaiting = (bool)e.Value; ApplyFilters(); }" />
-                        <label for="status-waiting" class="filter-label">Ожидание</label>
+                        <label for="status-waiting" class="filter-label">Waiting</label>
                     </div>
                     <div class="filter-option">
                         <input type="checkbox" id="status-in-game" class="filter-checkbox" 
                                checked="@filterInGame" @onchange="e => { filterInGame = (bool)e.Value; ApplyFilters(); }" />
-                        <label for="status-in-game" class="filter-label">В игре</label>
+                        <label for="status-in-game" class="filter-label">In Game</label>
                     </div>
                     <div class="filter-option">
                         <input type="checkbox" id="status-completed" class="filter-checkbox" 
                                checked="@filterCompleted" @onchange="e => { filterCompleted = (bool)e.Value; ApplyFilters(); }" />
-                        <label for="status-completed" class="filter-label">Завершено</label>
+                        <label for="status-completed" class="filter-label">Completed</label>
                     </div>
                 </div>
             </div>
 
             <div class="filter-group">
-                <h4>Пароль</h4>
+                <h4>Password</h4>
                 <div class="filter-options">
                     <div class="filter-option">
                         <input type="radio" id="password-all" name="password" class="filter-radio" 
                                checked="@(passwordFilter == "all")" @onchange="@(() => SetPasswordFilter("all"))" />
-                        <label for="password-all" class="filter-label">Все лобби</label>
+                        <label for="password-all" class="filter-label">All Lobbies</label>
                     </div>
                     <div class="filter-option">
                         <input type="radio" id="password-yes" name="password" class="filter-radio" 
                                checked="@(passwordFilter == "yes")" @onchange="@(() => SetPasswordFilter("yes"))" />
-                        <label for="password-yes" class="filter-label">С паролем</label>
+                        <label for="password-yes" class="filter-label">With Password</label>
                     </div>
                     <div class="filter-option">
                         <input type="radio" id="password-no" name="password" class="filter-radio" 
                                checked="@(passwordFilter == "no")" @onchange="@(() => SetPasswordFilter("no"))" />
-                        <label for="password-no" class="filter-label">Без пароля</label>
+                        <label for="password-no" class="filter-label">Without Password</label>
                     </div>
                 </div>
             </div>
 
             <div class="filter-group">
-                <h4>Количество участников</h4>
+                <h4>Number of Participants</h4>
                 <div class="filter-options">
                     <div class="filter-option">
                         <input type="radio" id="participants-all" name="participants" class="filter-radio" 
                                checked="@(participantsFilter == "all")" @onchange="@(() => SetParticipantsFilter("all"))" />
-                        <label for="participants-all" class="filter-label">Все</label>
+                        <label for="participants-all" class="filter-label">All</label>
                     </div>
                     <div class="filter-option">
                         <input type="radio" id="participants-available" name="participants" class="filter-radio" 
                                checked="@(participantsFilter == "available")" @onchange="@(() => SetParticipantsFilter("available"))" />
-                        <label for="participants-available" class="filter-label">Есть свободные места</label>
+                        <label for="participants-available" class="filter-label">Available Slots</label>
                     </div>
                     <div class="filter-option">
                         <input type="radio" id="participants-almost-full" name="participants" class="filter-radio" 
                                checked="@(participantsFilter == "almost-full")" @onchange="@(() => SetParticipantsFilter("almost-full"))" />
-                        <label for="participants-almost-full" class="filter-label">Почти заполнены</label>
+                        <label for="participants-almost-full" class="filter-label">Almost Full</label>
                     </div>
                 </div>
             </div>
 
             <div class="filter-group">
-                <h4>Сортировка по времени</h4>
+                <h4>Sort by Time</h4>
                 <div class="filter-options">
                     <div class="filter-option">
                         <input type="radio" id="time-newest" name="time" class="filter-radio" 
                                checked="@(timeFilter == "newest")" @onchange="@(() => SetTimeFilter("newest"))" />
-                        <label for="time-newest" class="filter-label">Сначала новые</label>
+                        <label for="time-newest" class="filter-label">Newest First</label>
                     </div>
                     <div class="filter-option">
                         <input type="radio" id="time-oldest" name="time" class="filter-radio" 
                                checked="@(timeFilter == "oldest")" @onchange="@(() => SetTimeFilter("oldest"))" />
-                        <label for="time-oldest" class="filter-label">Сначала старые</label>
+                        <label for="time-oldest" class="filter-label">Oldest First</label>
                     </div>
                 </div>
             </div>
 
             <div class="filter-actions">
-                <button class="reset-filters-btn" @onclick="ResetFilters">Сбросить</button>
-                <button class="apply-filters-btn" @onclick="ApplyFilters">Применить</button>
+                <button class="reset-filters-btn" @onclick="ResetFilters">Reset</button>
+                <button class="apply-filters-btn" @onclick="ApplyFilters">Apply</button>
             </div>
         </div>
     </div>
@@ -217,7 +217,7 @@
         <div class="modal-overlay @(showCreateLobbyModal ? "show" : "")" @onclick="CloseCreateLobbyModal">
             <div class="modal-content" @onclick:stopPropagation="true">
                 <div class="modal-header">
-                    <h2>Создать новое лобби</h2>
+                    <h2>Create New Lobby</h2>
                     <button class="close-modal-btn" @onclick="CloseCreateLobbyModal">
                         <i class="oi oi-x"></i>
                     </button>
@@ -227,31 +227,31 @@
                     {
                         <div class="auth-required">
                             <i class="oi oi-lock-locked auth-required-icon"></i>
-                            <h3 class="auth-required-title">Требуется авторизация</h3>
-                            <p class="auth-required-text">Для создания лобби необходимо войти в систему</p>
-                            <a href="/login?returnUrl=%2Fcompetitions" class="auth-login-btn">Войти</a>
+                            <h3 class="auth-required-title">Authentication Required</h3>
+                            <p class="auth-required-text">You need to log in to create a lobby</p>
+                            <a href="/login?returnUrl=%2Fcompetitions" class="auth-login-btn">Login</a>
                         </div>
                     }
                     else
                     {
                         <div class="form-group">
-                            <label for="lobby-name">Название лобби</label>
+                            <label for="lobby-name">Lobby Name</label>
                             <input type="text" id="lobby-name" class="form-control" @bind="newLobby.Name" />
                         </div>
                         <div class="form-group">
-                            <label for="max-participants">Максимальное количество участников</label>
+                            <label for="max-participants">Maximum Participants</label>
                             <input type="number" id="max-participants" class="form-control" min="2" max="10" @bind="newLobby.MaxPlayers" />
                         </div>
                         <div class="form-group">
                             <div class="form-check">
                                 <input type="checkbox" id="has-password" class="form-check-input" @bind="newLobby.HasPassword" />
-                                <label for="has-password" class="form-check-label">Защитить паролем</label>
+                                <label for="has-password" class="form-check-label">Protect with Password</label>
                             </div>
                         </div>
                         @if (newLobby.HasPassword)
                         {
                             <div class="form-group">
-                                <label for="lobby-password">Пароль</label>
+                                <label for="lobby-password">Password</label>
                                 <input type="password" id="lobby-password" class="form-control" @bind="newLobby.Password" />
                             </div>
                         }
@@ -265,17 +265,17 @@
                     }
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CloseCreateLobbyModal">Отмена</button>
+                    <button class="btn btn-secondary" @onclick="CloseCreateLobbyModal">Cancel</button>
                     @if (isAuthenticated)
                     {
                         <button class="btn btn-primary" @onclick="CreateLobby" disabled="@isCreatingLobby">
                             @if (isCreatingLobby)
                             {
-                                <span>Создание...</span>
+                                <span>Creating...</span>
                             }
                             else
                             {
-                                <span>Создать</span>
+                                <span>Create</span>
                             }
                         </button>
                     }
@@ -289,7 +289,7 @@
         <div class="modal-overlay @(showJoinLobbyModal ? "show" : "")" @onclick="CloseJoinLobbyModal">
             <div class="modal-content" @onclick:stopPropagation="true">
                 <div class="modal-header">
-                    <h2>Присоединиться к лобби</h2>
+                    <h2>Join Lobby</h2>
                     <button class="close-modal-btn" @onclick="CloseJoinLobbyModal">
                         <i class="oi oi-x"></i>
                     </button>
@@ -299,23 +299,23 @@
                     {
                         <div class="auth-required">
                             <i class="oi oi-lock-locked auth-required-icon"></i>
-                            <h3 class="auth-required-title">Требуется авторизация</h3>
-                            <p class="auth-required-text">Для присоединения к лобби необходимо войти в систему</p>
-                            <a href="/login?returnUrl=%2Fcompetitions" class="auth-login-btn">Войти</a>
+                            <h3 class="auth-required-title">Authentication Required</h3>
+                            <p class="auth-required-text">You need to log in to join a lobby</p>
+                            <a href="/login?returnUrl=%2Fcompetitions" class="auth-login-btn">Login</a>
                         </div>
                     }
                     else if (selectedLobby != null)
                     {
                         <div class="lobby-details-modal">
                             <h3>@selectedLobby.Name</h3>
-                            <p>Хост: @selectedLobby.HostName</p>
-                            <p>Участники: @selectedLobby.Players.Count/@selectedLobby.MaxPlayers</p>
-                            <p>Статус: @GetStatusText(selectedLobby.Status)</p>
+                            <p>Host: @selectedLobby.HostName</p>
+                            <p>Participants: @selectedLobby.Players.Count/@selectedLobby.MaxPlayers</p>
+                            <p>Status: @GetStatusText(selectedLobby.Status)</p>
                             
                             @if (selectedLobby.HasPassword)
                             {
                                 <div class="form-group">
-                                    <label for="join-password">Пароль</label>
+                                    <label for="join-password">Password</label>
                                     <input type="password" id="join-password" class="form-control" @bind="joinPassword" />
                                 </div>
                             }
@@ -330,17 +330,17 @@
                     }
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CloseJoinLobbyModal">Отмена</button>
+                    <button class="btn btn-secondary" @onclick="CloseJoinLobbyModal">Cancel</button>
                     @if (isAuthenticated && selectedLobby != null)
                     {
                         <button class="btn btn-primary" @onclick="ConfirmJoinLobby" disabled="@isJoiningLobby">
                             @if (isJoiningLobby)
                             {
-                                <span>Присоединение...</span>
+                                <span>Joining...</span>
                             }
                             else
                             {
-                                <span>Присоединиться</span>
+                                <span>Join</span>
                             }
                         </button>
                     }
@@ -354,14 +354,14 @@
         <div class="modal-overlay @(showDeleteConfirmModal ? "show" : "")" @onclick="CloseDeleteConfirmModal">
             <div class="modal-content" @onclick:stopPropagation="true">
                 <div class="modal-header">
-                    <h2>Удаление лобби</h2>
+                    <h2>Delete Lobby</h2>
                     <button class="close-modal-btn" @onclick="CloseDeleteConfirmModal">
                         <i class="oi oi-x"></i>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <p>Вы уверены, что хотите удалить лобби?</p>
-                    <p>ID лобби: @lobbyIdToDelete</p>
+                    <p>Are you sure you want to delete the lobby?</p>
+                    <p>Lobby ID: @lobbyIdToDelete</p>
                     
                     @if (!string.IsNullOrEmpty(deleteError))
                     {
@@ -371,15 +371,15 @@
                     }
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CloseDeleteConfirmModal">Отмена</button>
+                    <button class="btn btn-secondary" @onclick="CloseDeleteConfirmModal">Cancel</button>
                     <button class="btn btn-danger" @onclick="ConfirmDeleteLobby" disabled="@isDeletingLobby">
                         @if (isDeletingLobby)
                         {
-                            <span>Удаление...</span>
+                            <span>Deleting...</span>
                         }
                         else
                         {
-                            <span>Удалить</span>
+                            <span>Delete</span>
                         }
                     </button>
                 </div>
@@ -415,9 +415,9 @@
     private bool filterWaiting = true;
     private bool filterInGame = true;
     private bool filterCompleted = false;
-    private string passwordFilter = "all";
-    private string participantsFilter = "all";
-    private string timeFilter = "newest"; 
+    private string passwordFilter = "all"; // "all", "yes", "no"
+    private string participantsFilter = "all"; // "all", "available", "almost-full"
+    private string timeFilter = "newest"; // "newest", "oldest"
 
     private CreateLobbyModel newLobby = new CreateLobbyModel
     {
@@ -429,7 +429,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Не вызываем CheckAuthenticationAsync здесь, так как JS еще недоступен
+        // Do not call CheckAuthenticationAsync here as JS is not yet available
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -438,7 +438,7 @@
         {
             await CheckAuthenticationAsync();
             await LoadLobbiesAsync();
-            StateHasChanged();
+            StateHasChanged(); // Ensure UI updates after async operations
         }
     }
 
@@ -475,7 +475,7 @@
 
             isAuthenticated = true;
             
-            // Проверяем роль администратора через токен
+            // Check admin role via token
             try 
             {
                 var userInfo = await JS.InvokeAsync<Dictionary<string, object>>("authInterop.getUserInfo");
@@ -501,24 +501,6 @@
         }
     }
 
-    // protected override async Task OnAfterRenderAsync(bool firstRender)
-    // {
-    //     if (firstRender)
-    //     {
-    //         // Подписываемся на событие изменения авторизации
-    //         await JS.InvokeVoidAsync("authInterop.subscribeToAuthChanges", 
-    //             DotNetObjectReference.Create(this));
-    //     }
-    // }
-
-    // [JSInvokable]
-    // public async Task OnAuthChanged()
-    // {
-    //     await CheckAuthenticationAsync();
-    //     await LoadLobbiesAsync();
-    //     StateHasChanged();
-    // }
-
     private async Task LoadLobbiesAsync()
     {
         isLoading = true;
@@ -527,12 +509,12 @@
         try
         {
             lobbies = await LobbyService.GetActiveLobbiesAsync();
-            ApplyFilters();
+            ApplyFilters(); // Apply filters after loading
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading lobbies: {ex.Message}");
-            lobbies = new List<keyraces.Core.Models.CompetitionLobby>();
+            lobbies = new List<keyraces.Core.Models.CompetitionLobby>(); // Ensure lobbies is initialized
         }
         finally
         {
@@ -549,13 +531,14 @@
     private void OpenCreateLobbyModal()
     {
         showCreateLobbyModal = true;
-        createLobbyError = "";
+        createLobbyError = ""; // Reset error message
     }
 
     private void CloseCreateLobbyModal()
     {
         showCreateLobbyModal = false;
         createLobbyError = "";
+        // Reset newLobby model
         newLobby = new CreateLobbyModel
         {
             Name = "",
@@ -569,20 +552,21 @@
     {
         if (!isAuthenticated)
         {
+            // Redirect to login if not authenticated
             NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/competitions")}");
             return;
         }
 
         selectedLobby = lobby;
-        joinPassword = "";
-        joinLobbyError = "";
+        joinPassword = ""; // Reset password field
+        joinLobbyError = ""; // Reset error message
         showJoinLobbyModal = true;
     }
 
     private void CloseJoinLobbyModal()
     {
         showJoinLobbyModal = false;
-        selectedLobby = null!;
+        selectedLobby = null!; // Clear selected lobby
         joinPassword = "";
         joinLobbyError = "";
     }
@@ -616,7 +600,7 @@
 
             if (string.IsNullOrEmpty(token))
             {
-                deleteError = "Токен авторизации не найден";
+                deleteError = "Authorization token not found";
                 return;
             }
 
@@ -629,7 +613,7 @@
             {
                 Console.WriteLine($"Successfully deleted lobby: {lobbyIdToDelete}");
                 CloseDeleteConfirmModal();
-                await LoadLobbiesAsync();
+                await LoadLobbiesAsync(); // Refresh the list
             }
             else
             {
@@ -639,18 +623,18 @@
                 if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized || 
                     response.StatusCode == System.Net.HttpStatusCode.Forbidden)
                 {
-                    deleteError = "У вас нет прав для удаления лобби";
+                    deleteError = "You do not have permission to delete this lobby";
                 }
                 else
                 {
-                    deleteError = $"Ошибка удаления лобби: {response.StatusCode}";
+                    deleteError = $"Error deleting lobby: {response.StatusCode}";
                 }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error deleting lobby: {ex.Message}");
-            deleteError = $"Ошибка: {ex.Message}";
+            deleteError = $"Error: {ex.Message}";
         }
         finally
         {
@@ -674,13 +658,14 @@
 
             if (string.IsNullOrEmpty(token))
             {
-                joinLobbyError = "Токен авторизации не найден";
+                joinLobbyError = "Authorization token not found";
                 return;
             }
 
             var joinDto = new JoinLobbyDto
             {
                 LobbyId = selectedLobby.Id
+                // Password handling should be done by the service or API endpoint if required
             };
 
             var request = new HttpRequestMessage(HttpMethod.Post, "api/lobby/join");
@@ -702,7 +687,7 @@
                 }
                 else
                 {
-                    joinLobbyError = "Не удалось присоединиться к лобби";
+                    joinLobbyError = "Failed to join lobby";
                 }
             }
             else
@@ -712,22 +697,22 @@
 
                 if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
-                    joinLobbyError = "Не удалось присоединиться к лобби. Возможно, лобби заполнено или требуется пароль.";
+                    joinLobbyError = "Failed to join lobby. It might be full or require a password.";
                 }
                 else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    joinLobbyError = "Ошибка авторизации";
+                    joinLobbyError = "Authorization error";
                 }
                 else
                 {
-                    joinLobbyError = $"Ошибка присоединения к лобби: {response.StatusCode}";
+                    joinLobbyError = $"Error joining lobby: {response.StatusCode}";
                 }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error joining lobby: {ex.Message}");
-            joinLobbyError = $"Ошибка: {ex.Message}";
+            joinLobbyError = $"Error: {ex.Message}";
         }
         finally
         {
@@ -751,7 +736,7 @@
 
             if (string.IsNullOrEmpty(token))
             {
-                createLobbyError = "Токен авторизации не найден";
+                createLobbyError = "Authorization token not found";
                 return;
             }
 
@@ -759,6 +744,7 @@
             {
                 Name = newLobby.Name,
                 MaxPlayers = newLobby.MaxPlayers
+                // Password handling should be done by the service or API endpoint if required
             };
 
             var request = new HttpRequestMessage(HttpMethod.Post, "api/lobby/create");
@@ -780,20 +766,20 @@
                 }
                 else
                 {
-                    createLobbyError = "Не удалось создать лобби";
+                    createLobbyError = "Failed to create lobby";
                 }
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Failed to create lobby: {error}");
-                createLobbyError = $"Ошибка создания лобби: {response.StatusCode} - {error}";
+                createLobbyError = $"Error creating lobby: {response.StatusCode} - {error}";
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error creating lobby: {ex.Message}");
-            createLobbyError = $"Ошибка: {ex.Message}";
+            createLobbyError = $"Error: {ex.Message}";
         }
         finally
         {
@@ -804,7 +790,7 @@
 
     private void ApplyFilters()
     {
-        filteredLobbies = lobbies.Where(lobby => 
+        var tempFiltered = lobbies.Where(lobby => 
         {
             bool matchesSearch = string.IsNullOrEmpty(searchQuery) || 
                                 lobby.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) || 
@@ -813,6 +799,8 @@
             bool matchesStatus = (filterWaiting && lobby.Status == LobbyStatus.Waiting) || 
                                 (filterInGame && lobby.Status == LobbyStatus.InGame) || 
                                 (filterCompleted && lobby.Status == LobbyStatus.Finished);
+            if (!filterWaiting && !filterInGame && !filterCompleted) matchesStatus = true;
+
 
             bool matchesPassword = passwordFilter == "all" || 
                                   (passwordFilter == "yes" && lobby.HasPassword) || 
@@ -828,14 +816,14 @@
 
         if (timeFilter == "newest")
         {
-            filteredLobbies = filteredLobbies.OrderByDescending(l => l.CreatedAt).ToList();
+            tempFiltered = tempFiltered.OrderByDescending(l => l.CreatedAt).ToList();
         }
-        else
+        else // oldest
         {
-            filteredLobbies = filteredLobbies.OrderBy(l => l.CreatedAt).ToList();
+            tempFiltered = tempFiltered.OrderBy(l => l.CreatedAt).ToList();
         }
 
-        totalPages = (int)Math.Ceiling(filteredLobbies.Count / (double)pageSize);
+        totalPages = (int)Math.Ceiling(tempFiltered.Count / (double)pageSize);
         if (currentPage > totalPages && totalPages > 0)
         {
             currentPage = totalPages;
@@ -846,7 +834,7 @@
         }
 
         int skip = (currentPage - 1) * pageSize;
-        filteredLobbies = filteredLobbies
+        filteredLobbies = tempFiltered
             .Skip(skip)
             .Take(pageSize)
             .ToList();
@@ -924,10 +912,10 @@
     {
         return status switch
         {
-            LobbyStatus.Waiting => "Ожидание",
-            LobbyStatus.InGame => "В игре",
-            LobbyStatus.Finished => "Завершено",
-            _ => "Неизвестно"
+            LobbyStatus.Waiting => "Waiting",
+            LobbyStatus.InGame => "In Game",
+            LobbyStatus.Finished => "Completed",
+            _ => "Unknown"
         };
     }
 
@@ -944,11 +932,11 @@
         var timeSpan = DateTime.Now - time;
 
         if (timeSpan.TotalMinutes < 1)
-            return "только что";
+            return "just now";
         if (timeSpan.TotalMinutes < 60)
-            return $"{(int)timeSpan.TotalMinutes} мин. назад";
+            return $"{(int)timeSpan.TotalMinutes} min. ago";
         if (timeSpan.TotalHours < 24)
-            return $"{(int)timeSpan.TotalHours} ч. назад";
+            return $"{(int)timeSpan.TotalHours} hr. ago";
 
         return time.ToString("dd.MM.yyyy HH:mm");
     }

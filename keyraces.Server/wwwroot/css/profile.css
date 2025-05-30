@@ -1,12 +1,10 @@
-﻿/* Основные стили контейнера */
-.profile-container {
+﻿.profile-container {
     display: flex;
     min-height: 100vh;
     background-color: var(--background-primary);
-    padding-top: 80px; /* Учитываем высоту навбара */
+    padding-top: 80px;
 }
 
-/* Стили для боковой панели */
 .sidebar {
     width: 250px;
     background-color: var(--sidebar-bg);
@@ -353,7 +351,6 @@
         background-color: var(--accent-hover);
     }
 
-/* Стили для состояний загрузки и ошибок */
 .loading-spinner {
     display: flex;
     flex-direction: column;
@@ -394,7 +391,6 @@
         font-size: 24px;
     }
 
-/* Адаптивность */
 @media (max-width: 768px) {
     .sidebar {
         width: 60px;

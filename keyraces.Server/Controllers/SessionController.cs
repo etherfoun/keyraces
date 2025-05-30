@@ -30,14 +30,14 @@ namespace keyraces.Server.Controllers
                 var session = await _sessionService.GetByIdAsync(id);
                 if (session == null)
                 {
-                    return NotFound(new { message = $"Сессия с ID {id} не найдена" });
+                    return NotFound(new { message = $"Session with ID {id} not found" });
                 }
                 return Ok(session);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при получении сессии с ID {SessionId}", id);
-                return StatusCode(500, new { message = "Ошибка при получении сессии" });
+                _logger.LogError(ex, "Error getting session with ID {SessionId}", id);
+                return StatusCode(500, new { message = "Error getting session" });
             }
         }
 
@@ -51,8 +51,8 @@ namespace keyraces.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при получении сессий пользователя {UserId}", userId);
-                return StatusCode(500, new { message = "Ошибка при получении сессий пользователя" });
+                _logger.LogError(ex, "Error getting user sessions {UserId}", userId);
+                return StatusCode(500, new { message = "Error getting user sessions" });
             }
         }
     }

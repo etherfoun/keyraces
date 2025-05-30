@@ -90,15 +90,15 @@
 
     <div class="content-area">
         <div class="profile-header">
-            <h1>Профиль</h1>
-            <button class="edit-button"><i class="oi oi-pencil"></i> Редактировать</button>
+            <h1>Profile</h1>
+            <button class="edit-button"><i class="oi oi-pencil"></i> Edit</button>
         </div>
 
         @if (isLoading)
         {
             <div class="loading-spinner">
                 <div class="spinner"></div>
-                <p>Загрузка профиля...</p>
+                <p>Loading profile...</p>
             </div>
         }
         else if (!string.IsNullOrEmpty(errorMessage))
@@ -121,15 +121,15 @@
                     <div class="stats-container">
                         <div class="stat-item">
                             <div class="stat-value">@userProfile.AverageWPM.ToString("0.0")</div>
-                            <div class="stat-label">Средняя скорость (WPM)</div>
+                            <div class="stat-label">Average Speed (WPM)</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-value">@userProfile.AverageAccuracy.ToString("0.0")%</div>
-                            <div class="stat-label">Точность</div>
+                            <div class="stat-label">Accuracy</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-value">@(userProfile.TotalRaces + userProfile.TotalPractices)</div>
-                            <div class="stat-label">Сессий</div>
+                            <div class="stat-label">Sessions</div>
                         </div>
                     </div>
                 </div>
@@ -139,7 +139,7 @@
         {
             <div class="error-message">
                 <i class="oi oi-warning"></i>
-                <p>Профиль не найден. Пожалуйста, войдите в систему.</p>
+                <p>Profile not found. Please log in.</p>
             </div>
         }
 
@@ -227,17 +227,17 @@
                 if (userProfile != null)
                 {
                     username = userProfile.Name;
-                    userEmail = await JS.InvokeAsync<string>("localStorage.getItem", "user_email") ?? "Email не указан";
+                    userEmail = await JS.InvokeAsync<string>("localStorage.getItem", "user_email") ?? "Email not specified";
                 }
             }
             else
             {
-                errorMessage = "Не удалось получить ID пользователя. Пожалуйста, войдите в систему.";
+                errorMessage = "Failed to get user ID. Please log in.";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Ошибка при загрузке профиля: {ex.Message}";
+            errorMessage = $"Error loading profile: {ex.Message}";
             Console.WriteLine(errorMessage);
         }
         finally
