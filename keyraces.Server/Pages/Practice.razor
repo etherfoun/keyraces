@@ -618,7 +618,7 @@
 
     private bool showStatistics = false;
     private bool showAccuracyFeedback = false;
-    private int nextKeyCountdown = 5;
+    private int nextKeyCountdown = 1;
     private Timer feedbackTimer;
     private string accuracyFeedbackMessage = "";
     private double averageAccuracy = 0;
@@ -998,7 +998,7 @@
             {
                 var wordsList = new List<string>(languagePracticeWords[language][normalizedCurrentKey]);
 
-                int wordsCount = Math.Min(random.Next(5, 11), wordsList.Count);
+                int wordsCount = Math.Min(random.Next(1, 2), wordsList.Count);
                 practiceWords = new List<string>();
 
                 wordsList = ShuffleList(wordsList);
@@ -1516,7 +1516,7 @@
 
         GenerateAccuracyFeedbackMessage();
         showAccuracyFeedback = true;
-        nextKeyCountdown = 5;
+        nextKeyCountdown = 1;
         feedbackTimer?.Dispose();
         feedbackTimer = new Timer(1000);
         feedbackTimer.Elapsed += OnFeedbackTimerElapsed;
