@@ -5,22 +5,22 @@
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
             <Authorizing>
-                <p>Проверка авторизации...</p>
+                <p>Auth checking...</p>
             </Authorizing>
             <NotAuthorized>
                 @if (context.User.Identity?.IsAuthenticated ?? false)
                 {
                     <p role="alert" class="text-danger">
-                        У вас нет прав для доступа к этому ресурсу.
+                        You dont have access to this page.
                     </p>
                     <p>
-                        Если вы считаете, что это ошибка, обратитесь к администратору.
+                        If you think this is a mistake, please contact the site administrator.
                     </p>
                 }
                 else
                 {
                     <p role="alert" class="text-warning">
-                        Для доступа к этой странице необходимо войти в систему.
+                        To get access to this page contact the site administrator.
                     </p>
                     <RedirectToLogin />
                 }
@@ -31,7 +31,7 @@
     <NotFound>
         <PageTitle>Не найдено</PageTitle>
         <LayoutView Layout="@typeof(MainLayout)">
-            <p role="alert">Извините, по этому адресу ничего нет.</p>
+            <p role="alert">There is nothing</p>
         </LayoutView>
     </NotFound>
 </Router>
