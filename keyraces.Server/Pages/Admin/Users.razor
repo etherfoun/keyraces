@@ -3,489 +3,541 @@
 @using keyraces.Server.Dtos
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "Admin")]
-@inject HttpClient Http
+@attribute [Authorize(Roles = "Admin")] // Page-level authorization, relies on cookie
+@inject HttpClient Http // HttpClient should automatically use the session cookie for same-origin requests
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
+@using System.Text.Json
 
 <div class="admin-container">
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h3>User Management</h3>
-            <a href="/admin" class="btn btn-outline-secondary">Back to Admin Panel</a>
-        </div>
-        <div class="card-body">
-            @if (isLoading)
-            {
-                <div class="d-flex justify-content-center my-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="mb-4">
-                    <h4>Roles</h4>
+<div class="card">
+<div class="card-header d-flex justify-content-between align-items-center">
+  <h3>User Management</h3>
+  <a href="/admin" class="btn btn-outline-secondary">Back to Admin Panel</a>
+</div>
+<div class="card-body">
+  @if (isLoading)
+  {
+      <div class="d-flex justify-content-center my-4">
+          <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+          </div>
+      </div>
+  }
+  else
+  {
+      <div class="mb-4">
+          <h4>Roles</h4>
 
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var role in roles)
-                                {
-                                    <tr>
-                                        <td>@role.Name</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-info" @onclick="() => ShowUsersInRole(role.Name)">
-                                                Users
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+          <div class="table-responsive">
+              <table class="table table-striped">
+                  <thead>
+                      <tr>
+                          <th>Name</th>
+                          <th>Actions</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      @foreach (var role in roles)
+                      {
+                          <tr>
+                              <td>@role.Name</td>
+                              <td>
+                                  <button class="btn btn-sm btn-info" @onclick="() => ShowUsersInRole(role.Name)">
+                                      Users
+                                  </button>
+                              </td>
+                          </tr>
+                      }
+                  </tbody>
+              </table>
+          </div>
+      </div>
 
-                <div class="mb-4">
-                    <h4>Users</h4>
-                    <div class="d-flex gap-2 mb-3">
-                        <input type="text" class="form-control" placeholder="User Email" @bind="searchEmail" />
-                        <button class="btn btn-primary" @onclick="SearchUser">
-                            Search
-                        </button>
-                    </div>
+      <div class="mb-4">
+          <h4>Users</h4>
+          <div class="d-flex gap-2 mb-3">
+              <input type="text" class="form-control" placeholder="User Email" @bind="searchEmail" />
+              <button class="btn btn-primary" @onclick="SearchUser">
+                  Search
+              </button>
+          </div>
 
-                    @if (selectedUser != null)
-                    {
-                        <div class="card mb-3">
-                            <div class="card-header">
-                                <h5>User Information</h5>
-                            </div>
-                            <div class="card-body">
-                                <p><strong>ID:</strong> @selectedUser.Id</p>
-                                <p><strong>Name:</strong> @selectedUser.Name</p>
-                                <p><strong>Email:</strong> @selectedUser.Email</p>
+          @if (selectedUser != null)
+          {
+              <div class="card mb-3">
+                  <div class="card-header">
+                      <h5>User Information</h5>
+                  </div>
+                  <div class="card-body">
+                      <p><strong>ID:</strong> @selectedUser.UserId</p>
+                      <p><strong>Name:</strong> @selectedUser.Name</p>
+                      <p><strong>Email:</strong> @selectedUser.Email</p>
 
-                                <h6 class="mt-3">User Roles:</h6>
-                                <ul class="list-group mb-3">
-                                    @if (userRoles.Any())
-                                    {
-                                        @foreach (var role in userRoles)
-                                        {
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                @role
-                                                <button class="btn btn-sm btn-danger" @onclick="() => RemoveUserFromRole(role)">
-                                                    Remove
-                                                </button>
-                                            </li>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <li class="list-group-item">No roles</li>
-                                    }
-                                </ul>
+                      <h6 class="mt-3">User Roles:</h6>
+                      <ul class="list-group mb-3">
+                          @if (userRoles.Any())
+                          {
+                              @foreach (var role in userRoles)
+                              {
+                                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                                      @role
+                                      <button class="btn btn-sm btn-danger" @onclick="() => RemoveUserFromRole(role)">
+                                          Remove
+                                      </button>
+                                  </li>
+                              }
+                          }
+                          else
+                          {
+                              <li class="list-group-item">No roles</li>
+                          }
+                      </ul>
 
-                                <div class="d-flex gap-2">
-                                    <select class="form-select" @bind="selectedRoleToAdd">
-                                        <option value="">Select role</option>
-                                        @foreach (var role in roles)
-                                        {
-                                            <option value="@role.Name">@role.Name</option>
-                                        }
-                                    </select>
-                                    <button class="btn btn-primary" @onclick="AddUserToRole" disabled="@string.IsNullOrEmpty(selectedRoleToAdd)">
-                                        Add Role
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                </div>
+                      <div class="d-flex gap-2">
+                          <select class="form-select" @bind="selectedRoleToAdd">
+                              <option value="">Select role</option>
+                              @foreach (var role in roles)
+                              {
+                                  <option value="@role.Name">@role.Name</option>
+                              }
+                          </select>
+                          <button class="btn btn-primary" @onclick="AddUserToRole" disabled="@string.IsNullOrEmpty(selectedRoleToAdd)">
+                              Add Role
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          }
+      </div>
 
-                @if (selectedRoleUsers.Any())
-                {
-                    <div class="mb-4">
-                        <h4>Users in role "@selectedRole"</h4>
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var user in selectedRoleUsers)
-                                    {
-                                        <tr>
-                                            <td>@user.Name</td>
-                                            <td>@user.Email</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-info" @onclick="() => SelectUser(user)">
-                                                    Select
-                                                </button>
-                                                <button class="btn btn-sm btn-danger" @onclick="() => RemoveFromRoleConfirm(user, selectedRole)">
-                                                    Remove from role
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                }
-            }
-        </div>
-    </div>
+      @if (selectedRoleUsers.Any())
+      {
+          <div class="mb-4">
+              <h4>Users in role "@selectedRole"</h4>
+              <div class="table-responsive">
+                  <table class="table table-striped">
+                      <thead>
+                          <tr>
+                              <th>Name</th>
+                              <th>Email</th>
+                              <th>Actions</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          @foreach (var user in selectedRoleUsers)
+                          {
+                              <tr>
+                                  <td>@user.Name</td>
+                                  <td>@user.Email</td>
+                                  <td>
+                                      <button class="btn btn-sm btn-info" @onclick="() => SelectUser(user)">
+                                          Select
+                                      </button>
+                                      <button class="btn btn-sm btn-danger" @onclick="() => RemoveFromRoleConfirm(user, selectedRole)">
+                                          Remove from role
+                                      </button>
+                                  </td>
+                              </tr>
+                          }
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      }
+  }
+</div>
+</div>
 
-    @if (showConfirmDialog)
-    {
-        <div class="confirmation-dialog">
-            <div class="confirmation-dialog-content">
-                <h4>Confirm Action</h4>
-                <p>Are you sure you want to remove user <strong>@confirmUser?.Email</strong> from role <strong>@confirmRole</strong>?</p>
-                <div class="d-flex justify-content-end gap-2">
-                    <button class="btn btn-secondary" @onclick="() => showConfirmDialog = false">Cancel</button>
-                    <button class="btn btn-danger" @onclick="ConfirmRemoveFromRole">
-                        @if (isRemoving)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                            <span>Removing...</span>
-                        }
-                        else
-                        {
-                            <span>Remove</span>
-                        }
-                    </button>
-                </div>
-            </div>
-        </div>
-    }
+@if (showConfirmDialog)
+{
+<div class="confirmation-dialog">
+  <div class="confirmation-dialog-content">
+      <h4>Confirm Action</h4>
+      <p>Are you sure you want to remove user <strong>@confirmUser?.Email</strong> from role <strong>@confirmRole</strong>?</p>
+      <div class="d-flex justify-content-end gap-2">
+          <button class="btn btn-secondary" @onclick="() => showConfirmDialog = false">Cancel</button>
+          <button class="btn btn-danger" @onclick="ConfirmRemoveFromRole">
+              @if (isRemoving)
+              {
+                  <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                  <span>Removing...</span>
+              }
+              else
+              {
+                  <span>Remove</span>
+              }
+          </button>
+      </div>
+  </div>
+</div>
+}
 </div>
 
 @code {
-    private bool isLoading = true;
-    private bool isRemoving = false;
-    private bool showConfirmDialog = false;
-    private List<RoleDto> roles = new List<RoleDto>();
-    private List<UserDto> selectedRoleUsers = new List<UserDto>();
-    private UserDto selectedUser;
-    private UserDto confirmUser;
-    private string confirmRole;
-    private List<string> userRoles = new List<string>();
-    private string selectedRole = "";
-    private string searchEmail = "";
-    private string selectedRoleToAdd = "";
-    private bool firstRender = true;
+private bool isLoading = true;
+private bool isRemoving = false;
+private bool showConfirmDialog = false;
+private List<RoleDto> roles = new List<RoleDto>();
+private List<UserDto> selectedRoleUsers = new List<UserDto>();
+private UserDto selectedUser;
+private UserDto confirmUser;
+private string confirmRole;
+private List<string> userRoles = new List<string>();
+private string selectedRole = "";
+private string searchEmail = "";
+private string selectedRoleToAdd = "";
+private bool firstRender = true;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadRolesData();
-    }
+protected override async Task OnInitializedAsync()
+{
+await LoadRolesData();
+}
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
+protected override async Task OnAfterRenderAsync(bool firstRender)
+{
+if (firstRender)
+{
+  this.firstRender = false;
+  await JS.InvokeVoidAsync("console.log", "Users.razor: OnAfterRenderAsync (first render) - component is now interactive.");
+}
+}
+
+private async Task LoadRolesData()
+{
+try
+{
+  isLoading = true;
+
+  var response = await Http.GetAsync("/api/Role");
+
+  if (response.IsSuccessStatusCode)
+  {
+      roles = await response.Content.ReadFromJsonAsync<List<RoleDto>>();
+  }
+}
+catch (Exception ex)
+{
+  roles = new List<RoleDto>();
+}
+finally
+{
+  isLoading = false;
+}
+}
+
+private async Task ShowUsersInRole(string roleName)
+{
+try
+{
+  await JS.InvokeVoidAsync("console.log", $"Users.razor: ShowUsersInRole started for role: {roleName}.");
+  isLoading = true;
+  selectedRole = roleName;
+  StateHasChanged();
+
+  var response = await Http.GetAsync($"/api/Role/users/{roleName}");
+  await JS.InvokeVoidAsync("console.log", $"Users.razor: ShowUsersInRole - Http.GetAsync /api/Role/users/{roleName} status: {response.StatusCode}");
+
+  if (response.IsSuccessStatusCode)
+  {
+      selectedRoleUsers = await response.Content.ReadFromJsonAsync<List<UserDto>>();
+  }
+  else
+  {
+      var error = await response.Content.ReadAsStringAsync();
+      await JS.InvokeVoidAsync("alert", $"Error loading users: {error}");
+      selectedRoleUsers = new List<UserDto>();
+  }
+}
+catch (Exception ex)
+{
+  await JS.InvokeVoidAsync("console.error", $"Users.razor: ShowUsersInRole exception: {ex.Message}");
+  await JS.InvokeVoidAsync("alert", $"Error loading users: {ex.Message}");
+  selectedRoleUsers = new List<UserDto>();
+}
+finally
+{
+  isLoading = false;
+  StateHasChanged();
+  await JS.InvokeVoidAsync("console.log", "Users.razor: ShowUsersInRole finished.");
+}
+}
+
+private async Task SearchUser()
+{
+// --- ADDED LOGGING ---
+await JS.InvokeVoidAsync("console.log", "Users.razor: SearchUser method started.");
+await JS.InvokeVoidAsync("console.log", $"Users.razor: searchEmail value: '{searchEmail}'");
+
+if (string.IsNullOrWhiteSpace(searchEmail))
+{
+  await JS.InvokeVoidAsync("console.warn", "Users.razor: SearchUser - searchEmail is empty or whitespace.");
+  await JS.InvokeVoidAsync("alert", "Enter user email");
+  return;
+}
+
+try
+{
+  isLoading = true;
+  selectedUser = null; 
+  userRoles = new List<string>(); 
+  StateHasChanged();
+  await JS.InvokeVoidAsync("console.log", "Users.razor: SearchUser - isLoading set to true, selectedUser and userRoles cleared.");
+
+  // This API call needs to be authenticated by the cookie
+  await JS.InvokeVoidAsync("console.log", $"Users.razor: SearchUser - About to call Http.GetAsync for /api/User/by-email?email={Uri.EscapeDataString(searchEmail)}");
+  var response = await Http.GetAsync($"/api/User/by-email?email={Uri.EscapeDataString(searchEmail)}");
+  await JS.InvokeVoidAsync("console.log", $"Users.razor: SearchUser - Http.GetAsync response status: {response.StatusCode}");
+
+
+  if (response.IsSuccessStatusCode)
+  {
+      try
+      {
+          selectedUser = await response.Content.ReadFromJsonAsync<UserDto>();
+          await JS.InvokeVoidAsync("console.log", $"Users.razor: SearchUser - User deserialized: {JsonSerializer.Serialize(selectedUser)}");
+      }
+      catch (JsonException jsonEx)
+      {
+          var errorContentForLog = await response.Content.ReadAsStringAsync();
+          await JS.InvokeVoidAsync("console.error", $"Users.razor: Error deserializing user data for '{searchEmail}'. Status: {response.StatusCode}. Response body: {errorContentForLog}. Exception: {jsonEx.Message}");
+          await JS.InvokeVoidAsync("alert", $"Received an invalid response format from the server for email '{searchEmail}'. Check console for details.");
+          selectedUser = null; 
+      }
+        
+      if (selectedUser == null) 
+      {
+          await JS.InvokeVoidAsync("console.warn", $"Users.razor: User data for '{searchEmail}' not found or the response was empty, even though the server indicated success (Status: {response.StatusCode}).");
+          await JS.InvokeVoidAsync("alert", $"User data for '{searchEmail}' not found or the response was empty, even though the server indicated success (Status: {response.StatusCode}).");
+      }
+      else
+      {
+          await LoadUserRoles(selectedUser.UserId);
+      }
+  }
+  else 
+  {
+      var errorBody = await response.Content.ReadAsStringAsync();
+      var statusCode = response.StatusCode;
+      string alertMessage;
+      await JS.InvokeVoidAsync("console.warn", $"Users.razor: SearchUser - API call failed. Status: {statusCode}, Body: {errorBody}");
+
+
+      if (statusCode == System.Net.HttpStatusCode.Unauthorized)
+      {
+          alertMessage = $"You are not authorized to search for users (Status: 401 Unauthorized). Your session might have expired. Please try logging out and logging back in.";
+          await JS.InvokeVoidAsync("console.warn", $"Users.razor: Unauthorized (401) when searching for user '{searchEmail}'. Response: {errorBody}");
+      }
+      else if (statusCode == System.Net.HttpStatusCode.Forbidden)
+      {
+          alertMessage = $"You do not have permission to perform this search (Status: 403 Forbidden).";
+          await JS.InvokeVoidAsync("console.warn", $"Users.razor: Forbidden (403) when searching for user '{searchEmail}'. Response: {errorBody}");
+      }
+      else if (string.IsNullOrWhiteSpace(errorBody) && statusCode == System.Net.HttpStatusCode.NotFound)
+      {
+          alertMessage = $"User with email '{searchEmail}' not found by the server (Status: 404 Not Found).";
+      }
+      else
+      {
+          await JS.InvokeVoidAsync("console.warn", $"Users.razor: Server error when searching for user '{searchEmail}'. Status: {statusCode}. Response: {errorBody}");
+          alertMessage = $"Error finding user '{searchEmail}'. Server responded with status {statusCode}. Details: {errorBody}";
+      }
+      await JS.InvokeVoidAsync("alert", alertMessage);
+  }
+}
+catch (HttpRequestException httpEx)
+{
+  await JS.InvokeVoidAsync("console.error", $"Users.razor: HTTP request error searching user '{searchEmail}': {httpEx.Message}");
+  await JS.InvokeVoidAsync("alert", $"A network error occurred while searching for user '{searchEmail}'. Please check your connection and try again. Details: {httpEx.Message}");
+  selectedUser = null;
+  userRoles = new List<string>();
+}
+catch (Exception ex)
+{
+  await JS.InvokeVoidAsync("console.error", $"Users.razor: Unexpected error searching user '{searchEmail}': {ex.ToString()}");
+  await JS.InvokeVoidAsync("alert", $"An unexpected error occurred while searching for user '{searchEmail}'. Check console for details.");
+  selectedUser = null;
+  userRoles = new List<string>();
+}
+finally
+{
+  isLoading = false;
+  StateHasChanged();
+  await JS.InvokeVoidAsync("console.log", "Users.razor: SearchUser method finished.");
+}
+}
+
+private async Task LoadUserRoles(string userId)
+{
+try
+{
+  await JS.InvokeVoidAsync("console.log", $"Users.razor: LoadUserRoles started for userId: {userId}.");
+  var response = await Http.GetAsync($"/api/Role/user/{userId}");
+  await JS.InvokeVoidAsync("console.log", $"Users.razor: LoadUserRoles - Http.GetAsync /api/Role/user/{userId} status: {response.StatusCode}");
+
+
+  if (response.IsSuccessStatusCode)
+  {
+      userRoles = await response.Content.ReadFromJsonAsync<List<string>>();
+  }
+  else
+  {
+      var error = await response.Content.ReadAsStringAsync();
+      await JS.InvokeVoidAsync("alert", $"Error loading user roles: {error}");
+      userRoles = new List<string>();
+  }
+}
+catch (Exception ex)
+{
+  await JS.InvokeVoidAsync("console.error", $"Users.razor: LoadUserRoles exception: {ex.Message}");
+  await JS.InvokeVoidAsync("alert", $"Error loading user roles: {ex.Message}");
+  userRoles = new List<string>();
+}
+finally
+{
+  await JS.InvokeVoidAsync("console.log", "Users.razor: LoadUserRoles finished.");
+}
+}
+
+private async Task SelectUser(UserDto user) // Added async Task for JS interop
+{
+await JS.InvokeVoidAsync("console.log", $"Users.razor: SelectUser called for user: {user.Email}.");
+selectedUser = user;
+searchEmail = user.Email; 
+await LoadUserRoles(user.UserId);
+}
+
+private async Task AddUserToRole()
+{
+await JS.InvokeVoidAsync("console.log", "Users.razor: AddUserToRole started.");
+if (selectedUser == null || string.IsNullOrWhiteSpace(selectedRoleToAdd))
+{
+  await JS.InvokeVoidAsync("console.warn", "Users.razor: AddUserToRole - Select user and role.");
+  await JS.InvokeVoidAsync("alert", "Select user and role");
+  return;
+}
+
+try
+{
+  isLoading = true;
+  StateHasChanged();
+
+    var request = new UserRoleDto
         {
-            this.firstRender = false;
-        }
-    }
+            UserId = selectedUser.UserId,
+            RoleName = selectedRoleToAdd
+        };
+  
+  await JS.InvokeVoidAsync("console.log", $"Users.razor: AddUserToRole - About to call Http.PostAsJsonAsync /api/Role/user with request: {JsonSerializer.Serialize(request)}");
+  var response = await Http.PostAsJsonAsync("/api/Role/user", request);
+  await JS.InvokeVoidAsync("console.log", $"Users.razor: AddUserToRole - Http.PostAsJsonAsync response status: {response.StatusCode}");
 
-    private async Task LoadRolesData()
-    {
-        try
-        {
-            isLoading = true;
+  if (response.IsSuccessStatusCode)
+  {
+      await JS.InvokeVoidAsync("alert", $"User successfully added to role {selectedRoleToAdd}");
+      await LoadUserRoles(selectedUser.UserId); 
+      
+      if (selectedRole == selectedRoleToAdd && !selectedRoleUsers.Any(u => u.Id == selectedUser.Id))
+      {
+          await ShowUsersInRole(selectedRole);
+      }
+      selectedRoleToAdd = ""; 
+  }
+  else
+  {
+      var error = await response.Content.ReadAsStringAsync();
+      await JS.InvokeVoidAsync("console.warn", $"Users.razor: AddUserToRole - API call failed. Status: {response.StatusCode}, Body: {error}");
+      await JS.InvokeVoidAsync("alert", $"Error adding user to role: {error}");
+  }
+}
+catch (Exception ex)
+{
+  await JS.InvokeVoidAsync("console.error", $"Users.razor: AddUserToRole exception: {ex.Message}");
+  await JS.InvokeVoidAsync("alert", $"Error adding user to role: {ex.Message}");
+}
+finally
+{
+  isLoading = false;
+  StateHasChanged();
+  await JS.InvokeVoidAsync("console.log", "Users.razor: AddUserToRole finished.");
+}
+}
 
-            var response = await Http.GetAsync("/api/Role");
+private async Task RemoveUserFromRole(string roleName) 
+{
+await JS.InvokeVoidAsync("console.log", $"Users.razor: RemoveUserFromRole called for role: {roleName}.");
+if (selectedUser == null)
+{
+  await JS.InvokeVoidAsync("console.warn", "Users.razor: RemoveUserFromRole - Select user.");
+  await JS.InvokeVoidAsync("alert", "Select user");
+  return;
+}
+RemoveFromRoleConfirm(selectedUser, roleName);
+}
 
-            if (response.IsSuccessStatusCode)
-            {
-                roles = await response.Content.ReadFromJsonAsync<List<RoleDto>>();
-            }
-        }
-        catch
-        {
-            roles = new List<RoleDto>();
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
+private void RemoveFromRoleConfirm(UserDto user, string role) 
+{
+JS.InvokeVoidAsync("console.log", $"Users.razor: RemoveFromRoleConfirm called for user: {user.Email}, role: {role}.");
+confirmUser = user;
+confirmRole = role;
+showConfirmDialog = true;
+}
 
-    private async Task ShowUsersInRole(string roleName)
-    {
-        try
-        {
-            isLoading = true;
-            selectedRole = roleName;
-            StateHasChanged();
+private async Task ConfirmRemoveFromRole()
+{
+await JS.InvokeVoidAsync("console.log", "Users.razor: ConfirmRemoveFromRole started.");
+if (confirmUser == null || string.IsNullOrWhiteSpace(confirmRole))
+{
+  showConfirmDialog = false;
+  await JS.InvokeVoidAsync("console.warn", "Users.razor: ConfirmRemoveFromRole - confirmUser or confirmRole is null/empty.");
+  return;
+}
 
-            var response = await Http.GetAsync($"/api/Role/users/{roleName}");
+try
+{
+  isRemoving = true;
+  StateHasChanged();
+  
+  await JS.InvokeVoidAsync("console.log", $"Users.razor: ConfirmRemoveFromRole - About to call Http.DeleteAsync /api/Role/user?userId={Uri.EscapeDataString(confirmUser.UserId)}&roleName={Uri.EscapeDataString(confirmRole)}");
+  var response = await Http.DeleteAsync($"/api/Role/user?userId={Uri.EscapeDataString(confirmUser.UserId)}&roleName={Uri.EscapeDataString(confirmRole)}");
+  await JS.InvokeVoidAsync("console.log", $"Users.razor: ConfirmRemoveFromRole - Http.DeleteAsync response status: {response.StatusCode}");
 
-            if (response.IsSuccessStatusCode)
-            {
-                selectedRoleUsers = await response.Content.ReadFromJsonAsync<List<UserDto>>();
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                await JS.InvokeVoidAsync("alert", $"Error loading users: {error}");
-                selectedRoleUsers = new List<UserDto>();
-            }
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("console.error", $"Error loading users in role: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", $"Error loading users: {ex.Message}");
-            selectedRoleUsers = new List<UserDto>();
-        }
-        finally
-        {
-            isLoading = false;
-            StateHasChanged();
-        }
-    }
 
-    private async Task SearchUser()
-    {
-        if (string.IsNullOrWhiteSpace(searchEmail))
-        {
-            await JS.InvokeVoidAsync("alert", "Enter user email");
-            return;
-        }
+  if (response.IsSuccessStatusCode)
+  {
+      await JS.InvokeVoidAsync("alert", $"User successfully removed from role {confirmRole}");
 
-        try
-        {
-            isLoading = true;
-            StateHasChanged();
-
-            var response = await Http.GetAsync($"/api/User/by-email?email={Uri.EscapeDataString(searchEmail)}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                selectedUser = await response.Content.ReadFromJsonAsync<UserDto>();
-                await LoadUserRoles(selectedUser.Id.ToString());
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                await JS.InvokeVoidAsync("alert", $"User not found: {error}");
-                selectedUser = null;
-                userRoles = new List<string>();
-            }
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("console.error", $"Error searching user: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", $"Error searching user: {ex.Message}");
-            selectedUser = null;
-            userRoles = new List<string>();
-        }
-        finally
-        {
-            isLoading = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task LoadUserRoles(string userId)
-    {
-        try
-        {
-            var response = await Http.GetAsync($"/api/Role/user/{userId}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                userRoles = await response.Content.ReadFromJsonAsync<List<string>>();
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                await JS.InvokeVoidAsync("alert", $"Error loading user roles: {error}");
-                userRoles = new List<string>();
-            }
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("console.error", $"Error loading user roles: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", $"Error loading user roles: {ex.Message}");
-            userRoles = new List<string>();
-        }
-    }
-
-    private void SelectUser(UserDto user)
-    {
-        selectedUser = user;
-        LoadUserRoles(user.Id.ToString());
-    }
-
-    private async Task AddUserToRole()
-    {
-        if (selectedUser == null || string.IsNullOrWhiteSpace(selectedRoleToAdd))
-        {
-            await JS.InvokeVoidAsync("alert", "Select user and role");
-            return;
-        }
-
-        try
-        {
-            isLoading = true;
-            StateHasChanged();
-
-            var request = new UserRoleDto
-                {
-                    UserId = selectedUser.Id.ToString(),
-                    RoleName = selectedRoleToAdd
-                };
-
-            var response = await Http.PostAsJsonAsync("/api/Role/user", request);
-
-            if (response.IsSuccessStatusCode)
-            {
-                await JS.InvokeVoidAsync("alert", $"User successfully added to role {selectedRoleToAdd}");
-                await LoadUserRoles(selectedUser.Id.ToString());
-                selectedRoleToAdd = "";
-
-                if (selectedRole == selectedRoleToAdd)
-                {
-                    await ShowUsersInRole(selectedRole);
-                }
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                await JS.InvokeVoidAsync("alert", $"Error adding user to role: {error}");
-            }
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("console.error", $"Error adding user to role: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", $"Error adding user to role: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task RemoveUserFromRole(string roleName)
-    {
-        if (selectedUser == null)
-        {
-            await JS.InvokeVoidAsync("alert", "Select user");
-            return;
-        }
-
-        try
-        {
-            isLoading = true;
-            StateHasChanged();
-
-            var request = new UserRoleDto
-                {
-                    UserId = selectedUser.Id.ToString(),
-                    RoleName = roleName
-                };
-
-            var response = await Http.DeleteAsync($"/api/Role/user?userId={Uri.EscapeDataString(selectedUser.Id.ToString())}&roleName={Uri.EscapeDataString(roleName)}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                await JS.InvokeVoidAsync("alert", $"User successfully removed from role {roleName}");
-                await LoadUserRoles(selectedUser.Id.ToString());
-
-                if (selectedRole == roleName)
-                {
-                    await ShowUsersInRole(selectedRole);
-                }
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                await JS.InvokeVoidAsync("alert", $"Error removing user from role: {error}");
-            }
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("console.error", $"Error removing user from role: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", $"Error removing user from role: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-            StateHasChanged();
-        }
-    }
-
-    private void RemoveFromRoleConfirm(UserDto user, string role)
-    {
-        confirmUser = user;
-        confirmRole = role;
-        showConfirmDialog = true;
-    }
-
-    private async Task ConfirmRemoveFromRole()
-    {
-        if (confirmUser == null || string.IsNullOrWhiteSpace(confirmRole))
-        {
-            showConfirmDialog = false;
-            return;
-        }
-
-        try
-        {
-            isRemoving = true;
-            StateHasChanged();
-
-            var request = new UserRoleDto
-                {
-                    UserId = confirmUser.Id.ToString(),
-                    RoleName = confirmRole
-                };
-
-            var response = await Http.DeleteAsync($"/api/Role/user?userId={Uri.EscapeDataString(confirmUser.Id.ToString())}&roleName={Uri.EscapeDataString(confirmRole)}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                await JS.InvokeVoidAsync("alert", $"User successfully removed from role {confirmRole}");
-
-                if (selectedUser != null && selectedUser.Id == confirmUser.Id)
-                {
-                    await LoadUserRoles(selectedUser.Id.ToString());
-                }
-
-                await ShowUsersInRole(selectedRole);
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                await JS.InvokeVoidAsync("alert", $"Error removing user from role: {error}");
-            }
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("console.error", $"Error removing user from role: {ex.Message}");
-            await JS.InvokeVoidAsync("alert", $"Error removing user from role: {ex.Message}");
-        }
-        finally
-        {
-            isRemoving = false;
-            showConfirmDialog = false;
-            StateHasChanged();
-        }
-    }
+      if (selectedUser != null && selectedUser.Id == confirmUser.Id)
+      {
+          await LoadUserRoles(selectedUser.UserId);
+      }
+      
+      if (selectedRole == confirmRole)
+      {
+          await ShowUsersInRole(selectedRole);
+      }
+  }
+  else
+  {
+      var error = await response.Content.ReadAsStringAsync();
+      await JS.InvokeVoidAsync("console.warn", $"Users.razor: ConfirmRemoveFromRole - API call failed. Status: {response.StatusCode}, Body: {error}");
+      await JS.InvokeVoidAsync("alert", $"Error removing user from role: {error}");
+  }
+}
+catch (Exception ex)
+{
+  await JS.InvokeVoidAsync("console.error", $"Users.razor: ConfirmRemoveFromRole exception: {ex.Message}");
+  await JS.InvokeVoidAsync("alert", $"Error removing user from role: {ex.Message}");
+}
+finally
+{
+  isRemoving = false;
+  showConfirmDialog = false;
+  confirmUser = null; 
+  confirmRole = null;
+  StateHasChanged();
+  await JS.InvokeVoidAsync("console.log", "Users.razor: ConfirmRemoveFromRole finished.");
+}
+}
 }

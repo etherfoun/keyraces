@@ -2,7 +2,7 @@
 @using keyraces.Core.Interfaces
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Admin")] // Эта директива уже защищает страницу /admin
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
 @inject NavigationManager Nav
@@ -124,6 +124,26 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        Console.WriteLine($"--- AdminPanel Access Attempt ---");
+        if (user?.Identity?.IsAuthenticated ?? false)
+        {
+            Console.WriteLine($"User: {user.Identity.Name}");
+            Console.WriteLine($"Is Authenticated: {user.Identity.IsAuthenticated}");
+            Console.WriteLine($"Is In Role 'Admin': {user.IsInRole("Admin")}");
+            Console.WriteLine("Claims:");
+            foreach (var claim in user.Claims)
+            {
+                Console.WriteLine($"  Type: {claim.Type}, Value: {claim.Value}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("User is NOT authenticated or user/identity is null.");
+        }
+        Console.WriteLine($"--- End of AdminPanel Access Attempt Log ---");
         await LoadStatisticsData();
     }
 

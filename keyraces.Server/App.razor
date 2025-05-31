@@ -1,12 +1,37 @@
-﻿<Router AppAssembly="@typeof(App).Assembly">
+﻿@using keyraces.Server.Shared
+@using Microsoft.AspNetCore.Components.Authorization
+
+<Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+            <Authorizing>
+                <p>Проверка авторизации...</p>
+            </Authorizing>
+            <NotAuthorized>
+                @if (context.User.Identity?.IsAuthenticated ?? false)
+                {
+                    <p role="alert" class="text-danger">
+                        У вас нет прав для доступа к этому ресурсу.
+                    </p>
+                    <p>
+                        Если вы считаете, что это ошибка, обратитесь к администратору.
+                    </p>
+                }
+                else
+                {
+                    <p role="alert" class="text-warning">
+                        Для доступа к этой странице необходимо войти в систему.
+                    </p>
+                    <RedirectToLogin />
+                }
+            </NotAuthorized>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
     <NotFound>
-        <PageTitle>Not found</PageTitle>
+        <PageTitle>Не найдено</PageTitle>
         <LayoutView Layout="@typeof(MainLayout)">
-            <p role="alert">Sorry, there's nothing at this address.</p>
+            <p role="alert">Извините, по этому адресу ничего нет.</p>
         </LayoutView>
     </NotFound>
 </Router>

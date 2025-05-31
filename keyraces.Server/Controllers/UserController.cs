@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace keyraces.Server.Controllers
 {
@@ -37,8 +38,8 @@ namespace keyraces.Server.Controllers
                 var users = await _userManager.Users.ToListAsync();
                 var userDtos = users.Select(u => new UserDto
                 {
-                    Id = int.TryParse(u.Id, out var idValue) ? idValue : 0,
-                    UserId = int.TryParse(u.Id, out var userIdValue) ? userIdValue : 0,
+                    Id = int.TryParse(u.Id, out var idValue) ? idValue : 0, // Populates int Id
+                    UserId = u.Id, // Populates string UserId
                     Name = u.UserName ?? string.Empty,
                     Email = u.Email ?? string.Empty
                 });
@@ -52,7 +53,7 @@ namespace keyraces.Server.Controllers
             }
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id}")] // This 'id' parameter is string, referring to IdentityUser.Id
         public async Task<ActionResult> GetUserById(string id)
         {
             try
@@ -65,8 +66,8 @@ namespace keyraces.Server.Controllers
 
                 return Ok(new UserDto
                 {
-                    Id = int.TryParse(user.Id, out var idValue) ? idValue : 0,
-                    UserId = int.TryParse(user.Id, out var userIdValue) ? userIdValue : 0,
+                    Id = int.TryParse(user.Id, out var idValue) ? idValue : 0, // Populates int Id
+                    UserId = user.Id, // Populates string UserId
                     Name = user.UserName ?? string.Empty,
                     Email = user.Email ?? string.Empty
                 });
@@ -91,8 +92,8 @@ namespace keyraces.Server.Controllers
 
                 return Ok(new UserDto
                 {
-                    Id = int.TryParse(user.Id, out var idValue) ? idValue : 0,
-                    UserId = int.TryParse(user.Id, out var userIdValue) ? userIdValue : 0,
+                    Id = int.TryParse(user.Id, out var idValue) ? idValue : 0, // Populates int Id
+                    UserId = user.Id, // Populates string UserId
                     Name = user.UserName ?? string.Empty,
                     Email = user.Email ?? string.Empty
                 });
@@ -104,6 +105,9 @@ namespace keyraces.Server.Controllers
             }
         }
 
+        // This method still expects an int userId. If this refers to your DTO's int Id,
+        // be aware it will likely be 0 if the user was identified by a GUID.
+        // If it should use the string UserId, this signature and the service need to change.
         [HttpGet("{userId}/statistics")]
         [AllowAnonymous]
         public async Task<ActionResult> GetUserStatistics(int userId)
@@ -114,7 +118,8 @@ namespace keyraces.Server.Controllers
                 {
                     return StatusCode(500, new { message = "Statistics services are not configured" });
                 }
-
+                // If this 'userId' is meant to be the IdentityUser.Id, it should be string.
+                // And _typingSessionService.GetByUserAsync should expect a string.
                 var sessions = await _typingSessionService.GetByUserAsync(userId);
 
                 var statistics = new List<TypingStatistic>();
@@ -134,12 +139,11 @@ namespace keyraces.Server.Controllers
                         continue;
                     }
                 }
-
                 return Ok(statistics);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting user statistics {userId}");
+                _logger.LogError(ex, $"Error getting user statistics for int ID {userId}");
                 return StatusCode(500, new { message = "Error getting user statistics" });
             }
         }

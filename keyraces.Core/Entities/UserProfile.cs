@@ -21,9 +21,12 @@
         {
             IdentityUserId = identityUserId;
             Name = name;
-            CreatedAt = DateTime.UtcNow;
-            UpdatedAt = DateTime.UtcNow;
-            JoinedDate = DateTime.UtcNow;
+
+            var now = DateTime.UtcNow;
+            CreatedAt = now;
+            UpdatedAt = now;
+            JoinedDate = now;
+
             AverageWPM = 0;
             AverageAccuracy = 0;
             TotalRaces = 0;

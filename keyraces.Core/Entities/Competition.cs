@@ -1,6 +1,6 @@
 ﻿namespace keyraces.Core.Entities
 {
-    public enum CompetitionStatus { Scheduled, InProgress, Finished}
+    public enum CompetitionStatus { Scheduled, InProgress, Finished }
 
     public class Competition
     {
@@ -25,13 +25,19 @@
 
         public void Start()
         {
-            Status = CompetitionStatus.InProgress;
+            if (Status == CompetitionStatus.Scheduled)
+            {
+                Status = CompetitionStatus.InProgress;
+            }
         }
 
         public void Finish()
         {
-            Status = CompetitionStatus.Finished;
-            EndTime = DateTime.UtcNow;
+            if (Status == CompetitionStatus.InProgress)
+            {
+                Status = CompetitionStatus.Finished;
+                EndTime = DateTime.UtcNow;
+            }
         }
     }
 }

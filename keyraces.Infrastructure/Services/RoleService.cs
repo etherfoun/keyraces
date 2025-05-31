@@ -55,10 +55,11 @@ namespace keyraces.Infrastructure.Services
         {
             try
             {
+                _logger.LogInformation($"RoleService: IsUserInRoleAsync - Checking role '{roleName}' for user ID '{userId}'");
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    _logger.LogWarning($"User with ID {userId} not found");
+                    _logger.LogWarning($"RoleService: IsUserInRoleAsync - User with ID '{userId}' not found");
                     return false;
                 }
 
@@ -75,21 +76,24 @@ namespace keyraces.Infrastructure.Services
         {
             try
             {
+                _logger.LogInformation($"RoleService: AddUserToRoleAsync - Attempting to add user ID '{userId}' to role '{roleName}'");
+
                 if (!await EnsureRoleExistsAsync(roleName))
                 {
+                    _logger.LogWarning($"RoleService: AddUserToRoleAsync - Role '{roleName}' does not exist or could not be created for user ID '{userId}'.");
                     return false;
                 }
 
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    _logger.LogWarning($"User with ID {userId} not found");
+                    _logger.LogWarning($"RoleService: AddUserToRoleAsync - User with ID '{userId}' not found.");
                     return false;
                 }
 
                 if (await _userManager.IsInRoleAsync(user, roleName))
                 {
-                    _logger.LogInformation($"Пользователь {user.UserName} уже имеет роль {roleName}");
+                    _logger.LogInformation($"RoleService: AddUserToRoleAsync - User {user.UserName} already has role {roleName}");
                     return true;
                 }
 
@@ -97,16 +101,16 @@ namespace keyraces.Infrastructure.Services
                 if (!result.Succeeded)
                 {
                     var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                    _logger.LogError($"Error while adding a user {user.UserName} to role {roleName}: {errors}");
+                    _logger.LogError($"RoleService: AddUserToRoleAsync - Error while adding user {user.UserName} to role {roleName}: {errors}");
                     return false;
                 }
 
-                _logger.LogInformation($"User {user.UserName} are added to role {roleName}");
+                _logger.LogInformation($"RoleService: AddUserToRoleAsync - User {user.UserName} added to role {roleName}");
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error while addign a user {userId} to role {roleName}");
+                _logger.LogError(ex, $"RoleService: AddUserToRoleAsync - Error while adding user ID '{userId}' to role '{roleName}'");
                 return false;
             }
         }
@@ -115,33 +119,34 @@ namespace keyraces.Infrastructure.Services
         {
             try
             {
+                _logger.LogInformation($"RoleService: RemoveUserFromRoleAsync - Attempting to remove user ID '{userId}' from role '{roleName}'");
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    _logger.LogWarning($"User with ID {userId} not found");
+                    _logger.LogWarning($"RoleService: RemoveUserFromRoleAsync - User with ID '{userId}' not found");
                     return false;
                 }
 
                 if (!await _userManager.IsInRoleAsync(user, roleName))
                 {
-                    _logger.LogInformation($"User {user.UserName} doesnt have a role {roleName}");
-                    return true;
+                    _logger.LogInformation($"RoleService: RemoveUserFromRoleAsync - User {user.UserName} doesnt have a role {roleName}");
+                    return true; // Or false, depending on desired behavior if user is not in role
                 }
 
                 var result = await _userManager.RemoveFromRoleAsync(user, roleName);
                 if (!result.Succeeded)
                 {
                     var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                    _logger.LogError($"Error while deleting user {user.UserName} from role {roleName}: {errors}");
+                    _logger.LogError($"RoleService: RemoveUserFromRoleAsync - Error while deleting user {user.UserName} from role {roleName}: {errors}");
                     return false;
                 }
 
-                _logger.LogInformation($"User {user.UserName} successfully deleted from role {roleName}");
+                _logger.LogInformation($"RoleService: RemoveUserFromRoleAsync - User {user.UserName} successfully deleted from role {roleName}");
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error while deleting a user {userId} from role {roleName}");
+                _logger.LogError(ex, $"RoleService: RemoveUserFromRoleAsync - Error while deleting a user {userId} from role {roleName}");
                 return false;
             }
         }
@@ -150,10 +155,11 @@ namespace keyraces.Infrastructure.Services
         {
             try
             {
+                _logger.LogInformation($"RoleService: GetUserRolesAsync - Getting roles for user ID '{userId}'");
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    _logger.LogWarning($"User with ID {userId} not found");
+                    _logger.LogWarning($"RoleService: GetUserRolesAsync - User with ID '{userId}' not found");
                     return Enumerable.Empty<string>();
                 }
 

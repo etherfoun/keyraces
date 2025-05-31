@@ -31,6 +31,14 @@ h6 {
     margin: 0;
 }
 
+/* Ensure all text within card uses primary text color */
+.card p,
+.card label,
+.card span {
+    /* Add other common text elements if needed */
+    color: var(--text-primary);
+}
+
 .table {
     color: var(--text-primary);
     border-color: var(--border-color);
@@ -43,6 +51,7 @@ h6 {
 .table th,
 .table td {
     border-color: var(--border-color);
+    color: var(--text-primary); /* Ensure table cell text is primary */
 }
 
 .form-control {
@@ -56,6 +65,21 @@ h6 {
         border-color: var(--accent-color);
         color: var(--text-primary);
         box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), 0.25);
+    }
+
+    .form-control::placeholder {
+        color: var(--text-primary) !important; /* Changed to --text-primary and added !important */
+        opacity: 1; /* Firefox */
+    }
+
+    .form-control:-ms-input-placeholder {
+        /* Internet Explorer 10-11 */
+        color: var(--text-primary) !important; /* Changed to --text-primary and added !important */
+    }
+
+    .form-control::-ms-input-placeholder {
+        /* Microsoft Edge */
+        color: var(--text-primary) !important; /* Changed to --text-primary and added !important */
     }
 
 .form-select {
@@ -89,8 +113,8 @@ h6 {
 }
 
     .btn-info:hover {
-        background-color: var(--info-color);
-        border-color: var(--info-color);
+        background-color: var(--info-color); /* Or a darker shade like var(--info-dark) */
+        border-color: var(--info-color); /* Or a darker shade like var(--info-dark) */
         opacity: 0.9;
     }
 
@@ -107,6 +131,7 @@ h6 {
 .btn-secondary {
     background-color: var(--secondary-color);
     border-color: var(--secondary-color);
+    color: var(--text-primary); /* Ensure text is visible on secondary button */
 }
 
     .btn-secondary:hover {
@@ -121,8 +146,8 @@ h6 {
 
     .btn-outline-secondary:hover {
         background-color: var(--hover-color);
-        color: var(--text-primary);
-        border-color: var(--border-color);
+        color: var(--text-primary); /* Ensure text color remains consistent on hover */
+        border-color: var(--border-color); /* Or var(--accent-color) for highlight */
     }
 
 .spinner-border {
@@ -130,6 +155,12 @@ h6 {
     border-right-color: transparent;
 }
 
+/* Ensure .text-primary uses the theme's primary text color if not accent */
+/* .text-primary {
+color: var(--text-primary) !important; 
+} */
+
+/* If .text-primary is meant to be the accent color, this is fine: */
 .text-primary {
     color: var(--accent-color) !important;
 }
@@ -137,7 +168,7 @@ h6 {
 .list-group-item {
     background-color: var(--background-secondary);
     border-color: var(--border-color);
-    color: var(--text-primary);
+    color: var(--text-primary) !important; /* Ensure list item text is clearly visible */
 }
 
 .confirmation-dialog {
@@ -146,7 +177,7 @@ h6 {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.7); /* Darker overlay */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -154,13 +185,14 @@ h6 {
 }
 
 .confirmation-dialog-content {
-    background-color: var(--background-secondary);
+    background-color: var(--background-secondary); /* Use secondary for dialog */
     border-radius: 5px;
     padding: 20px;
     width: 100%;
     max-width: 500px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     color: var(--text-primary);
+    border: 1px solid var(--border-color); /* Add border to dialog */
 }
 
 @media (max-width: 768px) {

@@ -5,7 +5,7 @@ using keyraces.Infrastructure.Data;
 using keyraces.Infrastructure.Repositories;
 using keyraces.Infrastructure.Security;
 using keyraces.Infrastructure.Services;
-using keyraces.Server;
+using keyraces.Server; // Для LoggingDelegatingHandler и BlazorCookieHandler
 using keyraces.Server.Hubs;
 using keyraces.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -33,17 +33,45 @@ builder.WebHost.ConfigureKestrel(options =>
     });
 });
 
-builder.Services.AddScoped<HttpClient>(sp =>
+// Регистрация DelegatingHandlers
+builder.Services.AddTransient<LoggingDelegatingHandler>();
+builder.Services.AddTransient<BlazorCookieHandler>();
+
+// Удаляем старую регистрацию HttpClient
+// builder.Services.AddScoped<HttpClient>(sp =>
+// {
+//     var nav = sp.GetRequiredService<NavigationManager>();
+//     return new HttpClient { BaseAddress = new Uri(nav.BaseUri) };
+// });
+// builder.Services.AddHttpClient(); // Эта общая регистрация также заменяется подходом с фабрикой
+
+// Конфигурируем именованный HttpClient с логирующим и cookie обработчиками
+// BlazorCookieHandler должен идти ПЕРЕД LoggingDelegatingHandler, чтобы логирующий увидел добавленный cookie
+builder.Services.AddHttpClient("BlazorAppClient", client =>
 {
-    var nav = sp.GetRequiredService<NavigationManager>();
-    return new HttpClient { BaseAddress = new Uri(nav.BaseUri) };
+    // BaseAddress будет установлен при создании клиента в регистрации AddScoped ниже
+})
+.AddHttpMessageHandler<BlazorCookieHandler>()      // Этот обработчик пытается добавить cookie
+.AddHttpMessageHandler<LoggingDelegatingHandler>(); // Этот обработчик логирует запрос (теперь, надеюсь, включая cookie)
+
+// Регистрируем HttpClient для DI, чтобы он использовал фабрику и устанавливал BaseAddress
+// Это гарантирует, что @inject HttpClient в Blazor компонентах получит сконфигурированный клиент.
+builder.Services.AddScoped(sp =>
+{
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = httpClientFactory.CreateClient("BlazorAppClient"); // Используем именованный клиент
+
+    var navigationManager = sp.GetRequiredService<NavigationManager>();
+    client.BaseAddress = new Uri(navigationManager.BaseUri);
+
+    return client;
 });
 
-builder.Services.AddHttpClient();
 
-// Add services to the container.
+// Добавляем сервисы в контейнер.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddHttpContextAccessor(); // Крайне важен для BlazorCookieHandler
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -58,13 +86,14 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
-builder.Services.AddHttpContextAccessor();
+
 
 builder.Services.AddScoped<ThemeService>();
 
 builder.Services.AddDbContextFactory<AppDbContext>(opts =>
   opts.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
+// Настройка ASP.NET Core Identity
 builder.Services
     .AddIdentity<IdentityUser, IdentityRole>(options => {
         options.Password.RequireNonAlphanumeric = false;
@@ -77,68 +106,69 @@ builder.Services
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+// Конфигурация аутентификации
+builder.Services.AddAuthentication(options => {
+    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
 })
-.AddJwtBearer(options =>
-{
-    options.SaveToken = true;
-    options.RequireHttpsMetadata = false;
-    options.TokenValidationParameters = new TokenValidationParameters
+    .AddJwtBearer(options => // JWT для SignalR или других специфичных API
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["JWT:Issuer"],
-        ValidAudience = builder.Configuration["JWT:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"])),
-        ClockSkew = TimeSpan.Zero
-    };
-
-    options.Events = new JwtBearerEvents
-    {
-        OnMessageReceived = context =>
+        options.SaveToken = true;
+        options.RequireHttpsMetadata = false;
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            var accessToken = context.Request.Query["access_token"];
-
-            if (string.IsNullOrEmpty(accessToken))
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["JWT:Issuer"],
+            ValidAudience = builder.Configuration["JWT:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"] ?? throw new InvalidOperationException("JWT:Secret not configured"))),
+            ClockSkew = TimeSpan.Zero
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
             {
-                accessToken = context.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                var accessToken = context.Request.Query["access_token"];
+                if (string.IsNullOrEmpty(accessToken))
+                {
+                    accessToken = context.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                }
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    (path.StartsWithSegments("/hub/typing") || path.StartsWithSegments("/typingHub")))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
             }
+        };
+    });
 
-            var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) &&
-                (path.StartsWithSegments("/hub/typing") || path.StartsWithSegments("/typingHub")))
-            {
-                context.Token = accessToken;
-            }
-            return Task.CompletedTask;
-        }
-    };
-});
-
+// Настройка cookie приложения (используется Identity)
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.Cookie.Name = "KeyRaces";
+    options.Cookie.Name = "KeyRaces"; // Это имя cookie, которое будет искать BlazorCookieHandler
     options.Cookie.HttpOnly = true;
     options.ExpireTimeSpan = TimeSpan.FromDays(30);
     options.SlidingExpiration = true;
     options.AccessDeniedPath = "/access-denied";
     options.LoginPath = "/login";
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.HttpOnly = true;
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options => {
+    // Здесь можно определить политики, если необходимо
+});
+
 
 builder.Services.AddScoped<IPasswordHasher, AspNetPasswordHasher>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 
-// Repositories
+// Репозитории
 builder.Services.AddScoped<ICompetitionRepository, CompetitionRepository>();
 builder.Services.AddScoped<ICompetitionParticipantRepository, CompetitionParticipantRepository>();
 builder.Services.AddScoped<ILeaderboardRepository, LeaderboardRepository>();
@@ -151,7 +181,7 @@ builder.Services.AddScoped<ITypingStatisticRepository, TypingStatisticRepository
 builder.Services.AddScoped<ITypingSessionRepository, TypingSessionRepository>();
 
 
-// Services
+// Сервисы
 builder.Services.AddScoped<ICompetitionService, CompetitionService>();
 builder.Services.AddScoped<ICompetitionParticipantService, CompetitionParticipantService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
@@ -171,32 +201,20 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
     var redisConfig = builder.Configuration.GetSection("Redis");
     var connectionString = redisConfig["Connection"] ?? "redis:6379";
-
-    Console.WriteLine($"Connecting to Redis at: {connectionString}");
-
     var configuration = ConfigurationOptions.Parse(connectionString);
     configuration.AbortOnConnectFail = false;
-
-    var connection = ConnectionMultiplexer.Connect(configuration);
-    Console.WriteLine($"Redis connection status: {connection.IsConnected}");
-
-    return connection;
+    return ConnectionMultiplexer.Connect(configuration);
 });
 
-// Text Generation Service
+// Сервис генерации текста (OllamaClient)
 builder.Services.AddHttpClient("OllamaClient", (serviceProvider, client) =>
 {
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
     var apiUrl = configuration["Ollama:ApiUrl"] ?? "http://localhost:11434/api/generate";
     var timeoutSeconds = configuration.GetValue<int>("Ollama:TimeoutSeconds", 120);
-
     client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-
-    // Устанавливаем базовый адрес для клиента
     var baseUrl = apiUrl.Replace("/api/generate", "");
     client.BaseAddress = new Uri(baseUrl);
-
-    Console.WriteLine($"Configured OllamaClient with base URL: {baseUrl}");
 });
 
 builder.Services.AddScoped<ITextGenerationService>(serviceProvider =>
@@ -204,47 +222,10 @@ builder.Services.AddScoped<ITextGenerationService>(serviceProvider =>
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
     var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
     var logger = serviceProvider.GetRequiredService<ILogger<LocalLLMTextGenerationService>>();
-
-    // Получаем URL из конфигурации или используем localhost по умолчанию
     var apiUrl = configuration["Ollama:ApiUrl"] ?? "http://localhost:11434/api/generate";
-
-    logger.LogInformation($"Initializing Ollama text generation service with URL: {apiUrl}");
-
-    // Проверяем доступность URL
-    try
-    {
-        using var testClient = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
-        var healthUrl = apiUrl.Replace("/api/generate", "/");
-        logger.LogInformation($"Testing Ollama connection at: {healthUrl}");
-
-        var response = testClient.GetAsync(healthUrl).GetAwaiter().GetResult();
-
-        if (response.IsSuccessStatusCode)
-        {
-            logger.LogInformation($"✓ Successfully connected to Ollama at: {apiUrl}");
-        }
-        else
-        {
-            logger.LogWarning($"✗ Ollama returned status {response.StatusCode} at: {apiUrl}. Will still try to use it.");
-        }
-    }
-    catch (Exception ex)
-    {
-        logger.LogWarning($"✗ Failed to connect to Ollama at {apiUrl}: {ex.Message}. Will still try to use it.");
-    }
-
     var modelName = configuration["Ollama:ModelName"] ?? "llama2";
-
-    // Создаем HTTP клиент для Ollama
-    var httpClient = httpClientFactory.CreateClient("OllamaClient");
-
-    // Создаем и возвращаем сервис генерации текста
-    return new LocalLLMTextGenerationService(
-        logger,
-        httpClient,
-        serviceProvider,
-        apiUrl,
-        modelName);
+    var ollamaHttpClient = httpClientFactory.CreateClient("OllamaClient"); // Используем именованный клиент для Ollama
+    return new LocalLLMTextGenerationService(logger, ollamaHttpClient, serviceProvider, apiUrl, modelName);
 });
 
 builder.Services.AddControllers();
@@ -254,15 +235,9 @@ builder.Services.AddSignalR(options =>
     options.EnableDetailedErrors = true;
     options.MaximumReceiveMessageSize = 102400;
 });
-
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "KeyRaces API",
-        Version = "v1"
-    });
-
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "KeyRaces API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
@@ -271,40 +246,25 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement {
+        { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }}, Array.Empty<string>() }
     });
 });
-
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "KeyRaces API v1");
-    });
-
+    app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "KeyRaces API v1"); });
     app.UseDeveloperExceptionPage();
 }
 
 app.UseStaticFiles();
 app.UseRouting();
-app.UseSession();
+
+app.UseSession(); // Убедитесь, что UseSession вызывается перед UseAuthentication и UseAuthorization, если сессии используются для чего-то еще
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -314,66 +274,47 @@ app.MapHub<TypingHub>("/hub/typing");
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
+// Инициализация и сидинг базы данных
 using (var scope = app.Services.CreateScope())
 {
-    var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-
+    var services = scope.ServiceProvider;
+    var ctx = services.GetRequiredService<AppDbContext>();
+    var logger = services.GetRequiredService<ILogger<Program>>();
     try
     {
         logger.LogInformation("Checking database connection...");
-        if (await ctx.Database.CanConnectAsync())
-        {
-            logger.LogInformation("Database connection successful.");
-        }
-        else
-        {
-            logger.LogError("Cannot connect to database!");
-            throw new Exception("Database connection failed");
-        }
+        if (!await ctx.Database.CanConnectAsync()) { logger.LogError("Cannot connect to database!"); throw new Exception("Database connection failed"); }
 
         logger.LogInformation("Applying database migrations...");
         await ctx.Database.MigrateAsync();
         logger.LogInformation("Database migrations applied successfully.");
 
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
-        if (!await roleManager.RoleExistsAsync("Admin"))
+        string[] roleNames = { "Admin", "User" };
+        foreach (var roleName in roleNames)
         {
-            await roleManager.CreateAsync(new IdentityRole("Admin"));
-            logger.LogInformation("Admin role created.");
+            if (!await roleManager.RoleExistsAsync(roleName))
+            {
+                await roleManager.CreateAsync(new IdentityRole(roleName));
+                logger.LogInformation("{RoleName} role created.", roleName);
+            }
         }
 
-        if (!await roleManager.RoleExistsAsync("User"))
-        {
-            await roleManager.CreateAsync(new IdentityRole("User"));
-            logger.LogInformation("User role created.");
-        }
-
-        var adminEmail = "admin@keyraces.com";
+        var adminEmail = builder.Configuration["AdminUser:Email"] ?? "admin@keyraces.com";
+        var adminPassword = builder.Configuration["AdminUser:Password"] ?? "Admin123!";
         var adminUser = await userManager.FindByEmailAsync(adminEmail);
-
         if (adminUser == null)
         {
-            adminUser = new IdentityUser
-            {
-                UserName = adminEmail,
-                Email = adminEmail,
-                EmailConfirmed = true
-            };
-
-            var result = await userManager.CreateAsync(adminUser, "Admin123!");
-
+            adminUser = new IdentityUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
+            var result = await userManager.CreateAsync(adminUser, adminPassword);
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(adminUser, "Admin");
-                logger.LogInformation($"Default admin user created: {adminEmail} / Admin123!");
+                logger.LogInformation("Default admin user created: {AdminEmail}", adminEmail);
             }
-            else
-            {
-                logger.LogError($"Failed to create admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
-            }
+            else { logger.LogError("Failed to create admin user: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description))); }
         }
 
         if (app.Environment.IsDevelopment())
@@ -384,27 +325,18 @@ using (var scope = app.Services.CreateScope())
                 new { Email = "user2@test.com", Name = "TestUser2", Password = "Test123!" },
                 new { Email = "user3@test.com", Name = "TestUser3", Password = "Test123!" }
             };
-
             foreach (var testUserData in testUsers)
             {
                 var existingUser = await userManager.FindByEmailAsync(testUserData.Email);
                 if (existingUser == null)
                 {
-                    var testUser = new IdentityUser
-                    {
-                        UserName = testUserData.Email,
-                        Email = testUserData.Email,
-                        EmailConfirmed = true
-                    };
-
-                    var result = await userManager.CreateAsync(testUser, testUserData.Password);
+                    var testUserIdentity = new IdentityUser { UserName = testUserData.Email, Email = testUserData.Email, EmailConfirmed = true };
+                    var result = await userManager.CreateAsync(testUserIdentity, testUserData.Password);
                     if (result.Succeeded)
                     {
-                        await userManager.AddToRoleAsync(testUser, "User");
-
-                        var profileService = scope.ServiceProvider.GetRequiredService<IUserProfileService>();
-                        await profileService.CreateProfileAsync(testUser.Id, testUserData.Name);
-
+                        await userManager.AddToRoleAsync(testUserIdentity, "User");
+                        var profileService = services.GetRequiredService<IUserProfileService>();
+                        await profileService.CreateProfileAsync(testUserIdentity.Id, testUserData.Name);
                         logger.LogInformation($"Test user created: {testUserData.Email} / {testUserData.Password}");
                     }
                 }
@@ -414,17 +346,7 @@ using (var scope = app.Services.CreateScope())
         if (!ctx.TextSnippets.Any())
         {
             logger.LogInformation("Adding default text snippets...");
-
-            ctx.TextSnippets.Add(new TextSnippet
-            {
-                Title = "Easy Text",
-                Content = "The quick brown fox jumps over the lazy dog. This pangram contains all the letters of the English alphabet.",
-                Difficulty = "easy",
-                Language = "en",
-                IsGenerated = false,
-                CreatedAt = DateTime.UtcNow
-            });
-
+            ctx.TextSnippets.Add(new TextSnippet { Title = "Easy Text", Content = "The quick brown fox jumps over the lazy dog. This pangram contains all the letters of the English alphabet.", Difficulty = "easy", Language = "en", IsGenerated = false, CreatedAt = DateTime.UtcNow });
             await ctx.SaveChangesAsync();
             logger.LogInformation("Default text snippets added successfully.");
         }

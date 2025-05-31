@@ -29,15 +29,21 @@
 
         public void Begin()
         {
-            Status = ParticipantStatus.Typing;
+            if (Status == ParticipantStatus.NotStarted)
+            {
+                Status = ParticipantStatus.Typing;
+            }
         }
 
         public void Complete(double wpm, int errors)
         {
-            WPM = wpm;
-            ErrorCount = errors;
-            FinishedAt = DateTime.UtcNow;
-            Status = ParticipantStatus.Completed;
+            if (Status == ParticipantStatus.Typing)
+            {
+                WPM = wpm;
+                ErrorCount = errors;
+                FinishedAt = DateTime.UtcNow;
+                Status = ParticipantStatus.Completed;
+            }
         }
     }
 }

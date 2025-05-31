@@ -50,7 +50,7 @@ namespace keyraces.Server.Controllers
                 return Ok(users.Select(u => new UserDto
                 {
                     Id = int.TryParse(u.Id, out var idValue) ? idValue : 0,
-                    UserId = int.TryParse(u.Id, out var userIdValue) ? userIdValue : 0,
+                    UserId = u.Id,
                     Name = u.UserName ?? string.Empty,
                     Email = u.Email ?? string.Empty
                 }));
@@ -67,6 +67,7 @@ namespace keyraces.Server.Controllers
         {
             try
             {
+                _logger.LogInformation($"RoleController: GetUserRoles for UserId: '{userId}'");
                 var roles = await _roleService.GetUserRolesAsync(userId);
                 return Ok(roles);
             }
@@ -109,8 +110,11 @@ namespace keyraces.Server.Controllers
         {
             try
             {
+                _logger.LogInformation($"RoleController: AddUserToRole - Received UserId: '{dto.UserId}', RoleName: '{dto.RoleName}'");
+
                 if (string.IsNullOrWhiteSpace(dto.UserId) || string.IsNullOrWhiteSpace(dto.RoleName))
                 {
+                    _logger.LogWarning("RoleController: AddUserToRole - UserId or RoleName is null or whitespace.");
                     return BadRequest(new { message = "User ID and role name cannot be empty" });
                 }
 
@@ -121,12 +125,13 @@ namespace keyraces.Server.Controllers
                 }
                 else
                 {
-                    return StatusCode(500, new { message = $"Failed to add user to role {dto.RoleName}" });
+                    _logger.LogWarning($"RoleController: AddUserToRole - _roleService.AddUserToRoleAsync for user '{dto.UserId}' and role '{dto.RoleName}' returned false.");
+                    return StatusCode(500, new { message = $"Failed to add user to role {dto.RoleName}. Check server logs for RoleService details." });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error adding user {dto.UserId} to role {dto.RoleName}");
+                _logger.LogError(ex, $"RoleController: AddUserToRole - Error adding user '{dto.UserId}' to role '{dto.RoleName}'");
                 return StatusCode(500, new { message = "Error adding user to role" });
             }
         }
@@ -136,8 +141,10 @@ namespace keyraces.Server.Controllers
         {
             try
             {
+                _logger.LogInformation($"RoleController: RemoveUserFromRole - UserId: '{userId}', RoleName: '{roleName}'");
                 if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(roleName))
                 {
+                    _logger.LogWarning("RoleController: RemoveUserFromRole - UserId or RoleName is null or whitespace.");
                     return BadRequest(new { message = "User ID and role name cannot be empty" });
                 }
 
@@ -148,12 +155,13 @@ namespace keyraces.Server.Controllers
                 }
                 else
                 {
+                    _logger.LogWarning($"RoleController: RemoveUserFromRole - _roleService.RemoveUserFromRoleAsync for user '{userId}' and role '{roleName}' returned false.");
                     return StatusCode(500, new { message = $"Failed to remove user from role {roleName}" });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error removing user {userId} from role {roleName}");
+                _logger.LogError(ex, $"RoleController: RemoveUserFromRole - Error removing user '{userId}' from role '{roleName}'");
                 return StatusCode(500, new { message = "Error removing user from role" });
             }
         }
