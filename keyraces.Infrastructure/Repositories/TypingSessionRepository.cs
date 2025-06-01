@@ -2,6 +2,9 @@
 using keyraces.Core.Entities;
 using keyraces.Core.Interfaces;
 using keyraces.Infrastructure.Data;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace keyraces.Infrastructure.Repositories
 {
@@ -30,6 +33,12 @@ namespace keyraces.Infrastructure.Repositories
         {
             _ctx.Sessions.Update(entity);
             await _ctx.SaveChangesAsync();
+        }
+
+        public async Task<int> CountSessionsByUserProfileIdAsync(int userProfileId)
+        {
+            return await _ctx.Sessions
+                             .CountAsync(s => s.UserId == userProfileId);
         }
     }
 }

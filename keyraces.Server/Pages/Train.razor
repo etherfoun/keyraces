@@ -948,9 +948,27 @@
             
             UpdateStatistics();
             
-            await SessionService.CompleteSessionAsync(session.Id, DateTime.UtcNow);
-            
-            await StatisticService.CreateAsync(session.Id, wpm, totalErrors);
+            // Use the new API endpoint that includes achievement checking
+            var completionRequest = new 
+            {
+                SessionId = session.Id,
+                Wpm = wpm,
+                Accuracy = accuracy / 100.0, // Convert percentage to decimal
+                Errors = totalErrors,
+                Duration = elapsedTime
+            };
+
+            var response = await Http.PostAsJsonAsync("/api/Session/complete", completionRequest);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error completing session via API: {error}");
+                throw new Exception($"Failed to complete session: {error}");
+            }
+
+            var sessionResult = await response.Content.ReadFromJsonAsync<TypingSessionResult>();
+            Console.WriteLine($"Session completed successfully. Result ID: {sessionResult?.Id}");
             
             finalWpm = wpm;
             finalAccuracy = accuracy;

@@ -1,33 +1,55 @@
 ﻿using keyraces.Core.Entities;
+using keyraces.Core.Enums;
 using keyraces.Core.Interfaces;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace keyraces.Infrastructure.Services
 {
     public class AchievementService : IAchievementService
     {
-        private readonly IAchievementRepository _repo;
-        private readonly IUserAchievementRepository _uaRepo;
-        public AchievementService(
-            IAchievementRepository repo,
-            IUserAchievementRepository uaRepo)
+        private readonly IAchievementRepository _achievementRepository;
+
+        public AchievementService(IAchievementRepository achievementRepository)
         {
-            _repo = repo;
-            _uaRepo = uaRepo;
+            _achievementRepository = achievementRepository;
         }
-        public Task<IEnumerable<Achievement>> ListAsync()
-    => _repo.ListAsync();
-        public async Task<Achievement> CreateAchievementAsync(string name, string description)
+
+        public async Task<Achievement> CreateAchievementAsync(string name, string description, AchievementKey key, string? iconCssClass = null)
         {
-            var a = new Achievement(name, description);
-            await _repo.AddAsync(a);
-            return a;
+            var existingAchievement = await _achievementRepository.GetByKeyAsync(key);
+            if (existingAchievement != null)
+            {
+                throw new System.InvalidOperationException($"Achievement with key {key} already exists.");
+            }
+            var achievement = new Achievement(key, name, description) { IconCssClass = iconCssClass };
+            await _achievementRepository.AddAsync(achievement);
+            return achievement;
         }
-        public async Task AwardAsync(int userId, int achievementId)
+
+        public async Task<Achievement?> GetByIdAsync(int id)
         {
-            var ua = new UserAchievement(userId, achievementId);
-            await _uaRepo.AddAsync(ua);
+            return await _achievementRepository.GetByIdAsync(id);
         }
-        public Task<IEnumerable<UserAchievement>> GetUserAchievementsAsync(int userId) =>
-            _uaRepo.ListByUserAsync(userId);
+
+        public async Task<Achievement?> GetByKeyAsync(AchievementKey key)
+        {
+            return await _achievementRepository.GetByKeyAsync(key);
+        }
+
+        public async Task<IEnumerable<Achievement>> ListAsync()
+        {
+            return await _achievementRepository.ListAllAsync();
+        }
+
+        public async Task UpdateAsync(Achievement achievement)
+        {
+            await _achievementRepository.UpdateAsync(achievement);
+        }
+
+        public async Task DeleteAsync(int id)
+        {
+            await _achievementRepository.DeleteAsync(id);
+        }
     }
 }

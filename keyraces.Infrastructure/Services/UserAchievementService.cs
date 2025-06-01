@@ -1,31 +1,39 @@
 ﻿using keyraces.Core.Entities;
 using keyraces.Core.Interfaces;
-using System;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace keyraces.Infrastructure.Services
 {
     public class UserAchievementService : IUserAchievementService
     {
-        private readonly IUserAchievementRepository _uaRepo;
+        private readonly IUserAchievementRepository _userAchievementRepository;
+        private readonly ILogger<UserAchievementService> _logger;
 
-        public UserAchievementService(IUserAchievementRepository uaRepo)
+        public UserAchievementService(IUserAchievementRepository userAchievementRepository, ILogger<UserAchievementService> logger)
         {
-            _uaRepo = uaRepo;
+            _userAchievementRepository = userAchievementRepository;
+            _logger = logger;
         }
 
-        public Task<IEnumerable<UserAchievement>> GetUserAchievementsAsync(int userId)
+        public async Task AwardAsync(int userProfileId, int achievementId)
         {
-            return _uaRepo.ListByUserAsync(userId);
+            var existing = await _userAchievementRepository.FindByUserAndAchievementAsync(userProfileId, achievementId);
+            if (existing != null)
+            {
+                _logger.LogInformation("Achievement {AchievementId} already awarded to user profile {UserProfileId}. Skipping.", achievementId, userProfileId);
+                return;
+            }
+
+            var userAchievement = new UserAchievement(userProfileId, achievementId);
+            await _userAchievementRepository.AddAsync(userAchievement);
+            _logger.LogInformation("Successfully awarded achievement {AchievementId} to user profile {UserProfileId}.", achievementId, userProfileId);
         }
 
-        public Task AwardAsync(int userId, int achievementId)
+        public async Task<IEnumerable<UserAchievement>> GetUserAchievementsAsync(int userProfileId)
         {
-            var ua = new UserAchievement(userId, achievementId);
-            return _uaRepo.AddAsync(ua);
+            return await _userAchievementRepository.ListByUserWithAchievementDataAsync(userProfileId);
         }
     }
 }

@@ -1,0 +1,106 @@
+﻿@page "/profile/achievements"
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@using Blazored.LocalStorage
+@using keyraces.Server.Dtos
+@using System.Security.Claims
+
+<PageTitle>My Achievements</PageTitle>
+
+<h3>My Achievements</h3>
+
+@if (isLoading)
+{
+    <p><em>Loading achievements...</em></p>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (achievements == null || !achievements.Any())
+{
+    <p>No achievements unlocked yet. Keep practicing!</p>
+}
+else
+{
+    <div class="achievements-grid">
+        @foreach (var achievement in achievements)
+        {
+            <div class="achievement-card @(string.IsNullOrEmpty(achievement.IconCssClass) ? "no-icon" : "")" title="@achievement.Description">
+                @if (!string.IsNullOrEmpty(achievement.IconCssClass))
+                {
+                    <div class="achievement-icon">
+                        <i class="@achievement.IconCssClass fa-2x"></i>
+                    </div>
+                }
+                <div class="achievement-details">
+                    <h5 class="achievement-name">@achievement.Name</h5>
+                    <p class="achievement-description">@achievement.Description</p>
+                    <small class="achievement-awarded-at text-muted">Awarded: @achievement.AwardedAt.ToLocalTime().ToString("g")</small>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<style>
+    .achievements-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+
+    .achievement-card {
+        background-color: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 4px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease-in-out;
+    }
+
+        .achievement-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .achievement-card.no-icon {
+        }
+
+    .achievement-icon {
+        margin-bottom: 0.75rem;
+        color: var(--mud-palette-primary);
+    }
+
+        .achievement-icon i {
+            font-size: 2.5rem;
+        }
+
+    .achievement-details {
+    }
+
+    .achievement-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: var(--mud-palette-text-primary);
+    }
+
+    .achievement-description {
+        font-size: 0.9rem;
+        color: var(--mud-palette-text-secondary);
+        margin-bottom: 0.5rem;
+        flex-grow: 1;
+    }
+
+    .achievement-awarded-at {
+        font-size: 0.8rem;
+    }
+</style>

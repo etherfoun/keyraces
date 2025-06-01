@@ -1,16 +1,15 @@
 ﻿using keyraces.Core.Enums;
-using System.ComponentModel.DataAnnotations;
+using System;
 
 namespace keyraces.Server.Dtos
 {
-    public class CreateAchievementDto
+    public class UserAchievementDisplayDto
     {
-        [Required]
-        public string Name { get; set; } = string.Empty;
-        [Required]
-        public string Description { get; set; } = string.Empty;
-        [Required]
+        public int AchievementId { get; set; }
         public AchievementKey Key { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public DateTime AwardedAt { get; set; }
         public string? IconCssClass { get; set; }
     }
 }

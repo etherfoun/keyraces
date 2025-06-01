@@ -5,7 +5,7 @@ using keyraces.Infrastructure.Data;
 using keyraces.Infrastructure.Repositories;
 using keyraces.Infrastructure.Security;
 using keyraces.Infrastructure.Services;
-using keyraces.Server; // Для LoggingDelegatingHandler и BlazorCookieHandler
+using keyraces.Server;
 using keyraces.Server.Hubs;
 using keyraces.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,6 +17,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using System.Text;
+using Blazored.LocalStorage; 
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,33 +34,19 @@ builder.WebHost.ConfigureKestrel(options =>
     });
 });
 
-// Регистрация DelegatingHandlers
 builder.Services.AddTransient<LoggingDelegatingHandler>();
 builder.Services.AddTransient<BlazorCookieHandler>();
 
-// Удаляем старую регистрацию HttpClient
-// builder.Services.AddScoped<HttpClient>(sp =>
-// {
-//     var nav = sp.GetRequiredService<NavigationManager>();
-//     return new HttpClient { BaseAddress = new Uri(nav.BaseUri) };
-// });
-// builder.Services.AddHttpClient(); // Эта общая регистрация также заменяется подходом с фабрикой
-
-// Конфигурируем именованный HttpClient с логирующим и cookie обработчиками
-// BlazorCookieHandler должен идти ПЕРЕД LoggingDelegatingHandler, чтобы логирующий увидел добавленный cookie
 builder.Services.AddHttpClient("BlazorAppClient", client =>
 {
-    // BaseAddress будет установлен при создании клиента в регистрации AddScoped ниже
 })
-.AddHttpMessageHandler<BlazorCookieHandler>()      // Этот обработчик пытается добавить cookie
-.AddHttpMessageHandler<LoggingDelegatingHandler>(); // Этот обработчик логирует запрос (теперь, надеюсь, включая cookie)
+.AddHttpMessageHandler<BlazorCookieHandler>()
+.AddHttpMessageHandler<LoggingDelegatingHandler>();
 
-// Регистрируем HttpClient для DI, чтобы он использовал фабрику и устанавливал BaseAddress
-// Это гарантирует, что @inject HttpClient в Blazor компонентах получит сконфигурированный клиент.
 builder.Services.AddScoped(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var client = httpClientFactory.CreateClient("BlazorAppClient"); // Используем именованный клиент
+    var client = httpClientFactory.CreateClient("BlazorAppClient");
 
     var navigationManager = sp.GetRequiredService<NavigationManager>();
     client.BaseAddress = new Uri(navigationManager.BaseUri);
@@ -68,10 +55,9 @@ builder.Services.AddScoped(sp =>
 });
 
 
-// Добавляем сервисы в контейнер.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddHttpContextAccessor(); // Крайне важен для BlazorCookieHandler
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -89,11 +75,11 @@ builder.Services.AddSession(options =>
 
 
 builder.Services.AddScoped<ThemeService>();
+builder.Services.AddBlazoredLocalStorage();
 
 builder.Services.AddDbContextFactory<AppDbContext>(opts =>
   opts.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
-// Настройка ASP.NET Core Identity
 builder.Services
     .AddIdentity<IdentityUser, IdentityRole>(options => {
         options.Password.RequireNonAlphanumeric = false;
@@ -106,14 +92,13 @@ builder.Services
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
-// Конфигурация аутентификации
 builder.Services.AddAuthentication(options => {
     options.DefaultScheme = IdentityConstants.ApplicationScheme;
     options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
     options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
     options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
 })
-    .AddJwtBearer(options => // JWT для SignalR или других специфичных API
+    .AddJwtBearer(options =>
     {
         options.SaveToken = true;
         options.RequireHttpsMetadata = false;
@@ -148,10 +133,9 @@ builder.Services.AddAuthentication(options => {
         };
     });
 
-// Настройка cookie приложения (используется Identity)
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.Cookie.Name = "KeyRaces"; // Это имя cookie, которое будет искать BlazorCookieHandler
+    options.Cookie.Name = "KeyRaces";
     options.Cookie.HttpOnly = true;
     options.ExpireTimeSpan = TimeSpan.FromDays(30);
     options.SlidingExpiration = true;
@@ -161,14 +145,12 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 builder.Services.AddAuthorization(options => {
-    // Здесь можно определить политики, если необходимо
 });
 
 
 builder.Services.AddScoped<IPasswordHasher, AspNetPasswordHasher>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 
-// Репозитории
 builder.Services.AddScoped<ICompetitionRepository, CompetitionRepository>();
 builder.Services.AddScoped<ICompetitionParticipantRepository, CompetitionParticipantRepository>();
 builder.Services.AddScoped<ILeaderboardRepository, LeaderboardRepository>();
@@ -180,23 +162,21 @@ builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 builder.Services.AddScoped<ITypingStatisticRepository, TypingStatisticRepository>();
 builder.Services.AddScoped<ITypingSessionRepository, TypingSessionRepository>();
 
-
-// Сервисы
 builder.Services.AddScoped<ICompetitionService, CompetitionService>();
 builder.Services.AddScoped<ICompetitionParticipantService, CompetitionParticipantService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IAchievementService, AchievementService>();
+builder.Services.AddScoped<IUserAchievementService, UserAchievementService>();
+builder.Services.AddScoped<IAchievementCheckerService, AchievementCheckerService>(); 
 builder.Services.AddScoped<ITextSnippetService, TextSnippetService>();
 builder.Services.AddScoped<ITypingSessionService, TypingSessionService>();
 builder.Services.AddScoped<ITypingStatisticService, TypingStatisticService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
-builder.Services.AddScoped<IUserAchievementService, UserAchievementService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
 builder.Services.AddScoped<ICompetitionLobbyService, RedisCompetitionLobbyService>();
 
-// Регистрация Redis
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
     var redisConfig = builder.Configuration.GetSection("Redis");
@@ -206,7 +186,6 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     return ConnectionMultiplexer.Connect(configuration);
 });
 
-// Сервис генерации текста (OllamaClient)
 builder.Services.AddHttpClient("OllamaClient", (serviceProvider, client) =>
 {
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
@@ -224,7 +203,7 @@ builder.Services.AddScoped<ITextGenerationService>(serviceProvider =>
     var logger = serviceProvider.GetRequiredService<ILogger<LocalLLMTextGenerationService>>();
     var apiUrl = configuration["Ollama:ApiUrl"] ?? "http://localhost:11434/api/generate";
     var modelName = configuration["Ollama:ModelName"] ?? "llama2";
-    var ollamaHttpClient = httpClientFactory.CreateClient("OllamaClient"); // Используем именованный клиент для Ollama
+    var ollamaHttpClient = httpClientFactory.CreateClient("OllamaClient");
     return new LocalLLMTextGenerationService(logger, ollamaHttpClient, serviceProvider, apiUrl, modelName);
 });
 
@@ -263,7 +242,7 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseRouting();
 
-app.UseSession(); // Убедитесь, что UseSession вызывается перед UseAuthentication и UseAuthorization, если сессии используются для чего-то еще
+app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -274,7 +253,6 @@ app.MapHub<TypingHub>("/hub/typing");
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
-// Инициализация и сидинг базы данных
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -291,6 +269,9 @@ using (var scope = app.Services.CreateScope())
 
         var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+        await keyraces.Infrastructure.Data.Seed.AchievementSeeder.SeedAsync(ctx, logger);
+
 
         string[] roleNames = { "Admin", "User" };
         foreach (var roleName in roleNames)
