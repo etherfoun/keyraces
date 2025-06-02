@@ -486,7 +486,7 @@
                     </div>
                     <div class="chat-input">
                         <input type="text" class="message-input" placeholder="Enter message..." 
-                               @bind="newMessage" @bind:event="oninput" @onkeypress="@(async (e) => { if (e.Key == "Enter") await SendMessage(); })" />
+                               @bind="newMessage" @bind:event="oninput" @onkeydown="@(async (e) => { if (e.Key == "Enter" && !e.ShiftKey) { await SendMessage(); } })" />
                         <button class="send-btn" @onclick="SendMessage" disabled="@string.IsNullOrWhiteSpace(newMessage)">
                             <i class="oi oi-location"></i>
                         </button>
@@ -862,7 +862,11 @@
             if (lobby != null)
             {
                 isHost = lobby.HostId == currentUserId;
-                chatMessages = await LobbyService.GetChatMessagesAsync(LobbyId) ?? new List<ChatMessage>();
+                // Загружаем сообщения только если список пуст, чтобы избежать дублирования
+                if (!chatMessages.Any())
+                {
+                    chatMessages = await LobbyService.GetChatMessagesAsync(LobbyId) ?? new List<ChatMessage>();
+                }
                 
                 if (lobby.Status == LobbyStatus.InGame && !string.IsNullOrEmpty(lobby.TextSnippetId))
                 {
@@ -993,7 +997,7 @@
     {
         try
         {
-            var token = await JS.InvokeAsync<string>("localStorage.getItem", "auth_token");
+            var token = await JS.InvokeAsync<string>("authInterop.getToken");
             
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(NavigationManager.ToAbsoluteUri("/typingHub"), options =>
@@ -1020,7 +1024,15 @@
             hubConnection.On<string, bool>("UserReadyStatusChanged", async (userId, isReady) =>
             {
                 Console.WriteLine($"SignalR: User ready status changed - {userId}: {isReady}");
-                await LoadLobby();
+                // Удаляем LoadLobby() чтобы избежать перезагрузки сообщений
+                if (lobby != null)
+                {
+                    var player = lobby.Players.FirstOrDefault(p => p.UserId == userId);
+                    if (player != null)
+                    {
+                        player.IsReady = isReady;
+                    }
+                }
                 await InvokeAsync(StateHasChanged);
             });
 
@@ -1077,7 +1089,11 @@
             hubConnection.On<keyraces.Core.Models.CompetitionLobby>("ReadyStatusChanged", async (updatedLobby) =>
             {
                 Console.WriteLine($"SignalR: ReadyStatusChanged event received");
+                // Сохраняем текущие сообщения
+                var currentMessages = chatMessages.ToList();
                 lobby = updatedLobby;
+                // Восстанавливаем сообщения
+                chatMessages = currentMessages;
                 await InvokeAsync(StateHasChanged);
             });
 
@@ -1133,8 +1149,38 @@
         }
     }
 
+    private async Task ReconnectSignalR()
+    {
+        try
+        {
+            if (hubConnection != null)
+            {
+                if (hubConnection.State == HubConnectionState.Connected)
+                    return;
+                
+                if (hubConnection.State == HubConnectionState.Disconnected)
+                {
+                    await hubConnection.StartAsync();
+                    await hubConnection.SendAsync("JoinLobby", LobbyId);
+                    Console.WriteLine("SignalR reconnected successfully");
+                }
+            }
+            else
+            {
+                await SetupSignalR();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to reconnect SignalR: {ex.Message}");
+        }
+    }
+
     private async Task ToggleReady()
     {
+        // Убедимся, что фокус снят с поля ввода чата
+        await JS.InvokeVoidAsync("document.activeElement.blur");
+        
         if (lobby == null || currentUserId == null) 
         {
             Console.WriteLine($"Cannot toggle ready: lobby={(lobby != null)}, currentUserId={(!string.IsNullOrEmpty(currentUserId))}");
@@ -1149,21 +1195,30 @@
         
             player.IsReady = newReadyStatus;
             StateHasChanged();
-        
-            var success = await LobbyService.UpdateReadyStatusAsync(LobbyId, currentUserId, newReadyStatus);
-            Console.WriteLine($"UpdateReadyStatusAsync result: {success}");
-        
-            if (success && hubConnection != null)
+    
+        var success = await LobbyService.UpdateReadyStatusAsync(LobbyId, currentUserId, newReadyStatus);
+        Console.WriteLine($"UpdateReadyStatusAsync result: {success}");
+    
+        if (success && hubConnection != null && hubConnection.State == HubConnectionState.Connected)
+        {
+            try
             {
                 await hubConnection.SendAsync("UpdateReadyStatus", LobbyId, newReadyStatus);
             }
-        }
-        else
-        {
-            Console.WriteLine($"Player not found in lobby. CurrentUserId: {currentUserId}");
-            Console.WriteLine($"Players in lobby: {string.Join(", ", lobby.Players.Select(p => $"{p.UserName}({p.UserId})"))}");
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send SignalR message: {ex.Message}");
+                // Попытка переподключения
+                await ReconnectSignalR();
+            }
         }
     }
+    else
+    {
+        Console.WriteLine($"Player not found in lobby. CurrentUserId: {currentUserId}");
+        Console.WriteLine($"Players in lobby: {string.Join(", ", lobby.Players.Select(p => $"{p.UserName}({p.UserId})"))}");
+    }
+}
 
     private async Task CloseCompletionModal()
     {
@@ -1326,12 +1381,35 @@
 
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(newMessage) || hubConnection == null) return;
-
-        await LobbyService.AddChatMessageAsync(LobbyId, currentUserId, currentUserName, newMessage);
-        await hubConnection.SendAsync("SendChatMessage", LobbyId, newMessage);
+        if (string.IsNullOrWhiteSpace(newMessage)) return;
         
+        // Сохраняем сообщение во временную переменную и сразу очищаем поле ввода
+        string messageToSend = newMessage;
         newMessage = "";
+        StateHasChanged(); // Обновляем UI немедленно
+        
+        if (hubConnection == null || hubConnection.State != HubConnectionState.Connected)
+        {
+            Console.WriteLine("SignalR connection not active, attempting to reconnect...");
+            await ReconnectSignalR();
+        
+            if (hubConnection == null || hubConnection.State != HubConnectionState.Connected)
+            {
+                Console.WriteLine("Failed to establish SignalR connection for sending message");
+                return;
+            }
+        }
+
+        try
+        {
+            await LobbyService.AddChatMessageAsync(LobbyId, currentUserId, currentUserName, messageToSend);
+            await hubConnection.SendAsync("SendChatMessage", LobbyId, messageToSend);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to send message: {ex.Message}");
+            await ReconnectSignalR();
+        }
     }
 
     private async Task LeaveLobby()
@@ -1626,8 +1704,21 @@
         
         if (hubConnection != null)
         {
-            await hubConnection.SendAsync("LeaveLobby", LobbyId); 
-            await hubConnection.DisposeAsync();
+            try
+            {
+                if (hubConnection.State == HubConnectionState.Connected)
+                {
+                    await hubConnection.SendAsync("LeaveLobby", LobbyId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error leaving lobby during dispose: {ex.Message}");
+            }
+            finally
+            {
+                await hubConnection.DisposeAsync();
+            }
         }
     }
 }

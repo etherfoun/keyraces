@@ -17,7 +17,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using System.Text;
-using Blazored.LocalStorage; 
+using Blazored.LocalStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -129,6 +129,12 @@ builder.Services.AddAuthentication(options => {
                     context.Token = accessToken;
                 }
                 return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogError("JWT Authentication failed: {Error}", context.Exception.Message);
+                return Task.CompletedTask;
             }
         };
     });
@@ -145,6 +151,12 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 builder.Services.AddAuthorization(options => {
+    options.AddPolicy("SignalRPolicy", policy =>
+    {
+        policy.AuthenticationSchemes.Add(JwtBearerDefaults.AuthenticationScheme);
+        policy.AuthenticationSchemes.Add(IdentityConstants.ApplicationScheme);
+        policy.RequireAuthenticatedUser();
+    });
 });
 
 
@@ -167,7 +179,7 @@ builder.Services.AddScoped<ICompetitionParticipantService, CompetitionParticipan
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IAchievementService, AchievementService>();
 builder.Services.AddScoped<IUserAchievementService, UserAchievementService>();
-builder.Services.AddScoped<IAchievementCheckerService, AchievementCheckerService>(); 
+builder.Services.AddScoped<IAchievementCheckerService, AchievementCheckerService>();
 builder.Services.AddScoped<ITextSnippetService, TextSnippetService>();
 builder.Services.AddScoped<ITypingSessionService, TypingSessionService>();
 builder.Services.AddScoped<ITypingStatisticService, TypingStatisticService>();
